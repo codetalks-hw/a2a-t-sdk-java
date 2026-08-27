@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
  */
 class TaskTAccuracyEvaluatorTest {
 
-    private static final String PORT = "P781-珠江新城-PTN7900-23-TPA1EG24-17";
+    private static final String PORT = "P781-KXVN-PTN7900-23-TPA1EG24-17";
 
     // ---------------------------------------------------------------------
     // matches(): EXACT mode
