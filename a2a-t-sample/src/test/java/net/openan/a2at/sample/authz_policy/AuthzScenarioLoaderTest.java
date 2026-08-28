@@ -56,27 +56,29 @@ class AuthzScenarioLoaderTest {
     void should_loadAndValidateFullSuiteScenarios() {
         List<AuthzScenario> scenarios = AuthzScenarioLoader.load("sample/authz-policy/scenarios-100.json");
 
-        assertEquals(100, scenarios.size());
+        assertEquals(102, scenarios.size());
         long variants = scenarios.stream()
                 .filter(s -> s.label().endsWith("-varname")
                         || s.label().endsWith("-varfields")
                         || s.label().endsWith("-varflat")
                         || s.label().endsWith("-varreq")
                         || s.label().endsWith("-varsch")
+                        || s.label().endsWith("-varuuid")
+                        || s.label().endsWith("-vardesc")
                         || s.label().endsWith("-dual"))
                 .count();
-        assertEquals(45, variants);
+        assertEquals(47, variants);
         long clientInterceptions = scenarios.stream()
                 .filter(s -> s.expected().client() != null && s.expected().client().outcome() != null)
                 .count();
-        assertEquals(10, clientInterceptions);
+        assertEquals(9, clientInterceptions);
         long serverRejections = scenarios.stream()
                 .filter(s -> s.expected().server() != null
                         && "validation_semantic_rejected".equals(s.expected().server().outcome()))
                 .count();
-        assertEquals(30, serverRejections);
+        assertEquals(37, serverRejections);
         long validateSchemas = scenarios.stream().filter(s -> s.validateSchema() != null).count();
-        assertEquals(42, validateSchemas);
+        assertEquals(43, validateSchemas);
     }
 
     @Test
