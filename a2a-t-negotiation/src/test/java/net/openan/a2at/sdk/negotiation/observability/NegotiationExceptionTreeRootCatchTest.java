@@ -167,42 +167,37 @@ class NegotiationExceptionTreeRootCatchTest {
     }
 
     @Test
-    void nullPromptOnValidateAndFillingStaysOutsideTheCommonRoot() {
+    void nullPromptOnValidateAndFillingMapsToInvalidInput() {
         NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
                 .language("zh-CN")
                 .build();
 
-        NullPointerException failure = assertThrows(
-                NullPointerException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(
-                        null,
-                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
-                        Map.of("type", "object"),
-                        INFORMATION_PROPOSE_URI));
+        RuntimeException failure = catchThroughRoot(() -> orchestrator.validateProposePromptAndDataFilling(
+                null,
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                Map.of("type", "object"),
+                INFORMATION_PROPOSE_URI));
 
-        assertFalse(A2ATError.class.isInstance(failure), "a null prompt is a programming error and must stay outside the A2ATError tree");
+        assertTrue(failure instanceof NegotiationParamExtractionException);
+        assertEquals(
+                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
-    void blankPromptOnValidateAndFillingStaysOutsideTheCommonRoot() {
+    void blankPromptOnValidateAndFillingMapsToInvalidInput() {
         NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
                 .language("zh-CN")
                 .build();
 
-        IllegalArgumentException failure = assertThrows(
-                IllegalArgumentException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(
-                        "   ",
-                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
-                        Map.of("type", "object"),
-                        INFORMATION_PROPOSE_URI));
+        RuntimeException failure = catchThroughRoot(() -> orchestrator.validateProposePromptAndDataFilling(
+                "   ",
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                Map.of("type", "object"),
+                INFORMATION_PROPOSE_URI));
 
-        assertFalse(
-                A2ATError.class.isInstance(failure),
-                "a blank prompt is a programming error and must stay outside the A2ATError tree");
-        assertTrue(
-                failure.getMessage().contains("blank"),
-                "the failure must point at the blank prompt but was: " + failure.getMessage());
+        assertTrue(failure instanceof NegotiationParamExtractionException);
+        assertEquals(
+                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
     }
 
     /**

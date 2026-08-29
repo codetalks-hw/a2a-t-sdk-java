@@ -1,7 +1,6 @@
 package net.openan.a2at.sdk.prompt.validation;
 
 import java.util.Map;
-import java.util.Objects;
 import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.FilledParamData;
@@ -23,10 +22,10 @@ import org.jspecify.annotations.Nullable;
  * {@code TEMPLATE_NOT_FOUND} error, distinct from the {@code VALIDATION_PROMPT_RESOURCE_NOT_FOUND} code that signals
  * missing content_validation prompt resources. The loaded template text flows into the pipeline for prompt injection.
  *
- * <p>The semantic validator is initialised lazily on the first {@link #validate} call so that constructing the
- * validator never loads prompt resources — the facade builders can wire the validator eagerly without requiring the
- * content_validation prompt resources to be present at startup. The content_validation prompt resources are internal
- * LLM instructions loaded from the classpath regardless of the configured prompt source type.
+ * <p>The validation pipeline and the content_validation prompt resources are assembled eagerly in the constructor (ADR
+ * 0004 snapshot semantics): the constructor resolves and freezes the prompt resources once, and a missing resource
+ * fails fast at assembly time instead of on the first {@link #validate} call. The content_validation prompt resources
+ * are internal LLM instructions loaded from the classpath regardless of the configured prompt source type.
  *
  * @since 2026-08
  */
@@ -34,17 +33,14 @@ public final class DefaultContentValidator implements ContentValidator {
 
     private final String extensionName;
     private final String language;
-    private final int maxAttempts;
-    private final LLMClient llmClient;
     private final PromptTemplateTextLoader templateLoader;
-
-    private volatile ValidationPipeline pipeline;
+    private final ValidationPipeline<TemplateUri> pipeline;
 
     /**
      * Creates a content validator for the given extension name and language.
      *
-     * <p>The constructor does not load any prompt resources. The underlying semantic validator and its prompt resources
-     * are loaded on the first {@link #validate} call.
+     * <p>The constructor assembles the validation pipeline and loads the content_validation prompt resources of the
+     * configured language from the classpath.
      *
      * @param extensionName extension name used for template URI validation
      * @param language language code for prompt resource loading and template loading
@@ -54,6 +50,8 @@ public final class DefaultContentValidator implements ContentValidator {
      *     {@code VALIDATION_LLM_INFRASTRUCTURE_ERROR}; there is no late injection point
      * @param templateLoader sourceType-aware template text loader for loading the template referenced by the
      *     {@code templateUri} of every {@link #validate} call
+     * @throws ContentValidationException if the content_validation prompt resources of the given language are missing
+     *     on the classpath
      */
     public DefaultContentValidator(
             @NonNull String extensionName,
@@ -63,9 +61,8 @@ public final class DefaultContentValidator implements ContentValidator {
             @NonNull PromptTemplateTextLoader templateLoader) {
         this.extensionName = extensionName;
         this.language = language;
-        this.maxAttempts = maxAttempts;
-        this.llmClient = llmClient;
         this.templateLoader = templateLoader;
+        this.pipeline = assemblePipeline(language, maxAttempts, llmClient);
     }
 
     /**
@@ -76,26 +73,31 @@ public final class DefaultContentValidator implements ContentValidator {
      * @param templateUri URI of the template the content is validated against, such as
      *     {@code Task-T/network-layer/ran-energy-saving/v1}
      * @return filled parameter data carrying the merged parameters
-     * @throws NullPointerException if the prompt, schema or template URI is null
-     * @throws IllegalArgumentException if the prompt is blank, the template URI addresses another extension than the
-     *     one this validator is configured for, or the template URI version is unsupported
-     * @throws ContentValidationException if the validation fails at any stage, including
-     *     {@code TEMPLATE_NOT_FOUND} when the template cannot be loaded, or
-     *     {@code VALIDATION_PROMPT_RESOURCE_NOT_FOUND} when the content_validation prompt resources of the configured
-     *     language are missing on the classpath
+     * @throws ContentValidationException with {@code validation_invalid_input} if the template URI is null, addresses
+     *     another extension than the one this validator is configured for, or carries an unsupported version; or if the
+     *     prompt is null or blank, or the schema is null
+     * @throws ContentValidationException if the validation fails at any stage, including {@code TEMPLATE_NOT_FOUND}
+     *     when the template cannot be loaded
      */
     @Override
     public FilledParamData validate(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
+        if (templateUri == null) {
+            throw new ContentValidationException(
+                    A2ATErrorCodes.VALIDATION_INVALID_INPUT, "Template URI must not be null.");
+        }
 
         if (!extensionName.equals(templateUri.extensionName())) {
-            throw new IllegalArgumentException("Template URI extension '" + templateUri.extensionName()
-                    + "' does not match expected extension '" + extensionName + "'.");
+            throw new ContentValidationException(
+                    A2ATErrorCodes.VALIDATION_INVALID_INPUT,
+                    "Template URI extension '" + templateUri.extensionName()
+                            + "' does not match expected extension '" + extensionName + "'.");
         }
 
         if (!TemplateUri.DEFAULT_TEMPLATE_VERSION.equals(templateUri.templateVersion())) {
-            throw new IllegalArgumentException("Unsupported template URI version: " + templateUri.templateVersion());
+            throw new ContentValidationException(
+                    A2ATErrorCodes.VALIDATION_INVALID_INPUT,
+                    "Unsupported template URI version: " + templateUri.templateVersion());
         }
 
         String templateContent;
@@ -109,26 +111,17 @@ public final class DefaultContentValidator implements ContentValidator {
                     exception);
         }
 
-        return pipeline().validate(prompt, schema, templateUri, templateContent);
+        return pipeline.validate(prompt, schema, templateUri, templateContent);
     }
 
-    private ValidationPipeline pipeline() {
-        ValidationPipeline p = pipeline;
-        if (p == null) {
-            synchronized (this) {
-                p = pipeline;
-                if (p == null) {
-                    try {
-                        p = new ValidationPipeline(
-                                prompt -> Map.of(), new DefaultSemanticValidator(llmClient, language), maxAttempts);
-                    } catch (ResourceNotFoundException exception) {
-                        throw new ContentValidationException(
-                                A2ATErrorCodes.VALIDATION_PROMPT_RESOURCE_NOT_FOUND, exception.getMessage(), exception);
-                    }
-                    pipeline = p;
-                }
-            }
+    private static ValidationPipeline<TemplateUri> assemblePipeline(
+            String language, int maxAttempts, @Nullable LLMClient llmClient) {
+        try {
+            return new ValidationPipeline<>(
+                    prompt -> Map.of(), new DefaultSemanticValidator(llmClient, language), maxAttempts);
+        } catch (ResourceNotFoundException exception) {
+            throw new ContentValidationException(
+                    A2ATErrorCodes.VALIDATION_PROMPT_RESOURCE_NOT_FOUND, exception.getMessage(), exception);
         }
-        return p;
     }
 }

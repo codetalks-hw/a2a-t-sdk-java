@@ -1,59 +1,60 @@
 package net.openan.a2at.sdk.prompt.resources.loader;
 
-import java.io.IOException;
-import java.nio.file.Files;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.nio.file.Path;
-import java.util.Optional;
-import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import java.util.List;
+import java.util.Map;
 import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import net.openan.a2at.sdk.core.resources.PathSegments;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotJsonSchema;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotSchema;
 
 /**
  * Loads shared slot schemas from one local prompt resource root.
  *
+ * <p>Resources are resolved against an assembly-time snapshot of the local root (ADR 0004): runtime reads never touch
+ * the filesystem, so changes to the local files only take effect after the SDK is restarted.
+ *
  * @since 2026-06
  */
 public final class LocalFilePromptSlotSchemaLoader implements PromptSlotSchemaLoader {
 
+    private final Map<String, String> snapshot;
     private final Path promptRootDir;
+    private final List<String> slotTypes;
 
-    public LocalFilePromptSlotSchemaLoader(Path promptRootDir) {
+    public LocalFilePromptSlotSchemaLoader(Map<String, String> snapshot, Path promptRootDir) {
+        this.snapshot = snapshot;
         this.promptRootDir = promptRootDir;
+        this.slotTypes = LocalFileResourceSnapshot.typeDirectories(snapshot, "slots");
     }
 
     @Override
     public PromptSlotSchema loadSlotSchema(String scenarioCode, String language) {
-        Path slotsRoot = promptRootDir.resolve("slots");
-        if (!Files.exists(slotsRoot)) {
+        PathSegments.requireSimpleRelativePath(scenarioCode, "Prompt slot schema scenario code");
+        PathSegments.requireSimpleSegment(language, "Prompt slot schema language");
+        String pathKey;
+        if (scenarioCode.contains("/")) {
+            pathKey = "slots/" + scenarioCode + "/" + language + "/slot.json";
+        } else {
+            pathKey = null;
+            for (String slotType : slotTypes) {
+                String candidate = resolveBareCode(slotType, scenarioCode, language);
+                if (snapshot.containsKey(candidate)) {
+                    pathKey = candidate;
+                    break;
+                }
+            }
+        }
+        if (pathKey == null || !snapshot.containsKey(pathKey)) {
             throw notFound(scenarioCode, language);
         }
-        Path schemaPath;
-        if (scenarioCode.contains("/")) {
-            schemaPath = slotsRoot.resolve(scenarioCode).resolve(language).resolve("slot.json");
-            if (!Files.exists(schemaPath)) {
-                throw notFound(scenarioCode, language);
-            }
-        } else {
-            try (var typePaths = Files.list(slotsRoot)) {
-                Optional<Path> match = typePaths
-                        .filter(Files::isDirectory)
-                        .map(typeDir -> resolveBareCode(typeDir, scenarioCode, language))
-                        .filter(Files::exists)
-                        .findFirst();
-                schemaPath = match.orElse(null);
-            } catch (IOException exception) {
-                throw new A2ATError("Failed to scan slot schema resources: " + slotsRoot, exception);
-            }
-            if (schemaPath == null) {
-                throw notFound(scenarioCode, language);
-            }
-        }
         try {
-            return PromptResourceJsonParser.parse(Files.readString(schemaPath), PromptSlotJsonSchema.class)
+            return PromptResourceJsonParser.parse(snapshot.get(pathKey), PromptSlotJsonSchema.class)
                     .toPromptSlotSchema(scenarioCode);
-        } catch (IOException exception) {
-            throw new A2ATError("Failed to read slot schema resource: " + schemaPath, exception);
+        } catch (JsonProcessingException exception) {
+            throw new A2ATError("Failed to read slot schema resource: " + promptRootDir.resolve(pathKey), exception);
         }
     }
 
@@ -61,19 +62,23 @@ public final class LocalFilePromptSlotSchemaLoader implements PromptSlotSchemaLo
      * Resolves a bare scenario code under one slot type directory, preferring the {@code network-layer} domain layout
      * over the plain layout.
      */
-    private static Path resolveBareCode(Path typeDir, String scenarioCode, String language) {
-        Path networkLayer = typeDir.resolve("network-layer").resolve(scenarioCode).resolve("v1");
-        if (Files.exists(networkLayer.resolve(language).resolve("slot.json"))) {
-            return networkLayer.resolve(language).resolve("slot.json");
+    private String resolveBareCode(String slotType, String scenarioCode, String language) {
+        String networkLayer = "slots/" + slotType + "/network-layer/" + scenarioCode + "/v1/" + language + "/slot.json";
+        if (snapshot.containsKey(networkLayer)) {
+            return networkLayer;
         }
-        return typeDir.resolve(scenarioCode).resolve("v1").resolve(language).resolve("slot.json");
+        return "slots/" + slotType + "/" + scenarioCode + "/v1/" + language + "/slot.json";
     }
 
     private ResourceNotFoundException notFound(String scenarioCode, String language) {
         String pathHint = scenarioCode.contains("/")
-                ? promptRootDir.resolve("slots").resolve(scenarioCode).resolve(language).resolve("slot.json").toString()
-                : promptRootDir.resolve("slots").toString()
-                        + "/*/network-layer/" + scenarioCode + "/v1/" + language
+                ? promptRootDir
+                        .resolve("slots")
+                        .resolve(scenarioCode)
+                        .resolve(language)
+                        .resolve("slot.json")
+                        .toString()
+                : promptRootDir.resolve("slots") + "/*/network-layer/" + scenarioCode + "/v1/" + language
                         + "/slot.json (or the layout without the network-layer segment)";
         return new ResourceNotFoundException("Prompt resource file does not exist.", pathHint);
     }

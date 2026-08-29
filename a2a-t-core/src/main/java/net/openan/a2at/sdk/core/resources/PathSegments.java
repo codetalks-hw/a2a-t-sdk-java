@@ -29,4 +29,39 @@ public final class PathSegments {
                 && !value.contains("\\")
                 && !value.contains("..");
     }
+
+    /**
+     * Requires the value to be a non-blank simple path segment, throwing an {@link IllegalArgumentException}
+     * otherwise.
+     *
+     * @param value candidate path segment such as a language or category identifier; may be {@code null}
+     * @param label human-readable label describing the segment, used in the failure message
+     * @throws IllegalArgumentException when the value is not a simple path segment
+     */
+    public static void requireSimpleSegment(@Nullable String value, String label) {
+        if (!isSimpleSegment(value)) {
+            throw new IllegalArgumentException(
+                    label + " must be a non-blank simple path segment but was " + value + ".");
+        }
+    }
+
+    /**
+     * Requires the value to be a non-blank relative path whose slash-separated segments are each simple path
+     * segments, throwing an {@link IllegalArgumentException} otherwise.
+     *
+     * @param value candidate relative path such as a scenario code; may be {@code null}
+     * @param label human-readable label describing the path, used in the failure message
+     * @throws IllegalArgumentException when the value is null, blank or contains a non-simple path segment
+     */
+    public static void requireSimpleRelativePath(@Nullable String value, String label) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(label + " must be a non-blank relative path but was " + value + ".");
+        }
+        for (String segment : value.split("/", -1)) {
+            if (!isSimpleSegment(segment)) {
+                throw new IllegalArgumentException(
+                        label + " must contain only simple path segments but was " + value + ".");
+            }
+        }
+    }
 }

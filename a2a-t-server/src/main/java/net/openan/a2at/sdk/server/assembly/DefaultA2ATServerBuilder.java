@@ -179,7 +179,7 @@ public final class DefaultA2ATServerBuilder {
         require(config, "Unified SDK config must be configured.");
         requireSupportedConfig();
         return new TemplateQueryService(
-                config.prompt().language(), config.prompt().localRootDir());
+                config.prompt().language(), config.prompt().sourceType(), config.prompt().localRootDir());
     }
 
     /**

@@ -41,10 +41,11 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Drives the env-configured negotiation behavior of the client facade end to end.
  *
- * <p>All three negotiation-relevant env keys must become observable in the facade behavior: the language selects the
- * Chinese templates, the local resource root overrides one template, and the LLM attempt limit bounds the retry loop of
- * the from-text generation. A second test proves the zero-configuration defaults (English templates, three attempts,
- * built-in resources) work out of the box.
+ * <p>The negotiation-relevant env keys must become observable in the facade behavior: the language selects the Chinese
+ * templates, and the LLM attempt limit bounds the retry loop of the from-text generation. Under ADR 0004 the negotiation
+ * templates are classpath-fixed, so a configured local resource root is ignored in {@code classpath} mode: the built-in
+ * template wins over any local override. A second test proves the zero-configuration defaults (English templates, three
+ * attempts, built-in resources) work out of the box.
  */
 class A2ATClientNegotiationEnvConfigTest {
 
@@ -88,7 +89,7 @@ class A2ATClientNegotiationEnvConfigTest {
     }
 
     @Test
-    void languageLocalRootAndMaxAttemptsAreAllObservableInFacadeBehavior() throws IOException {
+    void languageAndMaxAttemptsAreObservableAndClasspathIgnoresLocalRoot() throws IOException {
         Path customRoot = writeCustomRootWithMarkeredTemplate();
         Path envFile = writeEnvFile(
                 "A2AT_LANGUAGE=zh-CN",
@@ -109,9 +110,9 @@ class A2ATClientNegotiationEnvConfigTest {
                 INFORMATION_PROPOSE);
 
         assertTrue(result.promptText().contains("所需信息项"), "the zh-CN language must select the Chinese templates");
-        assertTrue(
+        assertFalse(
                 result.promptText().contains(CUSTOM_TEMPLATE_MARKER),
-                "the local resource root template must win over the built-in template");
+                "the configured local resource root must be ignored in classpath mode and the built-in template used");
 
         NegotiationGenerationException failure = assertThrows(
                 NegotiationGenerationException.class,
@@ -144,8 +145,8 @@ class A2ATClientNegotiationEnvConfigTest {
 
         assertTrue(result.promptText().contains("## Information Negotiation"), "the default language must be en-US");
         assertTrue(result.promptText().contains("Required Information Items"));
-        assertEquals(7, client.getNegotiationPrompts().size(), "the built-in resources must be used by default");
-        assertTrue(client.getNegotiationPrompt(INFORMATION_PROPOSE).isPresent());
+        assertEquals(7, negotiationPrompts(client).size(), "the built-in resources must be used by default");
+        assertTrue(client.getPrompt(INFORMATION_PROPOSE).isPresent());
 
         assertThrows(
                 NegotiationGenerationException.class,
@@ -164,6 +165,13 @@ class A2ATClientNegotiationEnvConfigTest {
         Path envFile = tempDir.resolve("client.env");
         Files.writeString(envFile, String.join("\n", lines) + "\n", StandardCharsets.UTF_8);
         return envFile;
+    }
+
+    private static List<net.openan.a2at.sdk.core.model.PromptTemplate> negotiationPrompts(A2ATClient client) {
+        return client.getPrompts().stream()
+                .filter(template -> StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
     }
 
     private Path writeCustomRootWithMarkeredTemplate() throws IOException {

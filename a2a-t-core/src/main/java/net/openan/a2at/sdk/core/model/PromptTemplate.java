@@ -11,7 +11,18 @@ import org.jspecify.annotations.Nullable;
  * @param description template description taken from the leading HTML comment; empty string when the template has no
  *     comment
  * @param content full template file text; null when the template content is unavailable
+ * @param source effective origin of the loaded template, either {@code classpath} or {@code local}
  * @since 2026-08
  */
 public record PromptTemplate(
-        @NonNull TemplateUri templateUri, @NonNull String description, @Nullable String content) {}
+        @NonNull TemplateUri templateUri,
+        @NonNull String description,
+        @Nullable String content,
+        @NonNull String source) {
+
+    /** Source marker for templates loaded from the built-in classpath resources. */
+    public static final String SOURCE_CLASSPATH = "classpath";
+
+    /** Source marker for templates loaded from the configured local root. */
+    public static final String SOURCE_LOCAL = "local";
+}

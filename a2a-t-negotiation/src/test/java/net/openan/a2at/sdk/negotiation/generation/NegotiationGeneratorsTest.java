@@ -717,7 +717,7 @@ class NegotiationGeneratorsTest {
         NegotiationReference reference = NegotiationReference.tryParse(
                         StandardTemplates.TARGET_NEGOTIATION_PROPOSE.uri(), NegotiationPerformative.PROPOSE, "zh-CN")
                 .orElseThrow(() -> new AssertionError("expected the bundled target propose template to resolve"));
-        PromptTemplate loaded = new DefaultNegotiationTemplateLoader("zh-CN", null).load(reference);
+        PromptTemplate loaded = new DefaultNegotiationTemplateLoader("zh-CN").load(reference);
 
         TargetProposeContent content = new TargetProposeContent(
                 "对无线节能优化任务的意图理解参见<意图理解陈述>，请澄清和确认。",
@@ -747,6 +747,6 @@ class NegotiationGeneratorsTest {
     }
 
     private static PromptTemplate template(TemplateUri templateUri, String content) {
-        return new PromptTemplate(templateUri, "", content);
+        return new PromptTemplate(templateUri, "", content, "classpath");
     }
 }

@@ -1,6 +1,7 @@
 package net.openan.a2at.sdk.core.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class PromptRuntimeConfigTest {
      * Expected result: All fields use predefined defaults:
      * - language: "en-US"
      * - sourceType: "classpath"
-     * - localRootDir: "." (current directory)
+     * - localRootDir: null (unset)
      */
     @Test
     void should_useDefaults_When_keysAreMissing() {
@@ -36,7 +37,7 @@ class PromptRuntimeConfigTest {
 
         assertEquals("en-US", config.language());
         assertEquals("classpath", config.sourceType());
-        assertEquals(".", config.localRootDir());
+        assertNull(config.localRootDir());
     }
 
     /**

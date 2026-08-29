@@ -8,8 +8,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -29,15 +27,14 @@ import org.jspecify.annotations.Nullable;
  * are language-neutral; every supported language exposes exactly the same key set, while the values match the bundled
  * template bytes of that language verbatim.
  *
- * <p>The values are file-driven: each language resolves {@code negotiation-vocabulary/{language}/vocabulary.json}
- * from a dual-root fallback — a file under the optional local resource root wins, otherwise the built-in classpath
- * resource is used. Both origins are validated against the pinned {@link #CANONICAL_KEYS} set, and a vocabulary that
- * exists nowhere, cannot be read, is malformed (including duplicate JSON keys or blank values) or drifts from the
- * canonical key set fails fast instead of silently degrading.
+ * <p>The values are file-driven: each language resolves {@code negotiation-vocabulary/{language}/vocabulary.json} from
+ * the built-in classpath resources — negotiation vocabularies are classpath-fixed and never configurable (ADR 0004).
+ * The bundled bytes are validated against the pinned {@link #CANONICAL_KEYS} set, and a vocabulary that does not exist,
+ * cannot be read, is malformed (including duplicate JSON keys or blank values) or drifts from the canonical key set
+ * fails fast instead of silently degrading.
  *
- * <p>Caching mirrors the template-override regime: the built-in classpath vocabulary is resolved once per JVM and
- * context classloader (jar bytes are immutable), while a local resource root is re-resolved on every call so that
- * overriding, editing or removing a local vocabulary file takes effect immediately.
+ * <p>The built-in classpath vocabulary is resolved once per JVM and context classloader and frozen as an assembly-time
+ * snapshot (jar bytes are immutable).
  *
  * @since 2026-08
  */
@@ -107,53 +104,28 @@ public final class Vocabulary {
     }
 
     /**
-     * Returns the vocabulary for one language, resolved from the built-in classpath resources.
+     * Returns the vocabulary for one language, resolved and frozen from the built-in classpath resources.
      *
      * @param language locale identifier such as {@code zh-CN} or {@code en-US}
      * @return vocabulary holding the text constants of that language
-     * @throws IllegalArgumentException if the language has no bundled vocabulary
+     * @throws IllegalArgumentException if the language has no bundled vocabulary, or the bundled file is unreadable,
+     *     malformed or does not define exactly the canonical key set
      */
     public static Vocabulary forLanguage(String language) {
-        return forLanguage(language, null);
-    }
-
-    /**
-     * Returns the vocabulary for one language, resolved with the dual-root fallback.
-     *
-     * <p>A vocabulary file that exists under {@code {localRootDir}/negotiation-vocabulary/{language}/vocabulary.json}
-     * wins; otherwise the built-in classpath resource {@code prompt_resources/negotiation-vocabulary/{language}/
-     * vocabulary.json} is used. A null or otherwise absent local root simply means the classpath is consulted. Both
-     * origins must define exactly the canonical key set.
-     *
-     * <p>Caching mirrors the template-override regime: the classpath vocabulary is resolved once per JVM and context
-     * classloader (jar bytes are immutable), while a non-null local root is re-resolved on every call so overriding,
-     * editing or removing the local file takes effect immediately.
-     *
-     * @param language locale identifier such as {@code zh-CN} or {@code en-US}
-     * @param localRootDir local prompt resource root containing the {@code negotiation-vocabulary/} tree; null
-     *     disables local vocabulary overrides
-     * @return vocabulary holding the text constants of that language
-     * @throws IllegalArgumentException if the language has no vocabulary in any root, or the resolved file is
-     *     unreadable, malformed or does not define exactly the canonical key set
-     */
-    public static Vocabulary forLanguage(String language, @Nullable Path localRootDir) {
         if (!PathSegments.isSimpleSegment(language)) {
             throw new IllegalArgumentException(
                     "Negotiation vocabulary language must be a non-blank simple path segment but was " + language
                             + ".");
         }
-        Path normalizedRoot = normalizeRoot(localRootDir);
-        if (normalizedRoot != null) {
-            return load(language, normalizedRoot);
-        }
         CacheKey cacheKey = new CacheKey(language, Thread.currentThread().getContextClassLoader());
-        return CACHE.computeIfAbsent(cacheKey, key -> load(key.language, null));
+        return CACHE.computeIfAbsent(cacheKey, key -> load(key.language));
     }
 
     /**
      * Returns the text constant registered under one canonical key.
      *
-     * @param canonicalKey canonical vocabulary key such as {@code section.termination_reason} or {@code punct.list_colon}
+     * @param canonicalKey canonical vocabulary key such as {@code section.termination_reason} or
+     *     {@code punct.list_colon}
      * @return language-specific text constant
      * @throws IllegalArgumentException if the key is not part of the vocabulary
      */
@@ -184,27 +156,12 @@ public final class Vocabulary {
         return language;
     }
 
-    private static @Nullable Path normalizeRoot(@Nullable Path localRootDir) {
-        return localRootDir == null ? null : localRootDir.toAbsolutePath().normalize();
-    }
-
-    private static Vocabulary load(String language, @Nullable Path localRootDir) {
-        if (localRootDir != null) {
-            Path localFile = localRootDir
-                    .resolve(VOCABULARY_DIRECTORY)
-                    .resolve(language)
-                    .resolve(VOCABULARY_FILE_NAME);
-            if (Files.exists(localFile)) {
-                return parse(language, readLocalFile(localFile), localFile.toString());
-            }
-        }
+    private static Vocabulary load(String language) {
         String classpathPath = CLASSPATH_ROOT + language + "/" + VOCABULARY_FILE_NAME;
         InputStream stream = ClasspathResourceStreams.open(classpathPath);
         if (stream == null) {
-            throw new IllegalArgumentException(
-                    "Negotiation vocabulary does not exist for the configured language " + language
-                            + "; supported languages are zh-CN and en-US, configure A2AT_LANGUAGE accordingly or"
-                            + " provide " + classpathPath + " under the local resource root.");
+            throw new IllegalArgumentException("Negotiation vocabulary does not exist for the configured language "
+                    + language + "; supported languages are zh-CN and en-US, configure A2AT_LANGUAGE accordingly.");
         }
         try (stream) {
             return parse(language, new String(stream.readAllBytes(), StandardCharsets.UTF_8), classpathPath);
@@ -216,25 +173,15 @@ public final class Vocabulary {
         }
     }
 
-    private static String readLocalFile(Path localFile) {
-        try {
-            return Files.readString(localFile, StandardCharsets.UTF_8);
-        } catch (IOException exception) {
-            throw new IllegalArgumentException(
-                    "Failed to read the negotiation vocabulary " + localFile + "; supported languages are zh-CN and"
-                            + " en-US, configure A2AT_LANGUAGE accordingly.",
-                    exception);
-        }
-    }
-
     private static Vocabulary parse(String language, String payload, String origin) {
         JsonNode root;
         try {
             root = OBJECT_MAPPER.readTree(payload);
         } catch (JsonProcessingException exception) {
-            String detail = exception.getMessage() != null && exception.getMessage().contains("Duplicate field")
-                    ? "it contains duplicate keys"
-                    : "it is not valid JSON";
+            String detail =
+                    exception.getMessage() != null && exception.getMessage().contains("Duplicate field")
+                            ? "it contains duplicate keys"
+                            : "it is not valid JSON";
             throw malformed(language, origin, detail, exception);
         }
         if (root == null || !root.isObject()) {
@@ -264,10 +211,9 @@ public final class Vocabulary {
         if (missing.isEmpty() && unexpected.isEmpty()) {
             return;
         }
-        throw new IllegalArgumentException(
-                "Negotiation vocabulary " + origin + " for language " + language
-                        + " must define exactly the canonical vocabulary keys; missing keys: " + missing
-                        + ", unexpected keys: " + unexpected + ".");
+        throw new IllegalArgumentException("Negotiation vocabulary " + origin + " for language " + language
+                + " must define exactly the canonical vocabulary keys; missing keys: " + missing
+                + ", unexpected keys: " + unexpected + ".");
     }
 
     private static IllegalArgumentException malformed(

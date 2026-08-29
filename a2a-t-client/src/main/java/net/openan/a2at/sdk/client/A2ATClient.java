@@ -47,8 +47,8 @@ public final class A2ATClient {
      */
     public A2ATClient(Path envPath) {
         Path resolvedEnvPath = envPath.toAbsolutePath().normalize();
-        A2ATConfig config = NegotiationContentService.resolvePromptResourceLocalRootDir(
-                A2ATConfig.load(resolvedEnvPath), resolvedEnvPath);
+        A2ATConfig config =
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(resolvedEnvPath), resolvedEnvPath);
         DefaultA2ATClientBuilder builder =
                 DefaultA2ATClientBuilder.builder().envPath(resolvedEnvPath).config(config);
         this.promptGenerationOrchestrator = builder.buildPromptGenerationOrchestrator();
@@ -477,33 +477,6 @@ public final class A2ATClient {
     public Optional<PromptTemplate> getPrompt(@NonNull TemplateUri templateUri) {
         Objects.requireNonNull(templateUri, "templateUri");
         return templateQueryService.getPrompt(templateUri);
-    }
-
-    /**
-     * Lists every negotiation template available for the configured language.
-     *
-     * <p>This query never throws: templates that exist nowhere for the language are skipped and an empty list is
-     * returned when no template can be loaded at all.
-     *
-     * @return loadable negotiation templates of the configured language, in a fixed type and phase order; empty when
-     *     none can be loaded
-     */
-    public List<PromptTemplate> getNegotiationPrompts() {
-        return negotiationContentService.getNegotiationPrompts();
-    }
-
-    /**
-     * Loads one negotiation template by its URI.
-     *
-     * <p>This query never throws: a missing template yields an empty result together with a warning log instead of a
-     * failure.
-     *
-     * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}
-     * @return the addressed template, or an empty optional when no template exists for it in the configured language
-     */
-    public Optional<PromptTemplate> getNegotiationPrompt(@NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
-        return negotiationContentService.getNegotiationPrompt(templateUri);
     }
 
     /**

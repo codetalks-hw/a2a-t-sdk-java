@@ -1,15 +1,9 @@
 package net.openan.a2at.sdk.negotiation.generation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +26,6 @@ import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenC
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -45,17 +38,13 @@ import org.junit.jupiter.params.provider.MethodSource;
  * that does not address a negotiation template of the expected performative (wrong extension name, version, type
  * segment, performative segment or separator, including the underscore misspelling of the type segment) fails as a
  * programming error pointing at {@code templateUri}, while structural malformation is impossible by construction of
- * {@link TemplateUri}; and a template placed under a local resource root overrides the built-in template addressed
- * by the same URI.
+ * {@link TemplateUri}.
  */
 class TemplateUriEntryMatrixTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
     private static final TemplateUri INFORMATION_PROPOSE_URI = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
-
-    private static final String BUILTIN_INFORMATION_PROPOSE_TEMPLATE =
-            "templates/Negotiation-T/information-negotiation/propose/v1/zh-CN/template.md";
 
     /**
      * Entry (a): every one of the seven built-in URIs (six typed templates plus the common abort template) reaches its
@@ -87,8 +76,7 @@ class TemplateUriEntryMatrixTest {
     /**
      * Entry (b): a well-formed URI that resolves to no template in any resource root fails with the code
      * {@code template_not_found} before any LLM call. With the bundled resources every well-formed v1 URI resolves in
-     * both bundled languages, so the both-roots-miss condition is realized by a loader whose every load misses, which
-     * is the custom-root scenario of an environment without the built-in templates.
+     * both bundled languages, so the always-miss condition is realized by a loader whose every load misses.
      */
     @Test
     void wellFormedUriMissingInBothRootsFailsWithTemplateNotFound() {
@@ -148,56 +136,10 @@ class TemplateUriEntryMatrixTest {
                 TemplateUri.of("Negotiation-T", "information-negotiation", "accept"));
     }
 
-    /**
-     * Entry (e): a template placed under a local resource root overrides the built-in template addressed by the same
-     * URI, while the same URI without the local root keeps rendering the built-in golden fixture.
-     */
-    @Test
-    void localRootTemplateOverridesTheBuiltInTemplateOfTheSameUri(@TempDir Path tempDir) throws IOException {
-        Path customTemplate = tempDir.resolve(BUILTIN_INFORMATION_PROPOSE_TEMPLATE);
-        Files.createDirectories(customTemplate.getParent());
-        String builtinTemplate = readClasspathText("/prompt_resources/" + BUILTIN_INFORMATION_PROPOSE_TEMPLATE);
-        String markerSection = "\n\n## Custom Override Section\nCUSTOM-OVERRIDE-MARKER\n";
-        Files.writeString(customTemplate, builtinTemplate + markerSection, StandardCharsets.UTF_8);
-
-        NegotiationGenerationOrchestrator customRootOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .localRootDir(tempDir.toString())
-                .build();
-        String customText = customRootOrchestrator
-                .generateProposeFromData(informationProposeData(), INFORMATION_PROPOSE_URI)
-                .promptText();
-        assertTrue(customText.contains("## Custom Override Section"));
-        assertTrue(customText.contains("CUSTOM-OVERRIDE-MARKER"));
-
-        NegotiationGenerationOrchestrator builtinOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .build();
-        String builtinText =
-                GoldenCase.INFORMATION_PROPOSE.generate(builtinOrchestrator, "zh-CN").promptText();
-        assertFalse(builtinText.contains("CUSTOM-OVERRIDE-MARKER"));
-        assertEquals(
-                GoldenCase.INFORMATION_PROPOSE.goldenText("zh-CN"),
-                builtinText,
-                "without the local root the built-in golden output remains unchanged");
-    }
-
     private static NegotiationProposeData informationProposeData() {
         return new NegotiationProposeData(
                 new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
                 new InformationProposeContent(List.of(new NegotiationItem("接入端口名称", "P533-珠江旧城-PTN3900-23-TPA1EG24-1")), null));
-    }
-
-    private static String readClasspathText(String resourcePath) {
-        InputStream stream = TemplateUriEntryMatrixTest.class.getResourceAsStream(resourcePath);
-        if (stream == null) {
-            throw new AssertionError("Classpath resource must exist: " + resourcePath);
-        }
-        try (stream) {
-            return new String(stream.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n");
-        } catch (IOException exception) {
-            throw new AssertionError("Failed to read classpath resource " + resourcePath, exception);
-        }
     }
 
     private static final class MissingTemplateLoader implements NegotiationTemplateLoader {
@@ -206,11 +148,6 @@ class TemplateUriEntryMatrixTest {
         public PromptTemplate load(NegotiationReference reference) {
             throw new ResourceNotFoundException(
                     "Negotiation template does not exist in any resource root.", reference.uri());
-        }
-
-        @Override
-        public List<PromptTemplate> loadAll() {
-            return List.of();
         }
     }
 

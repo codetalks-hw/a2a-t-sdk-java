@@ -3,6 +3,7 @@ package net.openan.a2at.sdk.negotiation.resources;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
@@ -45,7 +46,7 @@ class StandardTemplatesNegotiationConsistencyTest {
     void negotiationGroupCoversExactlyTheComposedUris() {
         List<String> composed =
                 StandardTemplates.NEGOTIATION.stream().map(TemplateUri::uri).sorted().toList();
-        List<String> expected = new java.util.ArrayList<>();
+        List<String> expected = new ArrayList<>();
         // Accept and reject share the accept-reject template, so the group carries one URI per type for them.
         for (NegotiationType type : NegotiationType.values()) {
             for (NegotiationPerformative performative :
@@ -59,16 +60,10 @@ class StandardTemplatesNegotiationConsistencyTest {
 
     @Test
     void everyNegotiationGroupUriIsLoadableByTheNegotiationLayer() {
-        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN", null);
-        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US", null);
-        List<String> loadableUris =
-                zhCnLoader.loadAll().stream().map(template -> template.templateUri().uri()).toList();
+        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN");
+        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US");
 
         for (TemplateUri templateUri : StandardTemplates.NEGOTIATION) {
-            assertTrue(
-                    loadableUris.contains(templateUri.uri()),
-                    "StandardTemplates advertises " + templateUri.uri()
-                            + " but the negotiation layer cannot load it");
             assertTrue(zhCnLoader.load(zhCnReference(templateUri)).content().length() > 0, templateUri.uri());
             assertTrue(enUsLoader.load(enUsReference(templateUri)).content().length() > 0, templateUri.uri());
         }
