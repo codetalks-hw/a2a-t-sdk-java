@@ -13,7 +13,7 @@ import org.jspecify.annotations.NonNull;
  *
  * @since 2026-08
  */
-public class A2ATParamExtractionError extends A2ATError {
+public class A2ATParamExtractionError extends A2ATBusinessException {
 
     /** Structured per-slot validation error details. */
     private final List<SlotValidationError> errors;
@@ -24,7 +24,7 @@ public class A2ATParamExtractionError extends A2ATError {
      * @param message failure message
      */
     public A2ATParamExtractionError(String message) {
-        this(A2ATErrorCodes.PARAM_EXTRACTION_FAILED, message, List.of());
+        this(ErrorCatalog.SLOT_NOT_PROVIDED.getCode(), message, List.of());
     }
 
     /**
@@ -34,8 +34,7 @@ public class A2ATParamExtractionError extends A2ATError {
      * @param message failure message
      * @param errors structured per-slot validation error details
      */
-    public A2ATParamExtractionError(
-            @NonNull String code, String message, @NonNull List<SlotValidationError> errors) {
+    public A2ATParamExtractionError(@NonNull String code, String message, @NonNull List<SlotValidationError> errors) {
         super(code, message);
         this.errors = List.copyOf(errors);
     }
@@ -50,7 +49,7 @@ public class A2ATParamExtractionError extends A2ATError {
      */
     public A2ATParamExtractionError(
             @NonNull String code, String message, @NonNull List<SlotValidationError> errors, Throwable cause) {
-        super(code, message, cause);
+        super(code, message, null, cause);
         this.errors = List.copyOf(errors);
     }
 

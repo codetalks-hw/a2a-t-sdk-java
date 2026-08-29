@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  *
  * @since 2026-08
  */
-public final class PromptGenerationException extends A2ATError {
+public final class PromptGenerationException extends A2ATBusinessException {
 
     private final List<SlotValidationError> failedParameters;
 
@@ -29,8 +29,7 @@ public final class PromptGenerationException extends A2ATError {
     }
 
     /**
-     * Creates an exception with a stable error code, a human-readable message, and
-     * a list of failed parameters.
+     * Creates an exception with a stable error code, a human-readable message, and a list of failed parameters.
      *
      * @param code stable error code
      * @param message human-readable failure description
@@ -44,8 +43,7 @@ public final class PromptGenerationException extends A2ATError {
     }
 
     /**
-     * Creates an exception with a stable error code, a human-readable message, and
-     * a root cause.
+     * Creates an exception with a stable error code, a human-readable message, and a root cause.
      *
      * @param code stable error code
      * @param message human-readable failure description
@@ -53,7 +51,7 @@ public final class PromptGenerationException extends A2ATError {
      * @throws NullPointerException if {@code code} is null
      */
     public PromptGenerationException(@NonNull String code, String message, @Nullable Throwable cause) {
-        super(code, message, cause);
+        super(code, message, null, cause);
         this.failedParameters = List.of();
     }
 

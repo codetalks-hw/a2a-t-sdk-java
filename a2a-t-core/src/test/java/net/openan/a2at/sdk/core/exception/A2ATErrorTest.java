@@ -23,16 +23,16 @@ class A2ATErrorTest {
 
     /**
      * Verifies that {@link A2ATError#A2ATError(String)} and {@link A2ATError#A2ATError(String, Throwable)} fall back to
-     * {@link A2ATErrorCodes#SDK_INTERNAL_ERROR}.
+     * {@link ErrorCatalog#INFRA_INTERNAL_ERROR}.
      *
      * <p>Scenario: Create A2A-T errors without an explicit code. Expected result: getCode() returns
-     * {@code sdk_internal_error} and is never null.
+     * {@code infra.internal_error} and is never null.
      */
     @Test
-    void should_defaultToSdkInternalErrorCode_When_createdWithoutExplicitCode() {
-        assertEquals(A2ATErrorCodes.SDK_INTERNAL_ERROR, new A2ATError("boom").getCode());
+    void should_defaultToInfraInternalErrorCode_When_createdWithoutExplicitCode() {
+        assertEquals(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), new A2ATError("boom").getCode());
         assertEquals(
-                A2ATErrorCodes.SDK_INTERNAL_ERROR,
+                ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(),
                 new A2ATError("boom", new IllegalStateException("root")).getCode());
     }
 
@@ -45,15 +45,14 @@ class A2ATErrorTest {
      */
     @Test
     void should_carryExplicitCode_When_createdWithExplicitCode() {
-        assertEquals(
-                A2ATErrorCodes.TEMPLATE_NOT_FOUND,
-                new A2ATError(A2ATErrorCodes.TEMPLATE_NOT_FOUND, "missing").getCode());
-        assertEquals("missing", new A2ATError(A2ATErrorCodes.TEMPLATE_NOT_FOUND, "missing").getMessage());
-        assertNull(new A2ATError(A2ATErrorCodes.TEMPLATE_NOT_FOUND, "missing").getCause());
+        String templateNotFound = ErrorCatalog.TEMPLATE_NOT_FOUND.getCode();
+        assertEquals(templateNotFound, new A2ATError(templateNotFound, "missing").getCode());
+        assertEquals("missing", new A2ATError(templateNotFound, "missing").getMessage());
+        assertNull(new A2ATError(templateNotFound, "missing").getCause());
 
         IllegalStateException cause = new IllegalStateException("root");
-        A2ATError withCause = new A2ATError(A2ATErrorCodes.TEMPLATE_NOT_FOUND, "missing", cause);
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, withCause.getCode());
+        A2ATError withCause = new A2ATError(templateNotFound, "missing", cause);
+        assertEquals(templateNotFound, withCause.getCode());
         assertEquals(cause, withCause.getCause());
     }
 

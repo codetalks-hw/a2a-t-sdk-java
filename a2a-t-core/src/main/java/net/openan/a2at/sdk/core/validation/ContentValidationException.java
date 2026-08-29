@@ -5,20 +5,19 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.A2ATBusinessException;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
 
 /**
  * Failure raised by the content validation pipeline.
  *
- * <p>Carries the machine-readable error code inherited from {@link A2ATError} and optionally structured per-slot
- * validation error details so callers can inspect which slot failed, under which error code, and why, without parsing
- * exception messages.
+ * <p>Carries the machine-readable error code inherited from {@link A2ATBusinessException} and optionally structured
+ * per-slot validation error details so callers can inspect which slot failed, under which error code, and why, without
+ * parsing exception messages.
  *
  * @since 2026-08
  */
-public class ContentValidationException extends A2ATError {
+public class ContentValidationException extends A2ATBusinessException {
 
     private final List<SlotValidationError> errors;
 
@@ -75,8 +74,12 @@ public class ContentValidationException extends A2ATError {
      * @param cause root cause
      */
     public ContentValidationException(
-            String code, String message, List<SlotValidationError> errors, Map<String, Object> params, Throwable cause) {
-        super(code, message, cause);
+            String code,
+            String message,
+            List<SlotValidationError> errors,
+            Map<String, Object> params,
+            Throwable cause) {
+        super(code, message, null, cause);
         this.errors = errors == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(errors));
         this.params = params == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(params));
     }

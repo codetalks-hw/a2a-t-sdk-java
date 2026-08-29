@@ -25,7 +25,7 @@ public class A2ATError extends RuntimeException {
      * @param message failure message
      */
     public A2ATError(String message) {
-        this(A2ATErrorCodes.SDK_INTERNAL_ERROR, message);
+        this(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), message);
     }
 
     /**
@@ -35,7 +35,7 @@ public class A2ATError extends RuntimeException {
      * @param cause root cause
      */
     public A2ATError(String message, @Nullable Throwable cause) {
-        this(A2ATErrorCodes.SDK_INTERNAL_ERROR, message, cause);
+        this(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), message, cause);
     }
 
     /**
