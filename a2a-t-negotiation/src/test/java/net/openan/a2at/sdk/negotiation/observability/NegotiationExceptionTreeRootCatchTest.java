@@ -11,7 +11,7 @@ import java.util.Map;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
@@ -55,7 +55,7 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationGenerationException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR,
+                ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
                 ((NegotiationGenerationException) failure).getCode());
     }
 
@@ -73,7 +73,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
@@ -82,8 +83,8 @@ class NegotiationExceptionTreeRootCatchTest {
                 .language("zh-CN")
                 .llmClient(new ScriptedClient(
                         "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":"
-                                + "\"section.info_static\",\"code\":\"template_type_mismatch\",\"message\":"
-                                + "\"inconsistent\"}],\"params\":{}}"))
+                                + "\"section.info_static\",\"code\":\"negotiation.type_mismatch\",\"facts\":"
+                                + "{\"implied\":\"information\",\"declared\":\"information\"}}],\"params\":{}}"))
                 .build();
 
         RuntimeException failure = catchThroughRoot(() -> orchestrator.validateProposePromptAndDataFilling(
@@ -94,7 +95,7 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED,
+                ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(),
                 ((NegotiationParamExtractionException) failure).getCode());
     }
 
@@ -114,7 +115,7 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR,
+                ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
                 ((NegotiationParamExtractionException) failure).getCode());
     }
 
@@ -129,7 +130,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
@@ -180,7 +182,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
@@ -197,7 +200,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     /**

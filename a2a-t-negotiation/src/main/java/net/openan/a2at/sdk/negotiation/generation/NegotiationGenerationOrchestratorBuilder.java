@@ -5,6 +5,7 @@ import net.openan.a2at.sdk.core.model.InputLimitConfig;
 import net.openan.a2at.sdk.core.model.LlmConfig;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.llm.LLMClient;
+import net.openan.a2at.sdk.llm.LLMConfigError;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
 import net.openan.a2at.sdk.negotiation.resources.DefaultNegotiationTemplateLoader;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
@@ -12,7 +13,6 @@ import net.openan.a2at.sdk.negotiation.validation.DefaultNegotiationComplianceCh
 import net.openan.a2at.sdk.negotiation.validation.DefaultNegotiationSemanticValidator;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationComplianceChecker;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationSemanticValidator;
-import net.openan.a2at.sdk.negotiation.validation.NegotiationValidationException;
 import net.openan.a2at.sdk.negotiation.validation.ParamExtractor;
 import org.slf4j.Logger;
 
@@ -20,10 +20,9 @@ import org.slf4j.Logger;
  * Fluent builder assembling one {@link NegotiationGenerationOrchestrator}.
  *
  * <p>The language is required. The LLM client is optional: without one, the from-data generation still works, while
- * the LLM steps of the from-text generation and the validation pipeline fail with the
- * {@code negotiation_llm_infrastructure_error} code. Every collaborator has a default implementation wired from the
- * language (classpath-fixed templates and negotiation vocabulary), and each of them can be overridden for testing or
- * customization.
+ * the LLM steps of the from-text generation and the validation pipeline fail with the {@code llm.not_configured}
+ * code. Every collaborator has a default implementation wired from the language (classpath-fixed templates and
+ * negotiation vocabulary), and each of them can be overridden for testing or customization.
  *
  * @since 2026-08
  */
@@ -95,7 +94,7 @@ public final class NegotiationGenerationOrchestratorBuilder {
      * Configures the maximum length in characters accepted for free-text inputs before they reach an LLM step.
      *
      * @param maxTextChars maximum accepted length in characters, at least 1; oversized inputs fail fast with the code
-     *     {@code input_text_too_long} instead of overflowing the LLM context
+     *     {@code input.text_too_long} instead of overflowing the LLM context
      * @return current builder
      */
     public NegotiationGenerationOrchestratorBuilder maxTextChars(int maxTextChars) {
@@ -183,7 +182,7 @@ public final class NegotiationGenerationOrchestratorBuilder {
         NegotiationContentExtractor effectiveContentExtractor =
                 contentExtractor != null ? contentExtractor : new DefaultNegotiationContentExtractor(llmClient);
         NegotiationComplianceChecker effectiveComplianceChecker =
-                complianceChecker != null ? complianceChecker : new DefaultNegotiationComplianceChecker();
+                complianceChecker != null ? complianceChecker : new DefaultNegotiationComplianceChecker(language);
         NegotiationSemanticValidator effectiveSemanticValidator =
                 semanticValidator != null ? semanticValidator : defaultSemanticValidator();
         ParamExtractor paramExtractor = new ParamExtractor(
@@ -222,8 +221,7 @@ public final class NegotiationGenerationOrchestratorBuilder {
     private NegotiationSemanticValidator defaultSemanticValidator() {
         if (llmClient == null) {
             return (prompt, callerSchema, reference, templateContent) -> {
-                throw new NegotiationValidationException(
-                        "Semantic validation requires an LLM client but none is configured.");
+                throw new LLMConfigError("Semantic validation requires an LLM client but none is configured.");
             };
         }
         return new DefaultNegotiationSemanticValidator(llmClient);

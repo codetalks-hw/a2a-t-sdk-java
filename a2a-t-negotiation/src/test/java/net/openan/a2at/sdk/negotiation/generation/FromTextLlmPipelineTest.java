@@ -15,31 +15,31 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.A2ATConfig;
-import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.LlmConfig;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityEndingContent;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityProposeContent;
-import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.negotiation.content.InformationEndingContent;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.TargetEndingContent;
 import net.openan.a2at.sdk.negotiation.content.TargetProposeContent;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenCase;
+import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -213,8 +213,8 @@ class FromTextLlmPipelineTest {
     @Test
     void retriesContentExtractionUntilItSucceeds() {
         GoldenCase goldenCase = GoldenCase.INFORMATION_PROPOSE;
-        ScriptedExtractionClient llm =
-                new ScriptedExtractionClient("", "", extractionJson(goldenCase.content(ZH_CN), goldenCase.performative()));
+        ScriptedExtractionClient llm = new ScriptedExtractionClient(
+                "", "", extractionJson(goldenCase.content(ZH_CN), goldenCase.performative()));
         NegotiationGenerationOrchestrator orchestrator = orchestrator(ZH_CN, llm, 3);
 
         MetadataContent result =
@@ -230,7 +230,7 @@ class FromTextLlmPipelineTest {
             assertTrue(retry.contains("step=negotiation_content_extract"), retry);
             assertTrue(retry.contains("attempt=" + attempt), retry);
             assertTrue(retry.contains("max_attempts=3"), retry);
-            assertTrue(retry.contains("code=" + A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED), retry);
+            assertTrue(retry.contains("code=" + ErrorCatalog.LLM_RESPONSE_INVALID.getCode()), retry);
         }
         assertTrue(
                 warningMessages("negotiation_llm_retry_exhausted").isEmpty(),
@@ -251,21 +251,18 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), failure.getCode());
         assertEquals(3, llm.calls);
 
         List<String> exhausted = warningMessages("negotiation_llm_retry_exhausted");
         assertEquals(1, exhausted.size());
         assertTrue(exhausted.get(0).contains("step=negotiation_content_extract"), exhausted.get(0));
         assertTrue(exhausted.get(0).contains("max_attempts=3"), exhausted.get(0));
-        assertTrue(
-                exhausted.get(0).contains("code=" + A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED),
-                exhausted.get(0));
+        assertTrue(exhausted.get(0).contains("code=" + ErrorCatalog.LLM_RESPONSE_INVALID.getCode()), exhausted.get(0));
         assertEquals(2, warningMessages("negotiation_llm_retry ").size());
         assertTrue(
                 warningMessages("negotiation_generation_failed").stream()
-                        .anyMatch(message ->
-                                message.contains("code=" + A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED)),
+                        .anyMatch(message -> message.contains("code=" + ErrorCatalog.LLM_RESPONSE_INVALID.getCode())),
                 "the surfaced generation failure must be logged with its code");
     }
 
@@ -283,12 +280,12 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), failure.getCode());
         assertEquals(2, llm.calls);
         assertEquals(1, warningMessages("negotiation_llm_retry_exhausted").size());
         assertTrue(warningMessages("negotiation_llm_retry_exhausted")
                 .get(0)
-                .contains("code=" + A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+                .contains("code=" + ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
     }
 
     /**
@@ -305,7 +302,7 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), failure.getCode());
         assertEquals(2, llm.calls);
         assertEquals(1, warningMessages("negotiation_llm_retry ").size());
         assertEquals(1, warningMessages("negotiation_llm_retry_exhausted").size());
@@ -316,7 +313,7 @@ class FromTextLlmPipelineTest {
      * invalid-input code after exactly one LLM call and without any retry event.
      */
     @Test
-    void phaseContentMismatchFailsFastWithInvalidInput() {
+    void phaseConclusionMismatchFailsFastWithConclusionMismatch() {
         ScriptedExtractionClient llm = new ScriptedExtractionClient(
                 "{\"conclusion\":\"Reject\",\"items\":[{\"name\":\"接入端口名称\",\"value\":\"P533-珠江旧城-PTN3900-23-TPA1EG24-1\"}]}");
         NegotiationGenerationOrchestrator orchestrator = orchestrator(ZH_CN, llm, 3);
@@ -326,7 +323,7 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateAcceptFromText(
                         "请接受。", GoldenCase.INFORMATION_ACCEPT.context(), GoldenCase.INFORMATION_ACCEPT.template()));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, failure.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode(), failure.getCode());
         assertEquals(1, llm.calls, "non-retryable failures must not be attempted again");
         assertTrue(warningMessages("negotiation_llm_retry ").isEmpty());
         assertTrue(warningMessages("negotiation_llm_retry_exhausted").isEmpty());
@@ -346,7 +343,7 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SLOT_MISSING, failure.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_FIELD_MISSING.getCode(), failure.getCode());
         assertEquals(1, llm.calls, "non-retryable failures must not be attempted again");
         assertTrue(warningMessages("negotiation_llm_retry ").isEmpty());
         assertTrue(warningMessages("negotiation_llm_retry_exhausted").isEmpty());
@@ -371,7 +368,7 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, failure.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), failure.getCode());
         assertEquals(0, llm.calls, "the template must be loaded before the LLM step is started");
     }
 
@@ -393,8 +390,9 @@ class FromTextLlmPipelineTest {
                         GoldenCase.INFORMATION_ACCEPT.template()));
 
         assertTrue(
-                failure.getMessage().contains(
-                        "Template URI does not address a negotiation template of the expected performative PROPOSE"),
+                failure.getMessage()
+                        .contains(
+                                "Template URI does not address a negotiation template of the expected performative PROPOSE"),
                 "the failure must point at the template URI but was: " + failure.getMessage());
         assertEquals(0, llm.calls);
     }
@@ -413,7 +411,7 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), failure.getCode());
         assertEquals(1, llm.calls);
         assertTrue(warningMessages("negotiation_llm_retry ").isEmpty());
         assertEquals(1, warningMessages("negotiation_llm_retry_exhausted").size());
@@ -430,7 +428,7 @@ class FromTextLlmPipelineTest {
                 () -> orchestrator.generateProposeFromText(
                         "请提供接入端口名称。", GoldenCase.INFORMATION_PROPOSE.context(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), failure.getCode());
         assertEquals(2, llm.calls);
         assertEquals(1, warningMessages("negotiation_llm_retry ").size());
         assertTrue(warningMessages("negotiation_llm_retry ").get(0).contains("max_attempts=2"));
@@ -453,7 +451,16 @@ class FromTextLlmPipelineTest {
 
         GoldenCase goldenCase = GoldenCase.INFORMATION_PROPOSE;
         ScriptedExtractionClient recovering = new ScriptedExtractionClient(
-                "", "", "", "", "", "", "", "", "", extractionJson(goldenCase.content(ZH_CN), goldenCase.performative()));
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                extractionJson(goldenCase.content(ZH_CN), goldenCase.performative()));
         NegotiationGenerationOrchestrator recoveringOrchestrator = orchestrator(ZH_CN, recovering, large.maxAttempts());
 
         MetadataContent result = recoveringOrchestrator.generateProposeFromText(
@@ -477,7 +484,7 @@ class FromTextLlmPipelineTest {
                 () -> failingOrchestrator.generateProposeFromText(
                         "请提供接入端口名称。", goldenCase.context(), goldenCase.template()));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), failure.getCode());
         assertEquals(1, failing.calls);
     }
 
@@ -504,7 +511,8 @@ class FromTextLlmPipelineTest {
         GoldenCase goldenCase = GoldenCase.INFORMATION_PROPOSE;
         String inputText = "Please provide the access port name and the complaint category of the private line.";
         Map<String, Object> bizSchema = Map.of(
-                "type", "object",
+                "type",
+                "object",
                 "properties",
                 Map.of(
                         "accessPort", Map.of("type", "string"),
@@ -538,17 +546,19 @@ class FromTextLlmPipelineTest {
         assertEquals(goldenCase.context().id(), filled.data().get("id"));
         assertEquals(goldenCase.context().round(), filled.data().get("round"));
         assertEquals(goldenCase.context().maxRounds(), filled.data().get("maxRounds"));
-        assertEquals("P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1", filled.data().get("accessPort"));
+        assertEquals(
+                "P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1", filled.data().get("accessPort"));
         assertEquals("dedicated-line quality degradation", filled.data().get("bizScenario"));
     }
 
     /**
-     * IT-B-008: the negotiation context of the generated message comes from the caller-supplied context: the
-     * extraction schema sent to the LLM has no context fields and the metadata carries exactly the caller's context.
+     * IT-B-008: the negotiation context of the generated message comes from the caller-supplied context: the extraction
+     * schema sent to the LLM has no context fields and the metadata carries exactly the caller's context.
      */
     @Test
     void contextIsInjectedFromTheCallerWithoutAnyLlmInvolvement() {
-        NegotiationContext context = new NegotiationContext(NegotiationGoldenCases.SESSION_ID, 4, 7, NegotiationPerformative.PROPOSE);
+        NegotiationContext context =
+                new NegotiationContext(NegotiationGoldenCases.SESSION_ID, 4, 7, NegotiationPerformative.PROPOSE);
         ScriptedExtractionClient llm = new ScriptedExtractionClient(
                 extractionJson(GoldenCase.INFORMATION_PROPOSE.content(ZH_CN), NegotiationPerformative.PROPOSE));
         NegotiationGenerationOrchestrator orchestrator = orchestrator(ZH_CN, llm, 3);
@@ -610,7 +620,6 @@ class FromTextLlmPipelineTest {
     private static Map<String, Object> schemaProperties(Map<String, Object> jsonSchema) {
         return (Map<String, Object>) jsonSchema.get("properties");
     }
-
 
     private static List<String> logMessages(ListAppender<ILoggingEvent> appender, Level level) {
         List<String> messages = new ArrayList<>();

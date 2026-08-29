@@ -1,7 +1,6 @@
 package net.openan.a2at.sdk.negotiation.validation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -95,13 +94,13 @@ class ParamExtractorTest {
     @Test
     void ruleFailureSkipsTemplateLoadingAndTheSemanticValidationCall() {
         complianceChecker.result = new NegotiationRuleCheckResult(
-                false, List.of(new SlotValidationError("round", "out_of_range", "round exceeds maxRounds")));
+                false, List.of(new SlotValidationError("round", "negotiation.round_exceeded", "round exceeds maxRounds")));
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract(VALID_ZH_PROMPT, CONTEXT, Map.of(), REFERENCE));
 
-        assertEquals("negotiation_rule_violation", exception.getCode());
+        assertEquals("negotiation.rule_violation", exception.getCode());
         assertEquals(1, exception.getErrors().size());
         assertEquals("round", exception.getErrors().get(0).slotName());
         assertEquals(0, semanticValidator.invocations);
@@ -111,30 +110,28 @@ class ParamExtractorTest {
     @Test
     void extractFailsOnRuleViolationWithoutTouchingTheValidator() {
         complianceChecker.result =
-                new NegotiationRuleCheckResult(false, List.of(new SlotValidationError("id", "invalid_uuid", "not a uuid")));
+                new NegotiationRuleCheckResult(false, List.of(new SlotValidationError("id", "negotiation.invalid_context_id", "not a uuid")));
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract(VALID_ZH_PROMPT, CONTEXT, Map.of(), REFERENCE));
 
-        assertEquals("negotiation_rule_violation", exception.getCode());
+        assertEquals("negotiation.rule_violation", exception.getCode());
         assertEquals("id", exception.getErrors().get(0).slotName());
         assertEquals(0, semanticValidator.invocations);
         assertEquals(0, templateContentLoader.invocations);
     }
 
     @Test
-    void nullContextFailsAsNonNegotiationInputWithLanguageNeutralMessage() {
+    void nullContextFailsAsNonNegotiationInputWithARenderedMessage() {
         complianceChecker.result = new NegotiationRuleCheckResult(false, List.of());
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract("## 任务目标\n诊断\n", null, Map.of(), REFERENCE));
 
-        assertEquals("negotiation_invalid_input", exception.getCode());
-        assertEquals(
-                "missing negotiation context; for Task-T compliance use checkTaskPrompt", exception.getMessage());
-        assertFalse(exception.getMessage().contains("协商上下文"));
+        assertEquals("negotiation.invalid_input", exception.getCode());
+        assertEquals("输入的协商内容无效:缺少协商上下文(该报文不是协商报文)", exception.getMessage());
         assertEquals(List.of(), exception.getErrors());
         assertEquals(0, semanticValidator.invocations);
         assertEquals(0, complianceChecker.invocations);
@@ -145,15 +142,15 @@ class ParamExtractorTest {
     void semanticRejectionPassesErrorsThrough() {
         complianceChecker.result = new NegotiationRuleCheckResult(true, List.of());
         List<SlotValidationError> semanticErrors = List.of(
-                new SlotValidationError("section.target_result_content", "conclusion_content_mismatch", "Mismatch"),
-                new SlotValidationError("section.context", "invalid_conclusion", "Abort is reserved"));
+                new SlotValidationError("section.target_result_content", "negotiation.conclusion_content_mismatch", "Mismatch"),
+                new SlotValidationError("section.context", "negotiation.conclusion_mismatch", "Abort is reserved"));
         semanticValidator.result = new SemanticValidationResult(false, "target", semanticErrors, Map.of());
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract(VALID_ZH_PROMPT, CONTEXT, Map.of(), REFERENCE));
 
-        assertEquals("negotiation_semantic_rejected", exception.getCode());
+        assertEquals("negotiation.semantic_rejected", exception.getCode());
         assertEquals(semanticErrors, exception.getErrors());
     }
 
@@ -178,10 +175,11 @@ class ParamExtractorTest {
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract(VALID_ZH_PROMPT, CONTEXT, Map.of(), REFERENCE));
 
-        assertEquals("negotiation_llm_infrastructure_error", exception.getCode());
+        assertEquals("llm.response_invalid", exception.getCode());
         assertEquals(1, exception.getErrors().size());
         assertEquals("_llm", exception.getErrors().get(0).slotName());
-        assertTrue(exception.getMessage().contains("negotiation_type"));
+        assertEquals("semantic_validation", exception.getErrors().get(0).facts().get("step"));
+        assertTrue(exception.getCause().getCause().getMessage().contains("negotiation_type"));
     }
 
     @Test
@@ -194,7 +192,7 @@ class ParamExtractorTest {
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract(VALID_ZH_PROMPT, CONTEXT, Map.of(), REFERENCE));
 
-        assertEquals("template_not_found", exception.getCode());
+        assertEquals("template.not_found", exception.getCode());
         assertEquals(List.of(), exception.getErrors());
     }
 
@@ -209,7 +207,7 @@ class ParamExtractorTest {
                 NegotiationParamExtractionException.class,
                 () -> extractor.extract(VALID_ZH_PROMPT, CONTEXT, Map.of(), REFERENCE));
 
-        assertEquals("template_not_found", exception.getCode());
+        assertEquals("template.not_found", exception.getCode());
         assertEquals(List.of(), exception.getErrors());
         assertEquals(1, templateContentLoader.invocations);
         assertEquals(REFERENCE, templateContentLoader.lastReference);

@@ -13,15 +13,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.exception.ErrorMessages;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.resources.ClasspathResourceStreams;
 import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
@@ -38,9 +40,14 @@ import org.slf4j.LoggerFactory;
  *
  * <p>After the call the validator enforces the output contract in code: the response must contain the four required
  * keys with the expected shapes, otherwise the internal {@link NegotiationValidationException} is thrown for the
- * orchestration layer to map to the retryable LLM infrastructure error code. When the verdict is true, the reported
- * negotiation type must be present and must match the type declared by the template reference; a null or mismatching
- * type turns the outcome into a semantic rejection carrying a {@code section.*} error. Phase consistency between the
+ * orchestration layer to map to the retryable {@code llm.response_invalid} code; a transport failure of the LLM call
+ * propagates as {@link net.openan.a2at.sdk.llm.LLMError} for the orchestration layer to map to
+ * {@code llm.invocation_failed}. The LLM reports each error as {@code {slot_name, code, facts}}; the human-readable
+ * message is rendered from the code's message template in the reference language, never taken from the LLM response,
+ * and a code outside the closed {@code negotiation.*} set of the catalog is mapped to the fallback
+ * {@code negotiation.rule_violation} and logged as a warning. When the verdict is true, the reported negotiation type
+ * must be present and must match the type declared by the template reference; a null or mismatching type turns the
+ * outcome into a semantic rejection carrying a {@code negotiation.type_mismatch} error. Phase consistency between the
  * declared template and the message sections is part of the semantic tasks performed by the LLM and surfaces through
  * the returned errors.
  *
@@ -65,6 +72,14 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
     private static final String KEY_ERRORS = "errors";
 
     private static final String KEY_PARAMS = "params";
+
+    private static final String KEY_SLOT_NAME = "slot_name";
+
+    private static final String KEY_CODE = "code";
+
+    private static final String KEY_FACTS = "facts";
+
+    private static final String NEGOTIATION_CODE_DOMAIN = "negotiation.";
 
     private final LLMClient llmClient;
 
@@ -126,14 +141,18 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
     }
 
     private static Map<String, Object> errorsSchema() {
+        Map<String, Object> factsProperties = new LinkedHashMap<>();
+        factsProperties.put("type", "object");
+        factsProperties.put("additionalProperties", Map.of("type", "string"));
         Map<String, Object> errorProperties = new LinkedHashMap<>();
-        errorProperties.put("slot_name", Map.of("type", "string"));
-        errorProperties.put("code", Map.of("type", "string"));
-        errorProperties.put("message", Map.of("type", "string"));
+        errorProperties.put(KEY_SLOT_NAME, Map.of("type", "string"));
+        errorProperties.put(KEY_CODE, Map.of("type", "string"));
+        errorProperties.put(KEY_FACTS, factsProperties);
         Map<String, Object> errorItem = new LinkedHashMap<>();
         errorItem.put("type", "object");
         errorItem.put("properties", errorProperties);
-        errorItem.put("required", List.of("slot_name", "code", "message"));
+        errorItem.put("required", List.of(KEY_SLOT_NAME, KEY_CODE, KEY_FACTS));
+        errorItem.put("additionalProperties", false);
         Map<String, Object> errors = new LinkedHashMap<>();
         errors.put("type", "array");
         errors.put("items", errorItem);
@@ -159,8 +178,8 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
      *     and language
      * @return semantic validation outcome carrying the verdict, the implied negotiation type, the semantic errors and
      *     the extracted parameters
-     * @throws NegotiationValidationException if the LLM invocation fails or the response misses a required key or has
-     *     the wrong shape
+     * @throws NegotiationValidationException if the response misses a required key or has the wrong shape
+     * @throws net.openan.a2at.sdk.llm.LLMError if the LLM invocation fails at the transport level
      * @throws ResourceNotFoundException if the semantic validation prompt resources of the reference language are
      *     missing
      */
@@ -171,13 +190,7 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
         Objects.requireNonNull(reference, "reference");
         List<Map<String, String>> messages = buildMessages(prompt, callerSchema, reference, templateContent);
         Map<String, Object> mergedSchema = schemaBuilder.apply(callerSchema);
-        LLMResponse response;
-        try {
-            response = llmClient.structured(messages, mergedSchema, null, null);
-        } catch (LLMError error) {
-            throw new NegotiationValidationException(
-                    "Semantic validation LLM invocation failed: " + error.getMessage(), error);
-        }
+        LLMResponse response = llmClient.structured(messages, mergedSchema, null, null);
         SemanticValidationResult result = interpret(parseResponse(response.content()), reference);
         LOGGER.atInfo().log(
                 "negotiation_semantic_validation_completed verdict={} error_count={}",
@@ -197,15 +210,17 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
         Matcher matcher = USER_PROMPT_PLACEHOLDER_PATTERN.matcher(userPrompt);
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
-            String replacement = switch (matcher.group(1)) {
-                case "phase" -> Matcher.quoteReplacement(reference.performative().name().toLowerCase(Locale.ROOT));
-                case "input" -> Matcher.quoteReplacement(prompt);
-                case "template_uri" -> Matcher.quoteReplacement(reference.uri());
-                case "negotiation_type" -> Matcher.quoteReplacement(declaredTypeName(reference));
-                case "template_content" -> Matcher.quoteReplacement(templateContent);
-                case "schema" -> Matcher.quoteReplacement(toJson(callerSchema));
-                default -> Matcher.quoteReplacement(matcher.group());
-            };
+            String replacement =
+                    switch (matcher.group(1)) {
+                        case "phase" -> Matcher.quoteReplacement(
+                                reference.performative().name().toLowerCase(Locale.ROOT));
+                        case "input" -> Matcher.quoteReplacement(prompt);
+                        case "template_uri" -> Matcher.quoteReplacement(reference.uri());
+                        case "negotiation_type" -> Matcher.quoteReplacement(declaredTypeName(reference));
+                        case "template_content" -> Matcher.quoteReplacement(templateContent);
+                        case "schema" -> Matcher.quoteReplacement(toJson(callerSchema));
+                        default -> Matcher.quoteReplacement(matcher.group());
+                    };
             matcher.appendReplacement(sb, replacement);
         }
         matcher.appendTail(sb);
@@ -226,8 +241,7 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
         try (stream) {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException exception) {
-            throw new A2ATError(
-                    "Failed to read negotiation semantic validation prompt: " + classpathPath, exception);
+            throw new A2ATError("Failed to read negotiation semantic validation prompt: " + classpathPath, exception);
         }
     }
 
@@ -273,7 +287,7 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
             throw new NegotiationValidationException("Semantic validation response key params must be an object.");
         }
 
-        List<SlotValidationError> errors = parseErrors(rawErrors);
+        List<SlotValidationError> errors = parseErrors(rawErrors, reference.language());
         Map<String, Object> params = parseParams(rawParams);
         String negotiationType = (String) typeValue;
 
@@ -281,9 +295,7 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
             if (negotiationType == null) {
                 List<SlotValidationError> rejectionErrors = new ArrayList<>(errors);
                 rejectionErrors.add(typeConsistencyError(
-                        reference.type(),
-                        "Semantic verdict is true but negotiation_type is null; the implied type must match the"
-                                + " declared template."));
+                        reference.type(), "unknown", declaredTypeName(reference), reference.language()));
                 return new SemanticValidationResult(false, null, rejectionErrors, params);
             }
             NegotiationType impliedType = parseImpliedType(negotiationType);
@@ -291,31 +303,68 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
                 NegotiationType sectionType = impliedType == null ? reference.type() : impliedType;
                 List<SlotValidationError> rejectionErrors = new ArrayList<>(errors);
                 rejectionErrors.add(typeConsistencyError(
-                        sectionType,
-                        "Message implies negotiation type " + negotiationType
-                                + " but the declared template URI expects " + declaredTypeName(reference) + "."));
+                        sectionType, negotiationType, declaredTypeName(reference), reference.language()));
                 return new SemanticValidationResult(false, negotiationType, rejectionErrors, params);
             }
         }
         return new SemanticValidationResult(verdict, negotiationType, errors, params);
     }
 
-    private static List<SlotValidationError> parseErrors(List<?> rawErrors) {
+    private static List<SlotValidationError> parseErrors(List<?> rawErrors, String language) {
         List<SlotValidationError> errors = new ArrayList<>();
         for (Object rawError : rawErrors) {
             if (!(rawError instanceof Map<?, ?> errorMap)) {
                 throw new NegotiationValidationException(
-                        "Semantic validation response errors must be objects with slot_name, code and message.");
+                        "Semantic validation response errors must be objects with slot_name, code and facts.");
             }
-            if (!(errorMap.get("slot_name") instanceof String slotName)
-                    || !(errorMap.get("code") instanceof String code)
-                    || !(errorMap.get("message") instanceof String message)) {
+            if (!(errorMap.get(KEY_SLOT_NAME) instanceof String slotName)
+                    || !(errorMap.get(KEY_CODE) instanceof String code)) {
                 throw new NegotiationValidationException(
-                        "Semantic validation response errors must carry string slot_name, code and message values.");
+                        "Semantic validation response errors must carry string slot_name and code values.");
             }
-            errors.add(new SlotValidationError(slotName, code, message));
+            if (!(errorMap.get(KEY_FACTS) instanceof Map<?, ?> rawFacts)) {
+                throw new NegotiationValidationException(
+                        "Semantic validation response errors must carry a facts object.");
+            }
+            Map<String, String> facts = stringFacts(rawFacts);
+            ErrorCatalog entry = resolveCode(code);
+            if (!entry.getCode().equals(code)) {
+                LOGGER.atWarn()
+                        .log(
+                                "negotiation_semantic_validation_unknown_code original_code={} fallback_code={}",
+                                code,
+                                entry.getCode());
+                facts = Map.of("section_label", slotName);
+            }
+            errors.add(new SlotValidationError(
+                    slotName, entry.getCode(), ErrorMessages.render(entry, language, facts), facts));
         }
         return errors;
+    }
+
+    /** Resolves one LLM-reported code to its catalog entry, falling back to {@code negotiation.rule_violation}. */
+    private static ErrorCatalog resolveCode(String code) {
+        Optional<ErrorCatalog> entry = ErrorCatalog.byCode(code);
+        if (entry.isPresent() && entry.get().getCode().startsWith(NEGOTIATION_CODE_DOMAIN)) {
+            return entry.get();
+        }
+        return ErrorCatalog.NEGOTIATION_RULE_VIOLATION;
+    }
+
+    private static Map<String, String> stringFacts(Map<?, ?> rawFacts) {
+        Map<String, String> facts = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawFacts.entrySet()) {
+            if (!(entry.getKey() instanceof String key)) {
+                continue;
+            }
+            Object value = entry.getValue();
+            if (value instanceof String text) {
+                facts.put(key, text);
+            } else if (value instanceof Number || value instanceof Boolean) {
+                facts.put(key, String.valueOf(value));
+            }
+        }
+        return Map.copyOf(facts);
     }
 
     private static Map<String, Object> parseParams(Map<?, ?> rawParams) {
@@ -329,8 +378,14 @@ public final class DefaultNegotiationSemanticValidator implements NegotiationSem
         return params;
     }
 
-    private static SlotValidationError typeConsistencyError(NegotiationType sectionType, String message) {
-        return new SlotValidationError(declaredTypeSectionKey(sectionType), "template_type_mismatch", message);
+    private static SlotValidationError typeConsistencyError(
+            NegotiationType sectionType, String implied, String declared, String language) {
+        Map<String, String> facts = Map.of("implied", implied, "declared", declared);
+        return new SlotValidationError(
+                declaredTypeSectionKey(sectionType),
+                ErrorCatalog.NEGOTIATION_TYPE_MISMATCH.getCode(),
+                ErrorMessages.render(ErrorCatalog.NEGOTIATION_TYPE_MISMATCH, language, facts),
+                facts);
     }
 
     /** Parses the negotiation type reported for the message; null when the reported type is none of the known types. */

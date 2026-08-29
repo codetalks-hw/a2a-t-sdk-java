@@ -2,10 +2,14 @@ package net.openan.a2at.sdk.negotiation.validation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import net.openan.a2at.sdk.core.model.SlotValidationError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.exception.ErrorMessages;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.SlotValidationError;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,10 +17,11 @@ import org.slf4j.LoggerFactory;
  * Default rule-level compliance checker for negotiation messages.
  *
  * <p>The checker validates the negotiation context carried alongside the message in the A2A-T metadata: the id must be
- * a UUID of 36 characters in 8-4-4-4-12 hexadecimal form and the round must not exceed the round budget. The
- * positive-integer shape of the round fields is already guaranteed by the {@link NegotiationContext} constructor. No
- * other rules are applied: the checker does not infer the negotiation type, does not validate conclusion values, does
- * not require ending result sections and does not check conditional-section exclusivity.
+ * a UUID of 36 characters in 8-4-4-4-12 hexadecimal form and the round must not exceed the round budget. Error messages
+ * are rendered from the {@link ErrorCatalog} message templates in the configured language. The positive-integer shape
+ * of the round fields is already guaranteed by the {@link NegotiationContext} constructor. No other rules are applied:
+ * the checker does not infer the negotiation type, does not validate conclusion values, does not require ending result
+ * sections and does not check conditional-section exclusivity.
  *
  * @since 2026-08
  */
@@ -31,8 +36,21 @@ public final class DefaultNegotiationComplianceChecker implements NegotiationCom
 
     private static final String ROUND_SLOT = "round";
 
-    /** Creates the default checker. */
-    public DefaultNegotiationComplianceChecker() {}
+    private final String language;
+
+    /** Creates the default checker rendering messages in {@code en-US}. */
+    public DefaultNegotiationComplianceChecker() {
+        this(null);
+    }
+
+    /**
+     * Creates the default checker rendering messages in one language.
+     *
+     * @param language message language, for example {@code zh-CN}; null or blank falls back to {@code en-US}
+     */
+    public DefaultNegotiationComplianceChecker(@Nullable String language) {
+        this.language = language;
+    }
 
     /**
      * Runs the rule-level compliance check of one negotiation context.
@@ -49,20 +67,27 @@ public final class DefaultNegotiationComplianceChecker implements NegotiationCom
         if (context.round() > context.maxRounds()) {
             errors.add(new SlotValidationError(
                     ROUND_SLOT,
-                    "out_of_range",
-                    "Negotiation context round " + context.round() + " must not exceed maxRounds "
-                            + context.maxRounds() + "."));
+                    ErrorCatalog.NEGOTIATION_ROUND_EXCEEDED.getCode(),
+                    ErrorMessages.render(ErrorCatalog.NEGOTIATION_ROUND_EXCEEDED, language, roundFacts(context)),
+                    roundFacts(context)));
         }
         return logResult(new NegotiationRuleCheckResult(errors.isEmpty(), List.copyOf(errors)));
     }
 
-    private static void collectIdErrors(String id, List<SlotValidationError> errors) {
+    private static Map<String, String> roundFacts(NegotiationContext context) {
+        return Map.of(
+                "round", String.valueOf(context.round()),
+                "max_rounds", String.valueOf(context.maxRounds()));
+    }
+
+    private void collectIdErrors(String id, List<SlotValidationError> errors) {
         if (!UUID_PATTERN.matcher(id).matches()) {
+            Map<String, String> facts = Map.of("actual", id);
             errors.add(new SlotValidationError(
                     ID_SLOT,
-                    "invalid_uuid",
-                    "Negotiation context id must be a 36-character UUID in 8-4-4-4-12 hexadecimal form but was '" + id
-                            + "'."));
+                    ErrorCatalog.NEGOTIATION_INVALID_CONTEXT_ID.getCode(),
+                    ErrorMessages.render(ErrorCatalog.NEGOTIATION_INVALID_CONTEXT_ID, language, facts),
+                    facts));
         }
     }
 

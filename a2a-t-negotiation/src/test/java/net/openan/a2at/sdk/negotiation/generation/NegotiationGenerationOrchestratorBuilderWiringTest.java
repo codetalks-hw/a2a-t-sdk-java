@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
@@ -157,7 +157,7 @@ class NegotiationGenerationOrchestratorBuilderWiringTest {
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, exception.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), exception.getCode());
     }
 
     @Test
@@ -172,7 +172,7 @@ class NegotiationGenerationOrchestratorBuilderWiringTest {
                 NegotiationGenerationException.class,
                 () -> generationOrchestrator.generateProposeFromText(
                         "请提供节能区域。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE_URI));
-        assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, generationFailure.getCode());
+        assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), generationFailure.getCode());
         assertEquals(2, generationClient.calls.get(), "generation chain must retry up to the limit");
 
         CountingFailingClient semanticClient = new CountingFailingClient();

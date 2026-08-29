@@ -8,16 +8,16 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.A2ATParamExtractionError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
-import net.openan.a2at.sdk.core.exception.A2ATParamExtractionError;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProcessingException;
@@ -109,7 +109,7 @@ class NegotiationPublicExceptionSurfaceTest {
                         "请提供节能区域。",
                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                         INFORMATION_PROPOSE_URI));
-        assertTrue(generationFailure.getCode().equals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+        assertTrue(generationFailure.getCode().equals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
 
         NegotiationParamExtractionException extractionFailure = catchFailure(
                 NegotiationParamExtractionException.class,
@@ -118,7 +118,7 @@ class NegotiationPublicExceptionSurfaceTest {
                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE_URI));
-        assertTrue(extractionFailure.getCode().equals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+        assertTrue(extractionFailure.getCode().equals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
         assertFalse(extractionFailure.getErrors().isEmpty());
         assertTrue(extractionFailure.getErrors().stream()
                 .allMatch(error -> error.slotName() != null && !error.slotName().isBlank()));

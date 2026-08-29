@@ -3,15 +3,17 @@ package net.openan.a2at.sdk.negotiation.generation;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
-import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityEndingContent;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityProposeContent;
 import net.openan.a2at.sdk.negotiation.content.InformationEndingContent;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationConclusion;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import net.openan.a2at.sdk.negotiation.content.TargetEndingContent;
@@ -57,13 +59,19 @@ final class NegotiationGeneratorRegistry {
      * @param type negotiation type addressed by the template URI; null only for the type-independent abort phase
      * @param phase API-level phase addressed by the calling method
      * @param content typed content of the message
+     * @param language message language used to render the failure message of a conclusion mismatch
      * @return generator registered for the exact (type, phase) pair
      * @throws NullPointerException if the phase or content is null, or the type is null on a typed phase
-     * @throws IllegalArgumentException if the content family does not match the phase, the content runtime type does
-     *     not match the negotiation type, or an ending content carries a conclusion that does not match the phase
+     * @throws IllegalArgumentException if the content family does not match the phase or the content runtime type does
+     *     not match the negotiation type
+     * @throws NegotiationGenerationException with the code {@code negotiation.conclusion_mismatch} if an ending content
+     *     carries a conclusion that does not match the phase
      */
     public NegotiationGenerator resolve(
-            @Nullable NegotiationType type, NegotiationPerformative phase, NegotiationContent content) {
+            @Nullable NegotiationType type,
+            NegotiationPerformative phase,
+            NegotiationContent content,
+            String language) {
         Objects.requireNonNull(phase, "Negotiation phase must not be null.");
         Objects.requireNonNull(content, "Negotiation content must not be null.");
         if (phase == NegotiationPerformative.ABORT) {
@@ -72,12 +80,11 @@ final class NegotiationGeneratorRegistry {
                         "The ABORT phase is type-independent and must not carry a type but carried " + type + ".");
             }
             if (content.getClass() != NegotiationAbortContent.class) {
-                throw new IllegalArgumentException(
-                        "The ABORT phase requires abort content but received " + content.getClass().getSimpleName()
-                                + ".");
+                throw new IllegalArgumentException("The ABORT phase requires abort content but received "
+                        + content.getClass().getSimpleName() + ".");
             }
-            LOGGER.atDebug()
-                    .log("negotiation_generator_dispatched generator=AbortGenerator type=common performative=ABORT");
+            LOGGER.atDebug().log(
+                    "negotiation_generator_dispatched generator=AbortGenerator type=common performative=ABORT");
             return abortGenerator;
         }
         Objects.requireNonNull(type, "Negotiation type must not be null for the " + phase + " phase.");
@@ -97,7 +104,7 @@ final class NegotiationGeneratorRegistry {
                             + " but received " + content.getClass().getSimpleName() + ".");
         }
         if (!proposePhase) {
-            requireConclusionMatchesPhase((NegotiationEndingContent) content, phase);
+            requireConclusionMatchesPhase((NegotiationEndingContent) content, phase, language);
         }
         NegotiationGenerator generator = (proposePhase ? proposeGenerators : endingGenerators).get(type);
         if (generator == null) {
@@ -113,16 +120,17 @@ final class NegotiationGeneratorRegistry {
     }
 
     private static void requireConclusionMatchesPhase(
-            NegotiationEndingContent content, NegotiationPerformative phase) {
+            NegotiationEndingContent content, NegotiationPerformative phase, String language) {
         NegotiationConclusion conclusion = Objects.requireNonNull(
                 content.conclusion(),
                 "Negotiation conclusion must not be null; the " + phase + " phase requires a conclusion.");
         NegotiationConclusion expected =
                 phase == NegotiationPerformative.ACCEPT ? NegotiationConclusion.ACCEPT : NegotiationConclusion.REJECT;
         if (conclusion != expected) {
-            throw new IllegalArgumentException(
-                    "The " + phase + " phase requires conclusion " + expected.literal() + " but the content carries "
-                            + conclusion.literal() + ".");
+            throw new NegotiationGenerationException(
+                    ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH,
+                    language,
+                    Map.of("expected", expected.literal(), "actual", conclusion.literal()));
         }
     }
 

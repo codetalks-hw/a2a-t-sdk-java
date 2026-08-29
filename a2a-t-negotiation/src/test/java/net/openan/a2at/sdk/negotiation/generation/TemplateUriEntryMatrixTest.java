@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * <p>The seven built-in URIs (six typed negotiation templates plus the common abort template) address their templates
  * and render outputs identical to the golden fixtures; a well-formed
- * URI that resolves to no template fails with the code {@code template_not_found} before any LLM call; a typed URI
+ * URI that resolves to no template fails with the code {@code template.not_found} before any LLM call; a typed URI
  * that does not address a negotiation template of the expected performative (wrong extension name, version, type
  * segment, performative segment or separator, including the underscore misspelling of the type segment) fails as a
  * programming error pointing at {@code templateUri}, while structural malformation is impossible by construction of
@@ -75,7 +75,7 @@ class TemplateUriEntryMatrixTest {
 
     /**
      * Entry (b): a well-formed URI that resolves to no template in any resource root fails with the code
-     * {@code template_not_found} before any LLM call. With the bundled resources every well-formed v1 URI resolves in
+     * {@code template.not_found} before any LLM call. With the bundled resources every well-formed v1 URI resolves in
      * both bundled languages, so the always-miss condition is realized by a loader whose every load misses.
      */
     @Test
@@ -91,7 +91,7 @@ class TemplateUriEntryMatrixTest {
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromData(informationProposeData(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, failure.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), failure.getCode());
         assertTrue(
                 failure.getMessage() != null && !failure.getMessage().isBlank(),
                 "the load failure message must be surfaced");

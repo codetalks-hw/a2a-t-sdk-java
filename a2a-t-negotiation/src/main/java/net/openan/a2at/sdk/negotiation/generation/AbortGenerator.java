@@ -2,11 +2,11 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 
 /**
  * Generator for the type-independent abort negotiation message.
@@ -37,7 +37,8 @@ final class AbortGenerator extends AbstractNegotiationGenerator {
                 requiredText(
                         abortContent.terminationReason(),
                         "content.terminationReason",
-                        "Termination reason of an abort negotiation message"));
+                        "Termination reason of an abort negotiation message",
+                        vocabulary));
         return render(template, slots);
     }
 }

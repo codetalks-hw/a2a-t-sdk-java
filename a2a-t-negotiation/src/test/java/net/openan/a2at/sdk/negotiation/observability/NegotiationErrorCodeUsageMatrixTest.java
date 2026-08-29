@@ -10,17 +10,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
-import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -28,7 +29,6 @@ import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationSemanticValidator;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -69,9 +69,9 @@ class NegotiationErrorCodeUsageMatrixTest {
                                 .build()
                                 .generateProposeFromData(proposeData(), INFORMATION_PROPOSE_URI),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.TEMPLATE_NOT_FOUND),
+                        ErrorCatalog.TEMPLATE_NOT_FOUND.getCode()),
                 row(
-                        "generation_content_extract_failed_is_retryable",
+                        "generation_response_invalid_is_retryable",
                         "not-a-json-object",
                         2,
                         llm -> () -> NegotiationGenerationOrchestratorBuilder.builder()
@@ -84,7 +84,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                         INFORMATION_PROPOSE_URI),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED),
+                        ErrorCatalog.LLM_RESPONSE_INVALID.getCode()),
                 row(
                         "generation_slot_missing_is_not_retryable",
                         "{}",
@@ -99,9 +99,9 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                         INFORMATION_PROPOSE_URI),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_SLOT_MISSING),
+                        ErrorCatalog.NEGOTIATION_FIELD_MISSING.getCode()),
                 row(
-                        "generation_phase_content_mismatch_is_invalid_input",
+                        "generation_phase_conclusion_mismatch_is_conclusion_mismatch",
                         "{\"conclusion\":\"Reject\",\"items\":[{\"name\":\"区域\",\"value\":\"松山湖\"}]}",
                         1,
                         llm -> () -> NegotiationGenerationOrchestratorBuilder.builder()
@@ -114,7 +114,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.ACCEPT),
                                         INFORMATION_ENDING_URI),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_INVALID_INPUT),
+                        ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode()),
                 row(
                         "generation_target_confirm_request_round_with_conditional_sections_is_invalid_input",
                         "{\"target_negotiation_description\":\"目标已经澄清，请确认。\",\"intent_understanding\":"
@@ -131,7 +131,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 3, 5, NegotiationPerformative.PROPOSE),
                                         StandardTemplates.TARGET_NEGOTIATION_PROPOSE),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_INVALID_INPUT),
+                        ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode()),
                 row(
                         "generation_feasibility_confirm_request_round_with_infeasibility_details_is_invalid_input",
                         "{\"feasibility_negotiation_description\":\"评估完成，结论可行，请确认。\",\"action\":"
@@ -149,7 +149,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 3, 5, NegotiationPerformative.PROPOSE),
                                         StandardTemplates.FEASIBILITY_NEGOTIATION_PROPOSE),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_INVALID_INPUT),
+                        ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode()),
                 row(
                         "generation_feasibility_confirm_request_round_with_alternative_action_is_invalid_input",
                         "{\"feasibility_negotiation_description\":\"评估完成，结论可行，请确认。\",\"action\":"
@@ -166,7 +166,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 3, 5, NegotiationPerformative.PROPOSE),
                                         StandardTemplates.FEASIBILITY_NEGOTIATION_PROPOSE),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_INVALID_INPUT),
+                        ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode()),
                 row(
                         "generation_llm_infrastructure_failure_is_retryable",
                         null,
@@ -181,7 +181,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                         INFORMATION_PROPOSE_URI),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR),
+                        ErrorCatalog.LLM_INVOCATION_FAILED.getCode()),
                 row(
                         "param_non_negotiation_input",
                         semanticPayload("information"),
@@ -191,9 +191,12 @@ class NegotiationErrorCodeUsageMatrixTest {
                                 .llmClient(llm)
                                 .build()
                                 .validateProposePromptAndDataFilling(
-                                        "plain text without any negotiation section", null, SCHEMA, INFORMATION_PROPOSE_URI),
+                                        "plain text without any negotiation section",
+                                        null,
+                                        SCHEMA,
+                                        INFORMATION_PROPOSE_URI),
                         NegotiationParamExtractionException.class,
-                        A2ATErrorCodes.NEGOTIATION_INVALID_INPUT),
+                        ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode()),
                 row(
                         "param_rule_violation",
                         semanticPayload("information"),
@@ -208,21 +211,22 @@ class NegotiationErrorCodeUsageMatrixTest {
                                         SCHEMA,
                                         INFORMATION_PROPOSE_URI),
                         NegotiationParamExtractionException.class,
-                        A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION),
+                        ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode()),
                 row(
                         "param_semantic_rejection",
                         "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":"
-                                + "\"section.info_static\",\"code\":\"template_type_mismatch\",\"message\":"
-                                + "\"inconsistent\"}],\"params\":{}}",
+                                + "\"section.info_static\",\"code\":\"negotiation.type_mismatch\",\"facts\":"
+                                + "{\"implied\":\"information\",\"declared\":\"information\"}}],\"params\":{}}",
                         1,
                         llm -> () -> NegotiationGenerationOrchestratorBuilder.builder()
                                 .language("zh-CN")
                                 .llmClient(llm)
                                 .maxAttempts(3)
                                 .build()
-                                .validateProposePromptAndDataFilling(VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
+                                .validateProposePromptAndDataFilling(
+                                        VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
                         NegotiationParamExtractionException.class,
-                        A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED),
+                        ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode()),
                 row(
                         "param_llm_infrastructure_failure_is_retryable",
                         null,
@@ -232,9 +236,10 @@ class NegotiationErrorCodeUsageMatrixTest {
                                 .llmClient(llm)
                                 .maxAttempts(2)
                                 .build()
-                                .validateProposePromptAndDataFilling(VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
+                                .validateProposePromptAndDataFilling(
+                                        VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
                         NegotiationParamExtractionException.class,
-                        A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR),
+                        ErrorCatalog.LLM_INVOCATION_FAILED.getCode()),
                 row(
                         "entry_programming_error_carries_no_code_but_the_offending_argument",
                         "not-a-json",
@@ -247,7 +252,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                         IllegalArgumentException.class,
                         null),
                 row(
-                        "internal_render_failure_is_wrapped_as_slot_missing",
+                        "internal_render_failure_is_wrapped_as_render_failed",
                         "not-a-json",
                         0,
                         llm -> () -> NegotiationGenerationOrchestratorBuilder.builder()
@@ -257,7 +262,7 @@ class NegotiationErrorCodeUsageMatrixTest {
                                 .build()
                                 .generateProposeFromData(proposeData(), INFORMATION_PROPOSE_URI),
                         NegotiationGenerationException.class,
-                        A2ATErrorCodes.NEGOTIATION_SLOT_MISSING),
+                        ErrorCatalog.TEMPLATE_RENDER_FAILED.getCode()),
                 row(
                         "internal_semantic_shape_violation_is_retryable_infrastructure",
                         "{\"semantic_verdict\":true,\"errors\":[],\"params\":{}}",
@@ -267,9 +272,10 @@ class NegotiationErrorCodeUsageMatrixTest {
                                 .llmClient(llm)
                                 .maxAttempts(2)
                                 .build()
-                                .validateProposePromptAndDataFilling(VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
+                                .validateProposePromptAndDataFilling(
+                                        VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
                         NegotiationParamExtractionException.class,
-                        A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR),
+                        ErrorCatalog.LLM_RESPONSE_INVALID.getCode()),
                 row(
                         "param_prompt_resource_missing_is_template_not_found",
                         semanticPayload("information"),
@@ -279,9 +285,10 @@ class NegotiationErrorCodeUsageMatrixTest {
                                 .llmClient(llm)
                                 .semanticValidator(throwingSemanticValidator())
                                 .build()
-                                .validateProposePromptAndDataFilling(VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
+                                .validateProposePromptAndDataFilling(
+                                        VALID_CONTEXT_PROMPT, CONTEXT, SCHEMA, INFORMATION_PROPOSE_URI),
                         NegotiationParamExtractionException.class,
-                        A2ATErrorCodes.TEMPLATE_NOT_FOUND));
+                        ErrorCatalog.TEMPLATE_NOT_FOUND.getCode()));
     }
 
     private static DynamicTest row(
@@ -331,9 +338,12 @@ class NegotiationErrorCodeUsageMatrixTest {
         }
         if (failure instanceof NegotiationParamExtractionException extractionFailure) {
             assertEquals(expectedCode, extractionFailure.getCode(), "row " + name + " public code");
-            boolean expectsSlotDetails = A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION.equals(expectedCode)
-                    || A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED.equals(expectedCode)
-                    || A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR.equals(expectedCode);
+            boolean expectsSlotDetails = ErrorCatalog.NEGOTIATION_RULE_VIOLATION
+                            .getCode()
+                            .equals(expectedCode)
+                    || ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode().equals(expectedCode)
+                    || ErrorCatalog.LLM_INVOCATION_FAILED.getCode().equals(expectedCode)
+                    || ErrorCatalog.LLM_RESPONSE_INVALID.getCode().equals(expectedCode);
             if (expectsSlotDetails) {
                 assertFalse(
                         extractionFailure.getErrors().isEmpty(),

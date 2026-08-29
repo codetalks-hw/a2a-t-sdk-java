@@ -67,10 +67,13 @@ public final class NegotiationContentService {
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the data, its context or the template URI is null
      * @throws IllegalArgumentException if the template URI's performative or type contradicts the method or the content
-     *     type, or the content combines a non-blank confirm request with conditional sections (target: the three
-     *     clarification lists; feasibility: either conditional list or the alternative action)
-     * @throws NegotiationGenerationException with the code {@code template_not_found} or
-     *     {@code negotiation_slot_missing} when loading or rendering the template fails
+     *     type
+     * @throws NegotiationGenerationException with the code {@code negotiation.content_invalid} when a required content
+     *     field is blank or empty, or {@code negotiation.invalid_input} when the content combines a non-blank confirm
+     *     request with conditional sections (target: the three clarification lists; feasibility: either conditional
+     *     list or the alternative action)
+     * @throws NegotiationGenerationException with the code {@code template.not_found} or
+     *     {@code negotiation.field_missing} when loading or rendering the template fails
      */
     public MetadataContent generateProposeFromData(
             @NonNull NegotiationProposeData data, @NonNull TemplateUri templateUri) {
@@ -84,10 +87,12 @@ public final class NegotiationContentService {
      * @param templateUri template URI whose performative segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the data, its context or the template URI is null
-     * @throws IllegalArgumentException if the template URI's performative or type contradicts the method or the content, or
-     *     the content conclusion is not {@code Accept}
-     * @throws NegotiationGenerationException with the code {@code template_not_found} or
-     *     {@code negotiation_slot_missing} when loading or rendering the template fails
+     * @throws IllegalArgumentException if the template URI's performative or type contradicts the method or the content
+     * @throws NegotiationGenerationException with the code {@code negotiation.conclusion_mismatch} when the content
+     *     conclusion is not {@code Accept}, or {@code negotiation.content_invalid} when a required content field is
+     *     blank or empty
+     * @throws NegotiationGenerationException with the code {@code template.not_found} or
+     *     {@code negotiation.field_missing} when loading or rendering the template fails
      */
     public MetadataContent generateAcceptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
@@ -101,10 +106,12 @@ public final class NegotiationContentService {
      * @param templateUri template URI whose performative segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the data, its context or the template URI is null
-     * @throws IllegalArgumentException if the template URI's performative or type contradicts the method or the content, or
-     *     the content conclusion is not {@code Reject}
-     * @throws NegotiationGenerationException with the code {@code template_not_found} or
-     *     {@code negotiation_slot_missing} when loading or rendering the template fails
+     * @throws IllegalArgumentException if the template URI's performative or type contradicts the method or the content
+     * @throws NegotiationGenerationException with the code {@code negotiation.conclusion_mismatch} when the content
+     *     conclusion is not {@code Reject}, or {@code negotiation.content_invalid} when a required content field is
+     *     blank or empty
+     * @throws NegotiationGenerationException with the code {@code template.not_found} or
+     *     {@code negotiation.field_missing} when loading or rendering the template fails
      */
     public MetadataContent generateRejectFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
@@ -118,10 +125,11 @@ public final class NegotiationContentService {
      * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the data, its context or the template URI is null
-     * @throws IllegalArgumentException if the template URI does not address the common abort template or the
-     *     termination reason is blank
-     * @throws NegotiationGenerationException with the code {@code template_not_found} or
-     *     {@code negotiation_slot_missing} when loading or rendering the template fails
+     * @throws IllegalArgumentException if the template URI does not address the common abort template
+     * @throws NegotiationGenerationException with the code {@code negotiation.content_invalid} when the termination
+     *     reason is blank
+     * @throws NegotiationGenerationException with the code {@code template.not_found} or
+     *     {@code negotiation.field_missing} when loading or rendering the template fails
      */
     public MetadataContent generateAbortFromData(
             @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
@@ -137,12 +145,12 @@ public final class NegotiationContentService {
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI contradicts the method
-     * @throws NegotiationGenerationException with the code {@code template_not_found},
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when loading or
-     *     extracting fails, {@code negotiation_slot_missing} when the extracted content misses a required field, or
-     *     {@code negotiation_invalid_input} when the text is blank, the extracted content contradicts the performative
-     *     or the extracted confirm request is combined with conditional sections or the wrong feasibility action, or
-     *     {@code input_text_too_long} when the text exceeds the configured maximum length
+     * @throws NegotiationGenerationException with the code {@code template.not_found},
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when loading or extracting fails, {@code negotiation.field_missing} when the extracted content misses a
+     *     required field, or {@code negotiation.invalid_input} when the text is blank, the extracted content
+     *     contradicts the performative or the extracted confirm request is combined with conditional sections or the
+     *     wrong feasibility action, or {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateProposeFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -158,11 +166,12 @@ public final class NegotiationContentService {
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI contradicts the method
-     * @throws NegotiationGenerationException with the code {@code template_not_found},
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when loading or
-     *     extracting fails, {@code negotiation_slot_missing} when the extracted content misses a required field, or
-     *     {@code negotiation_invalid_input} when the text is blank or the extracted conclusion is not {@code Accept},
-     *     or {@code input_text_too_long} when the text exceeds the configured maximum length
+     * @throws NegotiationGenerationException with the code {@code template.not_found},
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when loading or extracting fails, {@code negotiation.field_missing} when the extracted content misses a
+     *     required field, or {@code negotiation.invalid_input} when the text is blank,
+     *     {@code negotiation.conclusion_mismatch} when the extracted conclusion is not {@code Accept}, or
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateAcceptFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -178,11 +187,12 @@ public final class NegotiationContentService {
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI contradicts the method
-     * @throws NegotiationGenerationException with the code {@code template_not_found},
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when loading or
-     *     extracting fails, {@code negotiation_slot_missing} when the extracted content misses a required field, or
-     *     {@code negotiation_invalid_input} when the text is blank or the extracted conclusion is not {@code Reject},
-     *     or {@code input_text_too_long} when the text exceeds the configured maximum length
+     * @throws NegotiationGenerationException with the code {@code template.not_found},
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when loading or extracting fails, {@code negotiation.field_missing} when the extracted content misses a
+     *     required field, or {@code negotiation.invalid_input} when the text is blank,
+     *     {@code negotiation.conclusion_mismatch} when the extracted conclusion is not {@code Reject}, or
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateRejectFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -198,10 +208,11 @@ public final class NegotiationContentService {
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI does not address the common abort template
-     * @throws NegotiationGenerationException with the code {@code template_not_found},
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when loading or
-     *     extracting fails, {@code negotiation_slot_missing} when the extracted content misses the termination reason,
-     *     or {@code input_text_too_long} when the text exceeds the configured maximum length
+     * @throws NegotiationGenerationException with the code {@code template.not_found},
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when loading or extracting fails, {@code negotiation.field_missing} when the extracted content misses the
+     *     termination reason, or {@code negotiation.invalid_input} when the text is blank, or
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateAbortFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -219,10 +230,10 @@ public final class NegotiationContentService {
      * @return filled parameter data carrying the context parameters and the extracted parameters
      * @throws NullPointerException if the schema or the template URI is null
      * @throws IllegalArgumentException if the template URI contradicts the method
-     * @throws NegotiationParamExtractionException with the code {@code negotiation_invalid_input} when the prompt is
-     *     null or blank, or {@code negotiation_rule_violation}, {@code negotiation_semantic_rejected},
-     *     {@code negotiation_llm_infrastructure_error}, {@code input_text_too_long} or {@code template_not_found}
-     *     when the validation pipeline fails
+     * @throws NegotiationParamExtractionException with the code {@code negotiation.invalid_input} when the prompt is
+     *     null or blank, or {@code negotiation.rule_violation}, {@code negotiation.semantic_rejected},
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid}, {@code input.text_too_long} or
+     *     {@code template.not_found} when the validation pipeline fails
      */
     public FilledParamData validateProposePromptAndDataFilling(
             String prompt,
@@ -243,10 +254,10 @@ public final class NegotiationContentService {
      * @return filled parameter data carrying the context parameters and the extracted parameters
      * @throws NullPointerException if the schema or the template URI is null
      * @throws IllegalArgumentException if the template URI contradicts the method
-     * @throws NegotiationParamExtractionException with the code {@code negotiation_invalid_input} when the prompt is
-     *     null or blank, or {@code negotiation_rule_violation}, {@code negotiation_semantic_rejected},
-     *     {@code negotiation_llm_infrastructure_error}, {@code input_text_too_long} or {@code template_not_found}
-     *     when the validation pipeline fails
+     * @throws NegotiationParamExtractionException with the code {@code negotiation.invalid_input} when the prompt is
+     *     null or blank, or {@code negotiation.rule_violation}, {@code negotiation.semantic_rejected},
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid}, {@code input.text_too_long} or
+     *     {@code template.not_found} when the validation pipeline fails
      */
     public FilledParamData validateAcceptPromptAndDataFilling(
             String prompt,
@@ -267,10 +278,10 @@ public final class NegotiationContentService {
      * @return filled parameter data carrying the context parameters and the extracted parameters
      * @throws NullPointerException if the schema or the template URI is null
      * @throws IllegalArgumentException if the template URI contradicts the method
-     * @throws NegotiationParamExtractionException with the code {@code negotiation_invalid_input} when the prompt is
-     *     null or blank, or {@code negotiation_rule_violation}, {@code negotiation_semantic_rejected},
-     *     {@code negotiation_llm_infrastructure_error}, {@code input_text_too_long} or {@code template_not_found}
-     *     when the validation pipeline fails
+     * @throws NegotiationParamExtractionException with the code {@code negotiation.invalid_input} when the prompt is
+     *     null or blank, or {@code negotiation.rule_violation}, {@code negotiation.semantic_rejected},
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid}, {@code input.text_too_long} or
+     *     {@code template.not_found} when the validation pipeline fails
      */
     public FilledParamData validateRejectPromptAndDataFilling(
             String prompt,
@@ -291,7 +302,7 @@ public final class NegotiationContentService {
      * @return filled parameter data carrying the context parameters and the extracted parameters
      * @throws NullPointerException if the schema or the template URI is null
      * @throws IllegalArgumentException if the template URI does not address the common abort template
-     * @throws NegotiationParamExtractionException with the code {@code input_text_too_long} when the prompt exceeds
+     * @throws NegotiationParamExtractionException with the code {@code input.text_too_long} when the prompt exceeds
      *     the configured maximum length, or another validation pipeline failure code otherwise
      */
     public FilledParamData validateAbortPromptAndDataFilling(
