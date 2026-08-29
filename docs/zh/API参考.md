@@ -32,10 +32,10 @@ A2A-T SDK 的对外 仅提供两个入口：客户端入口 `A2ATClient`（提�
 **公共数据类型与约定**
 
 - **协商会话上下文：**`NegotiationContext(id, round, maxRounds)`（id 为 UUID 形态、round 从 1 起、默认轮次 `DEFAULT_MAX_ROUNDS = 5`），随消息 metadata 传输、不经 LLM；`NegotiationContext.of(id, round)` 使用默认轮次，`nextRound()` 推进轮次。
-- **异常体系：**所有 SDK 处理失败均为 `A2ATError` 子类，捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取机器可读错误码。所有消息均由 SDK 按错误码模板渲染，语言跟随 `A2AT_LANGUAGE`。如下业务异常均继承 `A2ATBusinessException`，额外提供 `getFacts()` 返回渲染消息所依据的结构化事实值；
+- **异常体系：** 所有 SDK 处理失败均为 `A2ATError` 子类，捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取机器可读错误码。所有消息均由 SDK 按错误码模板渲染，语言跟随 `A2AT_LANGUAGE`。如下业务异常均继承 `A2ATBusinessException`，额外提供 `getFacts()` 返回渲染消息所依据的结构化事实值；
   - 模板生成失败抛 `PromptGenerationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationGenerationException`（Negotiation-T）。
   - 模板校验+提参失败抛 `ContentValidationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationParamExtractionException`（Negotiation-T）。
-- **TemplateUri：**模板 URI 值类型，推荐用 `net.openan.a2at.sdk.core.model.StandardTemplates` 常量构造；来自外部的字符串用 `TemplateUri.parse(String)` 解析，返回 `Optional<TemplateUri>` 且不抛异常，当前支持的TemplateUri常量如下：
+- **TemplateUri：** 模板 URI 值类型，推荐用 `net.openan.a2at.sdk.core.model.StandardTemplates` 常量构造；来自外部的字符串用 `TemplateUri.parse(String)` 解析，返回 `Optional<TemplateUri>` 且不抛异常，当前支持的TemplateUri常量如下：
 
 | 常量名称 | 含义 | TemplateURI |
 | ---- | ---- | ---- |
