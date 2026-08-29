@@ -33,14 +33,115 @@ A2A-T SDK 的对外 API 收敛在两个门面上：客户端门面 `A2ATClient`�
 
 - **TemplateUri：**模板 URI 值类型，推荐用 `net.openan.a2at.sdk.core.model.StandardTemplates` 常量构造，如 `StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE`（URI 为 `Negotiation-T/information-negotiation/propose/v1`）；来自外部的字符串用 `TemplateUri.parse(String)` 解析，返回 `Optional<TemplateUri>` 且不抛异常。
 - **协商会话上下文：**`NegotiationContext(id, round, maxRounds)`（id 为 UUID 形态、round 从 1 起、默认轮次预算 `DEFAULT_MAX_ROUNDS = 5`），随消息 metadata 传输、不经 LLM；`NegotiationContext.of(id, round)` 使用默认预算，`nextRound()` 推进轮次。
-- **异常体系：**所有 SDK 处理失败均为 `A2ATError` 子类——生成失败抛 `PromptGenerationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationGenerationException`（Negotiation-T），校验+提参失败抛 `ContentValidationException`（Task-T / Notification-T / Authorization-T，携带 `errors()` 槽位错误明细与 `params()` 部分提取参数）或 `NegotiationParamExtractionException`（Negotiation-T）。捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取机器可读错误码。
+- **异常体系：**所有 SDK 处理失败均为 `A2ATError` 子类——生成失败抛 `PromptGenerationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationGenerationException`（Negotiation-T），校验+提参失败抛 `ContentValidationException`（Task-T / Notification-T / Authorization-T，携带 `errors()` 槽位错误明细与 `params()` 部分提取参数）或 `NegotiationParamExtractionException`（Negotiation-T）。捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取下方错误码目录中的机器可读错误码。预期业务失败均继承 `A2ATBusinessException`，额外提供 `getFacts()` 返回渲染消息所依据的结构化事实值；所有消息均由 SDK 按错误码模板渲染，语言跟随 `A2AT_LANGUAGE`。
 - **SlotValidationError：**逐槽位校验错误明细，随校验失败异常或失败负载返回，各节“输出说明”中的失败结构均引用此定义：
 
 | 字段 | 类型 | 说明 |
 | ---- | ---- | ---- |
 | slotName | String | 出错槽位名 |
-| code | String | 槽位级错误码，如 `missing_required`（必填缺失）、`invalid_value`（取值非法）、`format_error`（格式错误） |
-| message | String | 槽位级错误说明 |
+| code | String | 槽位级错误码，取值来自下方错误码目录，如 `content.param_missing`（参数章节未填写）、`content.entry_field_missing`（条目缺少必填字段）、`content.format_error`（取值格式错误） |
+| message | String | 人类可读的错误说明，由 SDK 按错误码的消息模板渲染；语言跟随 `A2AT_LANGUAGE`（默认 `en-US`） |
+| facts | Map&lt;String, String&gt; | 渲染消息所依据的结构化事实值，按事实参数名（如 `section_label`、`index`、`field_label`）为键；可为 null |
+
+**错误码目录**
+
+SDK 对外暴露封闭的分层式 `domain.semantic` 错误码目录，同一错误码始终对应同一消息。消息文本由 SDK 从 `prompt_resources/errors/{language}/errors.json` 中的分语言模板渲染生成，不采用 LLM 生成的自由文本。消息语言跟随 `A2AT_LANGUAGE` 配置（默认 `en-US`）；模板中的 `{x}` 占位符由错误携带的 `facts` 填充。SDK 内部 LLM 步骤只输出 `{slot_name, code, facts}` 条目；LLM 返回目录外的错误码时映射到所在域的 `*.rule_violation` 兜底码，并记录原始码日志。
+
+类别图例：BUSINESS = 调用方可行动的预期业务失败，由 `A2ATBusinessException` 子类携带；INFRA = 基础设施失败，由普通 `A2ATError` 携带。
+
+| 错误码 | 类别 | 消息（zh-CN） | 消息（en-US） |
+| ---- | -------- | ---------------- | --------------- |
+| `template.not_found` | BUSINESS | 模板「{template_uri}」不支持语言「{language}」,请检查模板标识与语言配置 | Template '{template_uri}' does not support language '{language}'; check the template URI and language setting |
+| `template.render_failed` | BUSINESS | 模板「{template_uri}」渲染失败:{reason} | Failed to render template '{template_uri}': {reason} |
+| `template.load_failed` | INFRA | 模板资源「{resource_path}」读取失败 | Failed to read template resource '{resource_path}' |
+| `slot.schema_not_found` | BUSINESS | 模板「{template_uri}」缺少参数定义文件(语言「{language}」) | Template '{template_uri}' is missing its slot schema (language '{language}') |
+| `slot.not_provided` | BUSINESS | 输入中未提供「{slot_label}」。 | '{slot_label}' is not provided in the input. |
+| `slot.constraint_violated` | BUSINESS | 「{slot_label}」的取值「{actual}」不在允许范围内 | The value of '{slot_label}' ({actual}) is not within the allowed range |
+| `slot.semantic_conflict` | BUSINESS | 「{slot_label}」的取值与参数定义冲突:{reason} | The value of '{slot_label}' conflicts with the slot definition: {reason} |
+| `slot.fabricated_value` | BUSINESS | 「{slot_label}」的取值「{actual}」是占位内容,不是有效值 | The value of '{slot_label}' ({actual}) is placeholder content, not a valid value |
+| `slot.cross_scenario_pollution` | BUSINESS | 「{slot_label}」的取值混入了其他场景的内容 | The value of '{slot_label}' contains content from a different scenario |
+| `slot.insufficient_grounding` | BUSINESS | 「{slot_label}」的取值缺少充分依据 | The value of '{slot_label}' lacks sufficient grounding |
+| `slot.rule_violation` | BUSINESS | 「{slot_label}」的取值不符合校验规则。 | The value of '{slot_label}' violates the validation rules. |
+| `input.text_too_long` | BUSINESS | 输入文本长度 {actual_length} 超过上限 {max_chars}(A2AT_INPUT_TEXT_MAX_CHARS) | Input text length {actual_length} exceeds the maximum of {max_chars} (A2AT_INPUT_TEXT_MAX_CHARS) |
+| `content.param_missing` | BUSINESS | 「{section_label}」未填写,请补充该参数的取值 | '{section_label}' is empty; please provide a value |
+| `content.entry_field_missing` | BUSINESS | 「{section_label}」第 {index} 条缺少必填字段「{field_label}」 | Entry {index} of '{section_label}' is missing required field '{field_label}' |
+| `content.format_error` | BUSINESS | 「{section_label}」的取值格式不符合要求:{reason} | The format of '{section_label}' is invalid: {reason} |
+| `content.value_not_allowed` | BUSINESS | 「{section_label}」的取值「{actual}」不在允许范围内 | The value of '{section_label}' ({actual}) is not allowed |
+| `content.semantic_conflict` | BUSINESS | 「{section_label}」存在语义冲突:{reason} | '{section_label}' has a semantic conflict: {reason} |
+| `content.rule_violation` | BUSINESS | 「{section_label}」的取值不符合校验规则。 | The value of '{section_label}' violates the validation rules. |
+| `scenario.not_matched` | BUSINESS | 输入内容无法匹配任何已知场景:{reason} | The input does not match any known scenario: {reason} |
+| `llm.not_configured` | BUSINESS | 未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置) | No LLM client is configured; check the A2AT_LLM_* settings |
+| `llm.invocation_failed` | BUSINESS | LLM 调用失败(提供方 {provider}):{reason} | LLM invocation failed (provider {provider}): {reason} |
+| `llm.response_invalid` | BUSINESS | LLM 返回内容不符合要求({step} 步骤),请重试 | The LLM response is invalid (step: {step}); please retry |
+| `negotiation.invalid_input` | BUSINESS | 输入的协商内容无效:{reason} | The negotiation input is invalid: {reason} |
+| `negotiation.invalid_context_id` | BUSINESS | 协商上下文标识「{actual}」不是合法的 UUID | The negotiation context id '{actual}' is not a valid UUID |
+| `negotiation.round_exceeded` | BUSINESS | 协商轮次 {round} 已超过上限 {max_rounds} | Negotiation round {round} exceeds the maximum of {max_rounds} |
+| `negotiation.type_mismatch` | BUSINESS | 报文内容属于「{implied}」协商,与声明的模板类型「{declared}」不符 | The message implies '{implied}' negotiation but the declared template type is '{declared}' |
+| `negotiation.phase_mismatch` | BUSINESS | 报文阶段与声明的模板阶段不符({implied} vs {declared}) | The message phase does not match the declared template phase ({implied} vs {declared}) |
+| `negotiation.conclusion_mismatch` | BUSINESS | 报文结论为「{actual}」,与该方法的预期「{expected}」不符 | The message conclusion is '{actual}' but '{expected}' is expected for this method |
+| `negotiation.content_invalid` | BUSINESS | 协商内容字段「{field}」无效:{reason} | The negotiation content field '{field}' is invalid: {reason} |
+| `negotiation.field_missing` | BUSINESS | 协商报文缺少必填字段「{field}」 | The negotiation message is missing required field '{field}' |
+| `negotiation.content_extract_failed` | BUSINESS | 无法从文本提取协商内容({field}):{reason} | Failed to extract negotiation content from text ({field}): {reason} |
+| `negotiation.conclusion_content_mismatch` | BUSINESS | 结论为「{conclusion}」,但「{section_label}」未表达该结论应携带的内容 | The conclusion is '{conclusion}' but '{section_label}' does not state the content the conclusion requires |
+| `negotiation.missing_result_content` | BUSINESS | 「{section_label}」板块缺少结论应携带的内容 | The '{section_label}' section is missing the content required by its conclusion |
+| `negotiation.mutually_exclusive_sections` | BUSINESS | 互斥板块同时出现:{sections} | Mutually exclusive sections appear together: {sections} |
+| `negotiation.constraint_conflict` | BUSINESS | 「{section_label}」与既有约束冲突:{reason} | '{section_label}' conflicts with existing constraints: {reason} |
+| `negotiation.field_inconsistency` | BUSINESS | 「{section_label}」内字段取值前后不一致:{reason} | Fields within '{section_label}' are inconsistent: {reason} |
+| `negotiation.invalid_time_interval` | BUSINESS | 「{section_label}」的时间区间不合法(开始时间不得晚于结束时间) | The time interval of '{section_label}' is invalid (start must not be later than end) |
+| `negotiation.semantic_rejected` | BUSINESS | 协商报文语义校验未通过 | The negotiation message failed semantic validation |
+| `negotiation.rule_violation` | BUSINESS | 「{section_label}」不符合协商报文的校验规则。 | '{section_label}' violates the negotiation message validation rules. |
+| `infra.config_invalid` | INFRA | 配置项「{key}」无效:{reason} | Invalid configuration '{key}': {reason} |
+| `infra.resource_read_failed` | INFRA | 资源「{resource_path}」读取失败 | Failed to read resource '{resource_path}' |
+| `infra.internal_error` | INFRA | SDK 内部错误,请联系维护方并提供上下文 | SDK internal error; contact the maintainer with context |
+
+**旧码到新码映射**
+
+上述分层错误码取代了先前的扁平错误码。迁移按 `getCode()` 值做分支的调用方代码时，请使用下表映射：
+
+| 旧错误码 | 新错误码 |
+| -------- | -------- |
+| `template_not_found` | `template.not_found` |
+| `render_failed` | `template.render_failed` |
+| `prompt_resource_load_error` | `template.load_failed` |
+| `slot_schema_not_found` | `slot.schema_not_found` |
+| `missing_input` / `param_extraction_failed`（槽位提取） | `slot.not_provided` |
+| `invalid_value`（槽位提取） | `slot.constraint_violated` |
+| `semantic_mismatch`（语义校验） | `slot.semantic_conflict` |
+| `fabricated_value` | `slot.fabricated_value` |
+| `cross_scenario_pollution` | `slot.cross_scenario_pollution` |
+| `insufficient_grounding` | `slot.insufficient_grounding` |
+| `input_text_too_long` | `input.text_too_long` |
+| `missing_required`（参数级，内容校验） | `content.param_missing` |
+| `missing_required`（条目级，内容校验） | `content.entry_field_missing` |
+| `format_error` | `content.format_error` |
+| `invalid_value`（内容校验） | `content.value_not_allowed` |
+| `semantic_mismatch`（内容校验） | `content.semantic_conflict` |
+| `scenario_not_matched` / `processed_prompt_parse_error` | `scenario.not_matched` |
+| `llm_invocation_failed`（传输类失败） | `llm.invocation_failed` |
+| `llm_invocation_failed`（响应契约类失败） | `llm.response_invalid` |
+| "LLM client is not configured" 系列 | `llm.not_configured` |
+| `negotiation_invalid_input` / `validation_invalid_input` | `negotiation.invalid_input` |
+| `invalid_uuid` | `negotiation.invalid_context_id` |
+| `out_of_range`（轮次） | `negotiation.round_exceeded` |
+| `template_type_mismatch` | `negotiation.type_mismatch` |
+| `template_phase_mismatch` | `negotiation.phase_mismatch` |
+| `invalid_conclusion` / Registry 结论门禁 | `negotiation.conclusion_mismatch` |
+| fromData 必填 items/text 的 `IllegalArgumentException` | `negotiation.content_invalid` |
+| `negotiation_slot_missing` | `negotiation.field_missing` |
+| `negotiation_content_extract_failed` | `negotiation.content_extract_failed` |
+| `conclusion_content_mismatch` | `negotiation.conclusion_content_mismatch` |
+| `missing_result_content` | `negotiation.missing_result_content` |
+| `mutually_exclusive_sections` | `negotiation.mutually_exclusive_sections` |
+| `constraint_conflict` | `negotiation.constraint_conflict` |
+| `field_inconsistency` | `negotiation.field_inconsistency` |
+| `invalid_time_interval` | `negotiation.invalid_time_interval` |
+| `negotiation_semantic_rejected` / `validation_semantic_rejected` | `negotiation.semantic_rejected` |
+| `negotiation_rule_violation` / `validation_rule_violation` | `negotiation.rule_violation` |
+| `negotiation_llm_infrastructure_error` / `validation_llm_infrastructure_error` | `llm.invocation_failed` / `llm.response_invalid` |
+| `validation_prompt_resource_not_found` | `template.not_found` |
+| `sdk_internal_error` | `infra.internal_error` |
+| `LLMConfigError` | `infra.config_invalid` |
+| 裸 `A2ATError` 资源读取失败 | `infra.resource_read_failed` |
 
 
 ## 1.2 约束和限制
@@ -117,15 +218,17 @@ Map<String, Object> metadata = propose.buildMetadataContent();
 
 错误码：
 
-- `template_not_found`（模板或提示词资源缺失）
+- `template.not_found`（模板或提示词资源缺失）
 
-- `negotiation_content_extract_failed`（无法从文本抽取结构化内容，可重试）
+- `negotiation.content_extract_failed`（无法从文本抽取结构化内容，可重试）
 
-- `negotiation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed`（LLM 传输失败，可重试）
 
-- `negotiation_invalid_input`（文本为空、抽取内容与阶段不符、确认请求与其它板块组合矛盾）
+- `llm.response_invalid`（LLM 返回内容不符合步骤要求，可重试）
 
-- `negotiation_slot_missing`（缺少必需槽位）
+- `negotiation.invalid_input`（文本为空、抽取内容与阶段不符、确认请求与其它板块组合矛盾）
+
+- `negotiation.field_missing`（缺少必填字段）
 
 入参为 null 抛 `NullPointerException`，templateUri 的 phase 段不是 `propose` 抛 `IllegalArgumentException`。
 
@@ -156,7 +259,7 @@ public MetadataContent generateNegotiationAcceptPromptFromText(
 
 **典型场景**：协商响应方（通常是客户端Agent）收到对端的信息协商请求后，用自然语言补充/交付所请求的信息并生成接受报文回传，如补齐接入端口名称与投诉分类后确认启动诊断。
 
-**功能说明**：从自然语言文本生成协商接受（accept）报文。一次 LLM 内容抽取（抽取出的结论必须为 `ACCEPT`，否则以 `negotiation_invalid_input` 拒绝）+ 确定性渲染。适用于协商响应方补充/交付信息。`templateUri` 的 phase 段必须为 `accept-reject`。
+**功能说明**：从自然语言文本生成协商接受（accept）报文。一次 LLM 内容抽取（抽取出的结论必须为 `ACCEPT`，否则以 `negotiation.invalid_input` 拒绝）+ 确定性渲染。适用于协商响应方补充/交付信息。`templateUri` 的 phase 段必须为 `accept-reject`。
 
 **输入说明**
 
@@ -182,15 +285,17 @@ MetadataContent accept = client.generateNegotiationAcceptPromptFromText(
 
 失败时抛 `NegotiationGenerationException`（结构同 1.3.1）。错误码：
 
-- `template_not_found`（模板或提示词资源缺失）
+- `template.not_found`（模板或提示词资源缺失）
 
-- `negotiation_content_extract_failed`（无法从文本抽取结构化内容，可重试）
+- `negotiation.content_extract_failed`（无法从文本抽取结构化内容，可重试）
 
-- `negotiation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed`（LLM 传输失败，可重试）
 
-- `negotiation_invalid_input`（文本为空或抽取结论不是 `ACCEPT`）
+- `llm.response_invalid`（LLM 返回内容不符合步骤要求，可重试）
 
-- `negotiation_slot_missing`（缺少必需槽位）
+- `negotiation.invalid_input`（文本为空或抽取结论不是 `ACCEPT`）
+
+- `negotiation.field_missing`（缺少必填字段）
 
 **响应样例**
 
@@ -217,7 +322,7 @@ public MetadataContent generateNegotiationRejectPromptFromText(
 
 **典型场景**：协商响应方（通常是客户端Agent）无法满足对端的协商请求时，用自然语言生成拒绝报文回传并结束本轮协商，如因站点清单不可用无法提供接入端口名称。
 
-**功能说明**：从自然语言文本生成协商拒绝（reject）报文。一次 LLM 内容抽取（抽取出的结论必须为 `REJECT`）+ 确定性渲染。`templateUri` 的 phase 段必须为 `accept-reject`。
+**功能说明**：从自然语言文本生成协商拒绝（reject）报文。一次 LLM 内容抽取（抽取出的结论必须为 `REJECT`，否则以 `negotiation.invalid_input` 拒绝）+ 确定性渲染。`templateUri` 的 phase 段必须为 `accept-reject`。
 
 **输入说明**：同 [generateNegotiationAcceptPromptFromText](#132-generatenegotiationacceptpromptfromtext)，text 为描述拒绝原因的自然语言文本。
 
@@ -236,15 +341,17 @@ MetadataContent reject = client.generateNegotiationRejectPromptFromText(
 
 失败时抛 `NegotiationGenerationException`（结构同 1.3.1）。错误码：
 
-- `template_not_found`（模板或提示词资源缺失）
+- `template.not_found`（模板或提示词资源缺失）
 
-- `negotiation_content_extract_failed`（无法从文本抽取结构化内容，可重试）
+- `negotiation.content_extract_failed`（无法从文本抽取结构化内容，可重试）
 
-- `negotiation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed`（LLM 传输失败，可重试）
 
-- `negotiation_invalid_input`（文本为空或抽取结论不是 `REJECT`）
+- `llm.response_invalid`（LLM 返回内容不符合步骤要求，可重试）
 
-- `negotiation_slot_missing`（缺少必需槽位）
+- `negotiation.invalid_input`（文本为空或抽取结论不是 `REJECT`）
+
+- `negotiation.field_missing`（缺少必填字段）
 
 **响应样例**
 
@@ -318,9 +425,11 @@ MetadataContent propose = client.generateNegotiationProposePromptFromData(
 
 失败时抛 `NegotiationGenerationException`（结构同 1.3.1）。错误码：
 
-- `template_not_found`（模板缺失）
+- `template.not_found`（模板缺失）
 
-- `negotiation_slot_missing`（渲染缺少必需槽位）
+- `negotiation.content_invalid`（类型化内容字段无效，如必填 items 为空、必填描述为空白）
+
+- `negotiation.field_missing`（渲染缺少必填字段）
 
 另有两类编程错误（`A2ATError` 树外，标准 JDK 异常）：入参或其 context 为 null 抛 `NullPointerException`；内容类型与模板协商类型不符、phase 段不是 `propose` 抛 `IllegalArgumentException`。
 
@@ -386,11 +495,13 @@ MetadataContent accept = client.generateNegotiationAcceptPromptFromData(
 
 失败时抛 `NegotiationGenerationException`（结构同 1.3.1）。错误码：
 
-- `template_not_found`（模板缺失）
+- `template.not_found`（模板缺失）
 
-- `negotiation_slot_missing`（渲染缺少必需槽位）
+- `negotiation.content_invalid`（类型化内容字段无效，如必填 items 为空、必填描述为空白）
 
-编程错误：入参或其 context 为 null 抛 `NullPointerException`；`conclusion` 不是 `ACCEPT`、phase 段不是 `accept-reject` 或内容类型不符抛 `IllegalArgumentException`。
+- `negotiation.field_missing`（渲染缺少必填字段）
+
+编程错误：入参或其 context 为 null 抛 `NullPointerException`；内容类型不符或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`；`conclusion` 不是 `ACCEPT` 以 `negotiation.conclusion_mismatch` 业务错误拒绝。
 
 **响应样例**
 
@@ -439,11 +550,13 @@ MetadataContent reject = client.generateNegotiationRejectPromptFromData(
 
 失败时抛 `NegotiationGenerationException`（结构同 1.3.1）。错误码：
 
-- `template_not_found`（模板缺失）
+- `template.not_found`（模板缺失）
 
-- `negotiation_slot_missing`（渲染缺少必需槽位）
+- `negotiation.content_invalid`（类型化内容字段无效，如必填 items 为空、必填描述为空白）
 
-编程错误：入参或其 context 为 null 抛 `NullPointerException`；`conclusion` 不是 `REJECT`、phase 段不是 `accept-reject` 或内容类型不符抛 `IllegalArgumentException`。
+- `negotiation.field_missing`（渲染缺少必填字段）
+
+编程错误：入参或其 context 为 null 抛 `NullPointerException`；内容类型不符或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`；`conclusion` 不是 `REJECT` 以 `negotiation.conclusion_mismatch` 业务错误拒绝。
 
 **响应样例**
 
@@ -469,14 +582,14 @@ public FilledParamData validateProposePromptAndDataFilling(
 
 **典型场景**：发起方（服务端Agent）发送协商请求前的出站自检；或接收方（客户端Agent）校验收到的协商请求并提取需补充的槽位清单，驱动后续补参。
 
-**功能说明**：校验一条协商发起（propose）报文是否为格式正确的协商消息，并按调用方提供的 JSON Schema 从中提取参数。流水线：模板 URI phase 段检查 → 确定性规则门禁（context 的 id 为 UUID 形态、轮次不超预算；context 为 null 报 `negotiation_invalid_input`）→ 一次 LLM 语义校验调用（同时完成参数提取，可重试错误码上最多重试至配置上限）→ 参数合并（协商上下文参数 `id` / `round` / `maxRounds` 与提取参数合并，键冲突时**上下文参数优先**）。
+**功能说明**：校验一条协商发起（propose）报文是否为格式正确的协商消息，并按调用方提供的 JSON Schema 从中提取参数。流水线：模板 URI phase 段检查 → 确定性规则门禁（context 为 null 报 `negotiation.invalid_input`，id 非 UUID 形态报 `negotiation.invalid_context_id`，轮次超预算报 `negotiation.round_exceeded`）→ 一次 LLM 语义校验调用（同时完成参数提取，可重试错误码上最多重试至配置上限）→ 参数合并（协商上下文参数 `id` / `round` / `maxRounds` 与提取参数合并，键冲突时**上下文参数优先**）。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
 | prompt | String | 是 | 待校验的协商发起报文文本（`MetadataContent.promptText()`） |
-| context | NegotiationContext | 否 | 随报文传输的协商上下文；null 报 `negotiation_invalid_input` |
+| context | NegotiationContext | 否 | 随报文传输的协商上下文；null 报 `negotiation.invalid_input` |
 | schema | Map&lt;String, Object&gt; | 是 | 调用方提供的参数 JSON Schema，声明要提取的参数 |
 | templateUri | TemplateUri | 是 | propose 模板 |
 
@@ -525,15 +638,17 @@ requested.data().keySet().removeAll(List.of("id", "round", "maxRounds"));
 
 错误码：
 
-- `negotiation_invalid_input`（报文不是协商消息或 context 为 null）
+- `negotiation.invalid_input`（报文不是协商消息或 context 为 null）
 
-- `negotiation_rule_violation`（协商上下文违反结构规则，如 id 非 UUID 形态、轮次超预算）
+- `negotiation.invalid_context_id`（context 的 id 不是合法 UUID）
 
-- `negotiation_semantic_rejected`（语义校验拒绝）
+- `negotiation.round_exceeded`（context 轮次超过配置上限）
 
-- `negotiation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `negotiation.semantic_rejected`（语义校验拒绝；`getErrors()` 中的逐槽位明细使用封闭的 `negotiation.*` 码集，如 `negotiation.conclusion_content_mismatch`、`negotiation.missing_result_content`、`negotiation.field_inconsistency`）
 
-- `template_not_found`（校验提示词资源缺失）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 失败，可重试）
+
+- `template.not_found`（校验提示词资源缺失）
 
 编程错误：prompt 或 schema 为 null 抛 `NullPointerException`，prompt 为空白或 phase 段不匹配抛 `IllegalArgumentException`。
 
@@ -583,15 +698,15 @@ FilledParamData acceptParams = server.validateAcceptPromptAndDataFilling(
 
 失败时抛 `NegotiationParamExtractionException`（结构同 1.3.7）。错误码：
 
-- `negotiation_invalid_input`（报文不是 accept 协商消息或 context 为 null）
+- `negotiation.invalid_input`（报文不是 accept 协商消息或 context 为 null）
 
-- `negotiation_rule_violation`（协商上下文违反结构规则）
+- `negotiation.invalid_context_id` / `negotiation.round_exceeded`（协商上下文违反结构规则）
 
-- `negotiation_semantic_rejected`（结论不是 Accept 或内容不满足 accept 阶段约束）
+- `negotiation.semantic_rejected`（结论不是 Accept 或内容不满足 accept 阶段约束）
 
-- `negotiation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 失败，可重试）
 
-- `template_not_found`（校验提示词资源缺失）
+- `template.not_found`（校验提示词资源缺失）
 
 编程错误：prompt 或 schema 为 null 抛 `NullPointerException`，prompt 为空白或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`。
 
@@ -636,15 +751,15 @@ FilledParamData rejectParams = server.validateRejectPromptAndDataFilling(
 
 失败时抛 `NegotiationParamExtractionException`（结构同 1.3.7）。错误码：
 
-- `negotiation_invalid_input`（报文不是 reject 协商消息或 context 为 null）
+- `negotiation.invalid_input`（报文不是 reject 协商消息或 context 为 null）
 
-- `negotiation_rule_violation`（协商上下文违反结构规则）
+- `negotiation.invalid_context_id` / `negotiation.round_exceeded`（协商上下文违反结构规则）
 
-- `negotiation_semantic_rejected`（结论不是 Reject 或内容不满足 reject 阶段约束）
+- `negotiation.semantic_rejected`（结论不是 Reject 或内容不满足 reject 阶段约束）
 
-- `negotiation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 失败，可重试）
 
-- `template_not_found`（校验提示词资源缺失）
+- `template.not_found`（校验提示词资源缺失）
 
 编程错误：prompt 或 schema 为 null 抛 `NullPointerException`，prompt 为空白或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`。
 
@@ -670,7 +785,7 @@ public MetadataContent generateTaskPromptFromText(String text, TemplateUri templ
 
 **典型场景**：客户端Agent将用户的自然语言任务描述（如专线投诉诊断诉求）转换为指定场景的Task-T协议报文，适合已确定目标模板、需跳过场景识别的场景。
 
-**功能说明**：从自然语言文本按指定 Task-T 模板生成任务提示词报文，**跳过场景识别**（模板由调用方显式指定）。执行一次 LLM 槽位提取后确定性渲染模板。生成阶段即校验内置槽位 Schema（必填槽缺失或取值非法时以 `slot_validation_error` 快速失败）。
+**功能说明**：从自然语言文本按指定 Task-T 模板生成任务提示词报文，**跳过场景识别**（模板由调用方显式指定）。执行一次 LLM 槽位提取后确定性渲染模板。生成阶段即校验内置槽位 Schema（必填槽缺失或取值非法时以 `slot.*` 错误码（如 `slot.not_provided`）快速失败）。
 
 **输入说明**
 
@@ -714,21 +829,27 @@ MetadataContent metadata = client.generateTaskPromptFromText(
 | ---- | ---- | ---- |
 | getCode() | String | 机器可读错误码，取值见下 |
 | getMessage() | String | 人类可读的失败描述 |
-| failedParameters() | List&lt;SlotValidationError&gt; | 槽位校验失败的明细（`slot_validation_error` 时非空），结构见公共约定 |
+| failedParameters() | List&lt;SlotValidationError&gt; | 槽位校验失败的明细（`slot.not_provided` 等槽位域失败码时非空），结构见公共约定 |
 
 错误码：
 
-- `template_not_found`（模板缺失）
+- `template.not_found`（模板缺失）
 
-- `prompt_resource_load_error`（提示词资源加载失败）
+- `template.load_failed`（提示词资源加载失败）
 
-- `slot_schema_not_found`（槽位 Schema 缺失）
+- `slot.schema_not_found`（槽位 Schema 缺失）
 
-- `llm_invocation_failed`（LLM 调用失败）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 调用失败，可重试）
 
-- `slot_validation_error`（必填槽缺失或取值非法）
+- `slot.not_provided`（必填槽在输入中未提供）
 
-- `render_failed`（模板渲染失败）
+- `slot.constraint_violated`（槽位取值不在允许范围内）
+
+- `slot.rule_violation`（其它槽位校验规则违规的兜底码）
+
+- `template.render_failed`（模板渲染失败）
+
+- `input.text_too_long`（输入超过 `A2AT_INPUT_TEXT_MAX_CHARS`）
 
 编程错误：text 或 templateUri 为 null 抛 `NullPointerException`。
 
@@ -775,7 +896,7 @@ public MetadataContent generateTaskPromptFromDataWithSchema(
 
 **典型场景**：客户端Agent将上游系统的结构化任务参数（字段名可与模板槽位不同，由Schema描述字段语义）转换为Task-T协议报文，适合任务参数已结构化持有的场景。
 
-**功能说明**：从结构化数据 + 语义 Schema 按指定 Task-T 模板生成任务提示词，**跳过场景识别**。`schema` 描述每个输入字段的业务含义（description / examples / enum 等），指导槽位填充与取值约束；每个 data 的 key 对应一个槽位值。生成阶段同样执行内置槽位 Schema 校验（必填槽缺失或取值非法时以 `slot_validation_error` 快速失败）。
+**功能说明**：从结构化数据 + 语义 Schema 按指定 Task-T 模板生成任务提示词，**跳过场景识别**。`schema` 描述每个输入字段的业务含义（description / examples / enum 等），指导槽位填充与取值约束；每个 data 的 key 对应一个槽位值。生成阶段同样执行内置槽位 Schema 校验（必填槽缺失或取值非法时以 `slot.*` 错误码（如 `slot.not_provided`）快速失败）。
 
 **输入说明**
 
@@ -918,16 +1039,18 @@ Map<String, Object> extracted = server
 | ---- | ---- | ---- |
 | getCode() | String | 机器可读错误码，取值见下 |
 | getMessage() | String | 人类可读的失败描述 |
-| errors() | List&lt;SlotValidationError&gt; | 逐槽位错误明细（槽位级错误码如 `missing_required`、`invalid_value`、`format_error`），结构见公共约定 |
+| errors() | List&lt;SlotValidationError&gt; | 逐槽位错误明细（槽位级错误码如 `content.param_missing`、`content.entry_field_missing`、`content.format_error`），结构见公共约定 |
 | params() | Map&lt;String, Object&gt; | 被拒前的部分提取参数（无法提取的槽位值为 null） |
 
 错误码：
 
-- `validation_semantic_rejected`（语义校验拒绝，含 required 参数缺失或取值非法）
+- `negotiation.semantic_rejected`（语义校验拒绝，含 required 参数缺失或取值非法；`errors()` 中的逐槽位明细使用 `content.*` 码集，如 `content.param_missing`、`content.entry_field_missing`、`content.format_error`、`content.value_not_allowed`）
 
-- `validation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 失败，可重试）
 
-- `validation_prompt_resource_not_found`（校验提示词资源缺失）
+- `template.not_found`（校验提示词资源缺失）
+
+- `input.text_too_long`（提示词超过 `A2AT_INPUT_TEXT_MAX_CHARS`）
 
 编程错误：prompt / schema / templateUri 为 null 抛 `NullPointerException`，prompt 为空白抛 `IllegalArgumentException`。
 
@@ -947,8 +1070,8 @@ extracted =
 校验拒绝时（缺少关键槽位的负例，来自 `TaskTDemoMain` 用例三）：
 
 ```text
-ContentValidationException: [validation_semantic_rejected] ...
-    slot=任务对象 code=missing_required message=...
+ContentValidationException: [negotiation.semantic_rejected] ...
+    slot=任务对象 code=content.param_missing message=... facts={section_label=任务对象}
 ```
 
 ### 1.3.13 generateNotificationPromptFromText
@@ -1170,11 +1293,13 @@ FilledParamData result = server.validateNotificationPromptAndDataFilling(
 
 失败时抛 `ContentValidationException`（结构同 1.3.12）。错误码：
 
-- `validation_semantic_rejected`（必选参数缺失或取值非法）
+- `negotiation.semantic_rejected`（必选参数缺失或取值非法；`errors()` 中的逐槽位明细使用 `content.*` 码集）
 
-- `validation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 失败，可重试）
 
-- `validation_prompt_resource_not_found`（校验提示词资源缺失）
+- `template.not_found`（校验提示词资源缺失）
+
+- `input.text_too_long`（提示词超过 `A2AT_INPUT_TEXT_MAX_CHARS`）
 
 编程错误：prompt / schema / templateUri 为 null 抛 `NullPointerException`，prompt 为空白抛 `IllegalArgumentException`。
 
@@ -1227,7 +1352,7 @@ MetadataContent result = client.generateAuthPromptFromText(
 
 成功时返回 `MetadataContent`（结构同 [1.3.10](#1310-generatetaskpromptfromtext)，`extensionUri` 为 `https://projects.tmforum.org/a2aproject/telecommunication/extensions/Authorization-T/v1`）。
 
-失败时抛 `PromptGenerationException`（结构同 1.3.10），如操作类型不在"新增/修改/删除/查询授权策略"范围内时以 `slot_validation_error` 拒绝。编程错误：text 或 templateUri 为 null 抛 `NullPointerException`。
+失败时抛 `PromptGenerationException`（结构同 1.3.10），如操作类型不在"新增/修改/删除/查询授权策略"范围内时以 `slot.constraint_violated` 拒绝。编程错误：text 或 templateUri 为 null 抛 `NullPointerException`。
 
 **响应样例**
 
@@ -1378,11 +1503,13 @@ FilledParamData result = server.validateAuthPromptAndDataFilling(
 
 失败时抛 `ContentValidationException`（结构同 1.3.12）。错误码：
 
-- `validation_semantic_rejected`（必选参数缺失或取值非法，如新增条目缺少必填字段、有效期格式错误）
+- `negotiation.semantic_rejected`（必选参数缺失或取值非法，如新增条目缺少必填字段（`content.entry_field_missing`）、有效期格式错误（`content.format_error`））
 
-- `validation_llm_infrastructure_error`（LLM 基础设施故障，可重试）
+- `llm.invocation_failed` / `llm.response_invalid`（LLM 失败，可重试）
 
-- `validation_prompt_resource_not_found`（校验提示词资源缺失）
+- `template.not_found`（校验提示词资源缺失）
+
+- `input.text_too_long`（提示词超过 `A2AT_INPUT_TEXT_MAX_CHARS`）
 
 编程错误：prompt / schema / templateUri 为 null 抛 `NullPointerException`，prompt 为空白抛 `IllegalArgumentException`。
 
@@ -1455,7 +1582,7 @@ if (result.success()) {
 
 | 字段 | 类型 | 说明 |
 | ---- | ---- | ---- |
-| code | String | 机器可读错误码：`scenario_not_matched`（场景识别未命中）、`prompt_resource_load_error`（提示词资源加载失败）、`template_not_found`（模板缺失）、`render_failed`（渲染失败） |
+| code | String | 机器可读错误码，取值来自错误码目录，如 `scenario.not_matched`（场景识别未命中）、`input.text_too_long`（输入长度防护）、`template.load_failed`（提示词资源加载失败）、`template.not_found`（模板缺失）、`slot.schema_not_found`（槽位 Schema 缺失）、`slot.not_provided`（必填槽缺失）、`template.render_failed`（渲染失败）、`llm.invocation_failed` / `llm.response_invalid`（LLM 失败） |
 | message | String | 人类可读的失败描述 |
 | stage | String | 失败发生的阶段：`scenario`（场景识别）、`generation`（模板加载/渲染） |
 
@@ -1488,7 +1615,7 @@ result.promptText() =
 ```text
 result.success() = false
 result.failure() =
-{ code=scenario_not_matched, message=Scenario recognition failed., stage=scenario }
+{ code=scenario.not_matched, message=输入内容无法匹配任何已知场景：<原因>, stage=scenario }
 ```
 
 ### 1.3.20 checkTaskPrompt
@@ -1546,7 +1673,7 @@ if (result.success()) {
 
 | 字段 | 类型 | 说明 |
 | ---- | ---- | ---- |
-| code | String | 机器可读错误码：`processed_prompt_parse_error`（报文解析/场景识别失败）、`template_not_found`（模板缺失）、`slot_validation_error`（槽位校验失败，含必填缺失、取值越界、格式不匹配） |
+| code | String | 机器可读错误码，取值来自错误码目录：`scenario.not_matched`（报文解析/场景识别失败）、`template.not_found`（模板缺失）、槽位域码如 `slot.not_provided`（必填缺失）、`slot.constraint_violated`（取值越界）、`slot.rule_violation`（其它槽位规则违规）、`input.text_too_long`（输入长度防护） |
 | message | String | 人类可读的失败描述 |
 | stage | String | 失败发生的阶段：`prompt_parse`（报文解析）、`generation`（模板加载）、`slot_validation`（槽位校验） |
 
@@ -1563,7 +1690,7 @@ prompt check passed
 ```text
 result.success() = false
 result.failure() =
-{ code=slot_validation_error, message=Required slot '任务对象' is missing., stage=slot_validation }
+{ code=slot.not_provided, message=输入中未提供「任务对象」。, stage=slot_validation }
 ```
 
 

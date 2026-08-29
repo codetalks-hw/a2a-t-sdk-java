@@ -33,14 +33,115 @@ The public APIs of the A2A-T SDK converge on two facades: the client facade `A2A
 
 - **TemplateUri:** the template URI value type. Prefer building it with the `net.openan.a2at.sdk.core.model.StandardTemplates` constants, e.g. `StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE` (URI `Negotiation-T/information-negotiation/propose/v1`); for strings coming from outside the code, parse them with `TemplateUri.parse(String)`, which returns an `Optional<TemplateUri>` and never throws.
 - **Negotiation session context:** `NegotiationContext(id, round, maxRounds)` (id in UUID form, round starting at 1, default round budget `DEFAULT_MAX_ROUNDS = 5`); it travels with the message metadata and never goes through the LLM. `NegotiationContext.of(id, round)` uses the default budget, and `nextRound()` advances the round.
-- **Exception hierarchy:** every SDK processing failure is a subclass of `A2ATError` — generation failures throw `PromptGenerationException` (Task-T / Notification-T / Authorization-T) or `NegotiationGenerationException` (Negotiation-T); validation-plus-extraction failures throw `ContentValidationException` (Task-T / Notification-T / Authorization-T, carrying the `errors()` slot error details and the `params()` partial extraction parameters) or `NegotiationParamExtractionException` (Negotiation-T). Catching `A2ATError` covers all processing failures, and `getCode()` returns the machine-readable error code.
+- **Exception hierarchy:** every SDK processing failure is a subclass of `A2ATError` — generation failures throw `PromptGenerationException` (Task-T / Notification-T / Authorization-T) or `NegotiationGenerationException` (Negotiation-T); validation-plus-extraction failures throw `ContentValidationException` (Task-T / Notification-T / Authorization-T, carrying the `errors()` slot error details and the `params()` partial extraction parameters) or `NegotiationParamExtractionException` (Negotiation-T). Catching `A2ATError` covers all processing failures, and `getCode()` returns the machine-readable error code from the error-code catalog below. Expected business failures extend `A2ATBusinessException` and additionally expose `getFacts()` carrying the structured fact values behind the rendered message; all messages are rendered by the SDK from the code's template and follow `A2AT_LANGUAGE`.
 - **SlotValidationError:** per-slot validation error details, returned with validation-failure exceptions or failure payloads; the failure structures in the "Output" sections of each API all reference this definition:
 
 | Field | Type | Description |
 | ---- | ---- | ---- |
 | slotName | String | Name of the slot the error refers to |
-| code | String | Slot-level error code, e.g. `missing_required` (required value missing), `invalid_value` (invalid value), `format_error` (format error) |
-| message | String | Slot-level error description |
+| code | String | Slot-level error code from the error-code catalog below, e.g. `content.param_missing` (a parameter section carries no value), `content.entry_field_missing` (a list entry is missing a required field), `content.format_error` (value format error) |
+| message | String | Human-readable error description rendered by the SDK from the code's message template; the language follows `A2AT_LANGUAGE` (default `en-US`) |
+| facts | Map&lt;String, String&gt; | Structured fact values that produced the message, keyed by fact parameter name (e.g. `section_label`, `index`, `field_label`); may be null |
+
+**Error-code catalog**
+
+The SDK exposes a closed catalog of layered `domain.semantic` error codes; one code always carries one message. Message texts are rendered by the SDK from the per-language templates bundled in `prompt_resources/errors/{language}/errors.json` - they are never free text produced by the LLM. The message language follows the `A2AT_LANGUAGE` setting (default `en-US`); `{x}` tokens in a template are filled from the `facts` of the error. Internally, LLM steps only report `{slot_name, code, facts}` entries; a code returned by an LLM outside the catalog is mapped to the per-domain `*.rule_violation` fallback code and the original code is logged.
+
+Category legend: BUSINESS = expected business failure carried by an `A2ATBusinessException` subclass the caller can act on; INFRA = infrastructure failure carried by a plain `A2ATError`.
+
+| Code | Category | Message (en-US) | Message (zh-CN) |
+| ---- | -------- | ---------------- | --------------- |
+| `template.not_found` | BUSINESS | Template '{template_uri}' does not support language '{language}'; check the template URI and language setting | 模板「{template_uri}」不支持语言「{language}」,请检查模板标识与语言配置 |
+| `template.render_failed` | BUSINESS | Failed to render template '{template_uri}': {reason} | 模板「{template_uri}」渲染失败:{reason} |
+| `template.load_failed` | INFRA | Failed to read template resource '{resource_path}' | 模板资源「{resource_path}」读取失败 |
+| `slot.schema_not_found` | BUSINESS | Template '{template_uri}' is missing its slot schema (language '{language}') | 模板「{template_uri}」缺少参数定义文件(语言「{language}」) |
+| `slot.not_provided` | BUSINESS | '{slot_label}' is not provided in the input. | 输入中未提供「{slot_label}」。 |
+| `slot.constraint_violated` | BUSINESS | The value of '{slot_label}' ({actual}) is not within the allowed range | 「{slot_label}」的取值「{actual}」不在允许范围内 |
+| `slot.semantic_conflict` | BUSINESS | The value of '{slot_label}' conflicts with the slot definition: {reason} | 「{slot_label}」的取值与参数定义冲突:{reason} |
+| `slot.fabricated_value` | BUSINESS | The value of '{slot_label}' ({actual}) is placeholder content, not a valid value | 「{slot_label}」的取值「{actual}」是占位内容,不是有效值 |
+| `slot.cross_scenario_pollution` | BUSINESS | The value of '{slot_label}' contains content from a different scenario | 「{slot_label}」的取值混入了其他场景的内容 |
+| `slot.insufficient_grounding` | BUSINESS | The value of '{slot_label}' lacks sufficient grounding | 「{slot_label}」的取值缺少充分依据 |
+| `slot.rule_violation` | BUSINESS | The value of '{slot_label}' violates the validation rules. | 「{slot_label}」的取值不符合校验规则。 |
+| `input.text_too_long` | BUSINESS | Input text length {actual_length} exceeds the maximum of {max_chars} (A2AT_INPUT_TEXT_MAX_CHARS) | 输入文本长度 {actual_length} 超过上限 {max_chars}(A2AT_INPUT_TEXT_MAX_CHARS) |
+| `content.param_missing` | BUSINESS | '{section_label}' is empty; please provide a value | 「{section_label}」未填写,请补充该参数的取值 |
+| `content.entry_field_missing` | BUSINESS | Entry {index} of '{section_label}' is missing required field '{field_label}' | 「{section_label}」第 {index} 条缺少必填字段「{field_label}」 |
+| `content.format_error` | BUSINESS | The format of '{section_label}' is invalid: {reason} | 「{section_label}」的取值格式不符合要求:{reason} |
+| `content.value_not_allowed` | BUSINESS | The value of '{section_label}' ({actual}) is not allowed | 「{section_label}」的取值「{actual}」不在允许范围内 |
+| `content.semantic_conflict` | BUSINESS | '{section_label}' has a semantic conflict: {reason} | 「{section_label}」存在语义冲突:{reason} |
+| `content.rule_violation` | BUSINESS | The value of '{section_label}' violates the validation rules. | 「{section_label}」的取值不符合校验规则。 |
+| `scenario.not_matched` | BUSINESS | The input does not match any known scenario: {reason} | 输入内容无法匹配任何已知场景:{reason} |
+| `llm.not_configured` | BUSINESS | No LLM client is configured; check the A2AT_LLM_* settings | 未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置) |
+| `llm.invocation_failed` | BUSINESS | LLM invocation failed (provider {provider}): {reason} | LLM 调用失败(提供方 {provider}):{reason} |
+| `llm.response_invalid` | BUSINESS | The LLM response is invalid (step: {step}); please retry | LLM 返回内容不符合要求({step} 步骤),请重试 |
+| `negotiation.invalid_input` | BUSINESS | The negotiation input is invalid: {reason} | 输入的协商内容无效:{reason} |
+| `negotiation.invalid_context_id` | BUSINESS | The negotiation context id '{actual}' is not a valid UUID | 协商上下文标识「{actual}」不是合法的 UUID |
+| `negotiation.round_exceeded` | BUSINESS | Negotiation round {round} exceeds the maximum of {max_rounds} | 协商轮次 {round} 已超过上限 {max_rounds} |
+| `negotiation.type_mismatch` | BUSINESS | The message implies '{implied}' negotiation but the declared template type is '{declared}' | 报文内容属于「{implied}」协商,与声明的模板类型「{declared}」不符 |
+| `negotiation.phase_mismatch` | BUSINESS | The message phase does not match the declared template phase ({implied} vs {declared}) | 报文阶段与声明的模板阶段不符({implied} vs {declared}) |
+| `negotiation.conclusion_mismatch` | BUSINESS | The message conclusion is '{actual}' but '{expected}' is expected for this method | 报文结论为「{actual}」,与该方法的预期「{expected}」不符 |
+| `negotiation.content_invalid` | BUSINESS | The negotiation content field '{field}' is invalid: {reason} | 协商内容字段「{field}」无效:{reason} |
+| `negotiation.field_missing` | BUSINESS | The negotiation message is missing required field '{field}' | 协商报文缺少必填字段「{field}」 |
+| `negotiation.content_extract_failed` | BUSINESS | Failed to extract negotiation content from text ({field}): {reason} | 无法从文本提取协商内容({field}):{reason} |
+| `negotiation.conclusion_content_mismatch` | BUSINESS | The conclusion is '{conclusion}' but '{section_label}' does not state the content the conclusion requires | 结论为「{conclusion}」,但「{section_label}」未表达该结论应携带的内容 |
+| `negotiation.missing_result_content` | BUSINESS | The '{section_label}' section is missing the content required by its conclusion | 「{section_label}」板块缺少结论应携带的内容 |
+| `negotiation.mutually_exclusive_sections` | BUSINESS | Mutually exclusive sections appear together: {sections} | 互斥板块同时出现:{sections} |
+| `negotiation.constraint_conflict` | BUSINESS | '{section_label}' conflicts with existing constraints: {reason} | 「{section_label}」与既有约束冲突:{reason} |
+| `negotiation.field_inconsistency` | BUSINESS | Fields within '{section_label}' are inconsistent: {reason} | 「{section_label}」内字段取值前后不一致:{reason} |
+| `negotiation.invalid_time_interval` | BUSINESS | The time interval of '{section_label}' is invalid (start must not be later than end) | 「{section_label}」的时间区间不合法(开始时间不得晚于结束时间) |
+| `negotiation.semantic_rejected` | BUSINESS | The negotiation message failed semantic validation | 协商报文语义校验未通过 |
+| `negotiation.rule_violation` | BUSINESS | '{section_label}' violates the negotiation message validation rules. | 「{section_label}」不符合协商报文的校验规则。 |
+| `infra.config_invalid` | INFRA | Invalid configuration '{key}': {reason} | 配置项「{key}」无效:{reason} |
+| `infra.resource_read_failed` | INFRA | Failed to read resource '{resource_path}' | 资源「{resource_path}」读取失败 |
+| `infra.internal_error` | INFRA | SDK internal error; contact the maintainer with context | SDK 内部错误,请联系维护方并提供上下文 |
+
+**Old-to-new code mapping**
+
+The layered codes above replace the previous flat error codes. Use this mapping when migrating callers that branch on `getCode()` values:
+
+| Old code | New code |
+| -------- | -------- |
+| `template_not_found` | `template.not_found` |
+| `render_failed` | `template.render_failed` |
+| `prompt_resource_load_error` | `template.load_failed` |
+| `slot_schema_not_found` | `slot.schema_not_found` |
+| `missing_input` / `param_extraction_failed` (slot extraction) | `slot.not_provided` |
+| `invalid_value` (slot extraction) | `slot.constraint_violated` |
+| `semantic_mismatch` (semantic validation) | `slot.semantic_conflict` |
+| `fabricated_value` | `slot.fabricated_value` |
+| `cross_scenario_pollution` | `slot.cross_scenario_pollution` |
+| `insufficient_grounding` | `slot.insufficient_grounding` |
+| `input_text_too_long` | `input.text_too_long` |
+| `missing_required` (parameter level, content validation) | `content.param_missing` |
+| `missing_required` (list-entry level, content validation) | `content.entry_field_missing` |
+| `format_error` | `content.format_error` |
+| `invalid_value` (content validation) | `content.value_not_allowed` |
+| `semantic_mismatch` (content validation) | `content.semantic_conflict` |
+| `scenario_not_matched` / `processed_prompt_parse_error` | `scenario.not_matched` |
+| `llm_invocation_failed` (transport failures) | `llm.invocation_failed` |
+| `llm_invocation_failed` (response-contract failures) | `llm.response_invalid` |
+| "LLM client is not configured" family | `llm.not_configured` |
+| `negotiation_invalid_input` / `validation_invalid_input` | `negotiation.invalid_input` |
+| `invalid_uuid` | `negotiation.invalid_context_id` |
+| `out_of_range` (round) | `negotiation.round_exceeded` |
+| `template_type_mismatch` | `negotiation.type_mismatch` |
+| `template_phase_mismatch` | `negotiation.phase_mismatch` |
+| `invalid_conclusion` / registry conclusion gate | `negotiation.conclusion_mismatch` |
+| fromData required-items/required-text `IllegalArgumentException` | `negotiation.content_invalid` |
+| `negotiation_slot_missing` | `negotiation.field_missing` |
+| `negotiation_content_extract_failed` | `negotiation.content_extract_failed` |
+| `conclusion_content_mismatch` | `negotiation.conclusion_content_mismatch` |
+| `missing_result_content` | `negotiation.missing_result_content` |
+| `mutually_exclusive_sections` | `negotiation.mutually_exclusive_sections` |
+| `constraint_conflict` | `negotiation.constraint_conflict` |
+| `field_inconsistency` | `negotiation.field_inconsistency` |
+| `invalid_time_interval` | `negotiation.invalid_time_interval` |
+| `negotiation_semantic_rejected` / `validation_semantic_rejected` | `negotiation.semantic_rejected` |
+| `negotiation_rule_violation` / `validation_rule_violation` | `negotiation.rule_violation` |
+| `negotiation_llm_infrastructure_error` / `validation_llm_infrastructure_error` | `llm.invocation_failed` / `llm.response_invalid` |
+| `validation_prompt_resource_not_found` | `template.not_found` |
+| `sdk_internal_error` | `infra.internal_error` |
+| `LLMConfigError` | `infra.config_invalid` |
+| bare `A2ATError` resource-read failures | `infra.resource_read_failed` |
 
 
 ## 1.2 Constraints and Limitations
@@ -118,15 +219,17 @@ On failure, throws `NegotiationGenerationException` (an `A2ATError` subclass, a 
 
 Error codes:
 
-- `template_not_found` (template or prompt resource missing)
+- `template.not_found` (template or prompt resource missing)
 
-- `negotiation_content_extract_failed` (failed to extract structured content from the text, retryable)
+- `negotiation.content_extract_failed` (failed to extract structured content from the text, retryable)
 
-- `negotiation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` (LLM transport failure, retryable)
 
-- `negotiation_invalid_input` (text is blank, the extracted content contradicts the phase, or the confirm request contradicts the other sections)
+- `llm.response_invalid` (LLM response violates the step contract, retryable)
 
-- `negotiation_slot_missing` (a required slot is missing)
+- `negotiation.invalid_input` (text is blank, the extracted content contradicts the phase, or the confirm request contradicts the other sections)
+
+- `negotiation.field_missing` (a required field is missing)
 
 A null argument throws `NullPointerException`; a templateUri whose phase segment is not `propose` throws `IllegalArgumentException`.
 
@@ -157,7 +260,7 @@ public MetadataContent generateNegotiationAcceptPromptFromText(
 
 **Typical scenarios**: after receiving the peer's information-negotiation request, the negotiation responder (usually the client agent) supplements/delivers the requested information in natural language and generates an accept message to return, e.g. confirming that diagnosis can start after supplementing the access port name and complaint category.
 
-**Function Description**: generates a negotiation accept message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `ACCEPT`, otherwise it is rejected with `negotiation_invalid_input`) plus deterministic rendering. Applicable to the negotiation responder supplementing/delivering information. The `templateUri` phase segment must be `accept-reject`.
+**Function Description**: generates a negotiation accept message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `ACCEPT`, otherwise it is rejected with `negotiation.invalid_input`) plus deterministic rendering. Applicable to the negotiation responder supplementing/delivering information. The `templateUri` phase segment must be `accept-reject`.
 
 **Input**
 
@@ -184,15 +287,17 @@ On success, returns `MetadataContent` (structure same as [1.3.1](#131-generatene
 
 On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). Error codes:
 
-- `template_not_found` (template or prompt resource missing)
+- `template.not_found` (template or prompt resource missing)
 
-- `negotiation_content_extract_failed` (failed to extract structured content from the text, retryable)
+- `negotiation.content_extract_failed` (failed to extract structured content from the text, retryable)
 
-- `negotiation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` (LLM transport failure, retryable)
 
-- `negotiation_invalid_input` (text is blank, or the extracted conclusion is not `ACCEPT`)
+- `llm.response_invalid` (LLM response violates the step contract, retryable)
 
-- `negotiation_slot_missing` (a required slot is missing)
+- `negotiation.invalid_input` (text is blank, or the extracted conclusion is not `ACCEPT`)
+
+- `negotiation.field_missing` (a required field is missing)
 
 **Response Example**
 
@@ -219,7 +324,7 @@ public MetadataContent generateNegotiationRejectPromptFromText(
 
 **Typical scenarios**: when the negotiation responder (usually the client agent) cannot satisfy the peer's negotiation request, it generates a reject message in natural language to return and end the current negotiation round, e.g. the access port name cannot be provided because the site inventory is unavailable.
 
-**Function Description**: generates a negotiation reject message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `REJECT`) plus deterministic rendering. The `templateUri` phase segment must be `accept-reject`.
+**Function Description**: generates a negotiation reject message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `REJECT`, otherwise it is rejected with `negotiation.invalid_input`) plus deterministic rendering. The `templateUri` phase segment must be `accept-reject`.
 
 **Input**: same as [generateNegotiationAcceptPromptFromText](#132-generatenegotiationacceptpromptfromtext), where text is natural language describing the rejection reason.
 
@@ -238,15 +343,17 @@ On success, returns `MetadataContent` (structure same as [1.3.1](#131-generatene
 
 On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). Error codes:
 
-- `template_not_found` (template or prompt resource missing)
+- `template.not_found` (template or prompt resource missing)
 
-- `negotiation_content_extract_failed` (failed to extract structured content from the text, retryable)
+- `negotiation.content_extract_failed` (failed to extract structured content from the text, retryable)
 
-- `negotiation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` (LLM transport failure, retryable)
 
-- `negotiation_invalid_input` (text is blank, or the extracted conclusion is not `REJECT`)
+- `llm.response_invalid` (LLM response violates the step contract, retryable)
 
-- `negotiation_slot_missing` (a required slot is missing)
+- `negotiation.invalid_input` (text is blank, or the extracted conclusion is not `REJECT`)
+
+- `negotiation.field_missing` (a required field is missing)
 
 **Response Example**
 
@@ -320,9 +427,11 @@ On success, returns `MetadataContent` (structure same as [1.3.1](#131-generatene
 
 On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). Error codes:
 
-- `template_not_found` (template missing)
+- `template.not_found` (template missing)
 
-- `negotiation_slot_missing` (a required slot is missing during rendering)
+- `negotiation.content_invalid` (a typed content field is invalid, e.g. blank required items or a blank required description)
+
+- `negotiation.field_missing` (a required field is missing during rendering)
 
 There are also two categories of programming errors (outside the `A2ATError` tree, standard JDK exceptions): a null argument or a null context within it throws `NullPointerException`; a content type that does not match the template's negotiation type, or a phase segment that is not `propose`, throws `IllegalArgumentException`.
 
@@ -388,11 +497,13 @@ On success, returns `MetadataContent` (structure same as [1.3.1](#131-generatene
 
 On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). Error codes:
 
-- `template_not_found` (template missing)
+- `template.not_found` (template missing)
 
-- `negotiation_slot_missing` (a required slot is missing during rendering)
+- `negotiation.content_invalid` (a typed content field is invalid, e.g. blank required items or a blank required description)
 
-Programming errors: a null argument or a null context within it throws `NullPointerException`; a `conclusion` that is not `ACCEPT`, a phase segment that is not `accept-reject`, or a mismatched content type throws `IllegalArgumentException`.
+- `negotiation.field_missing` (a required field is missing during rendering)
+
+Programming errors: a null argument or a null context within it throws `NullPointerException`; a mismatched content type or a phase segment that is not `accept-reject` throws `IllegalArgumentException`; a `conclusion` that is not `ACCEPT` is rejected with the `negotiation.conclusion_mismatch` business error.
 
 **Response Example**
 
@@ -441,11 +552,13 @@ On success, returns `MetadataContent` (structure same as [1.3.1](#131-generatene
 
 On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). Error codes:
 
-- `template_not_found` (template missing)
+- `template.not_found` (template missing)
 
-- `negotiation_slot_missing` (a required slot is missing during rendering)
+- `negotiation.content_invalid` (a typed content field is invalid, e.g. blank required items or a blank required description)
 
-Programming errors: a null argument or a null context within it throws `NullPointerException`; a `conclusion` that is not `REJECT`, a phase segment that is not `accept-reject`, or a mismatched content type throws `IllegalArgumentException`.
+- `negotiation.field_missing` (a required field is missing during rendering)
+
+Programming errors: a null argument or a null context within it throws `NullPointerException`; a mismatched content type or a phase segment that is not `accept-reject` throws `IllegalArgumentException`; a `conclusion` that is not `REJECT` is rejected with the `negotiation.conclusion_mismatch` business error.
 
 **Response Example**
 
@@ -471,14 +584,14 @@ public FilledParamData validateProposePromptAndDataFilling(
 
 **Typical scenarios**: an outbound self-check by the initiator (server agent) before sending a negotiation request; or the receiver (client agent) validating an inbound negotiation request and extracting the list of slots to supplement, driving the subsequent parameter filling.
 
-**Function Description**: validates whether a negotiation propose message is a properly formatted negotiation message, and extracts parameters from it per the caller-provided JSON Schema. Pipeline: template-URI phase-segment check → deterministic rule gate (the context id must be in UUID form and the round must not exceed the budget; a null context is reported as `negotiation_invalid_input`) → one LLM semantic-validation call (which also performs the parameter extraction, retried up to the configured limit on retryable error codes) → parameter merge (the negotiation-context parameters `id` / `round` / `maxRounds` are merged with the extracted parameters; on key conflicts, **the context parameters win**).
+**Function Description**: validates whether a negotiation propose message is a properly formatted negotiation message, and extracts parameters from it per the caller-provided JSON Schema. Pipeline: template-URI phase-segment check → deterministic rule gate (a null context is reported as `negotiation.invalid_input`, a non-UUID context id as `negotiation.invalid_context_id`, and a round beyond the budget as `negotiation.round_exceeded`) → one LLM semantic-validation call (which also performs the parameter extraction, retried up to the configured limit on retryable error codes) → parameter merge (the negotiation-context parameters `id` / `round` / `maxRounds` are merged with the extracted parameters; on key conflicts, **the context parameters win**).
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
 | prompt | String | Yes | Negotiation propose message text to validate (`MetadataContent.promptText()`) |
-| context | NegotiationContext | No | Negotiation context traveling with the message; null is reported as `negotiation_invalid_input` |
+| context | NegotiationContext | No | Negotiation context traveling with the message; null is reported as `negotiation.invalid_input` |
 | schema | Map&lt;String, Object&gt; | Yes | Caller-provided parameter JSON Schema declaring the parameters to extract |
 | templateUri | TemplateUri | Yes | Propose template |
 
@@ -528,15 +641,17 @@ On failure, throws `NegotiationParamExtractionException` (an `A2ATError` subclas
 
 Error codes:
 
-- `negotiation_invalid_input` (the message is not a negotiation message, or the context is null)
+- `negotiation.invalid_input` (the message is not a negotiation message, or the context is null)
 
-- `negotiation_rule_violation` (the negotiation context violates a structural rule, e.g. a non-UUID id or a round beyond the budget)
+- `negotiation.invalid_context_id` (the context id is not a valid UUID)
 
-- `negotiation_semantic_rejected` (semantic validation rejected the message)
+- `negotiation.round_exceeded` (the context round exceeds the configured maximum)
 
-- `negotiation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `negotiation.semantic_rejected` (semantic validation rejected the message; the per-slot details in `getErrors()` use the closed `negotiation.*` code set, e.g. `negotiation.conclusion_content_mismatch`, `negotiation.missing_result_content`, `negotiation.field_inconsistency`)
 
-- `template_not_found` (validation prompt resources missing)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM failures, retryable)
+
+- `template.not_found` (validation prompt resources missing)
 
 Programming errors: a null prompt or schema throws `NullPointerException`; a blank prompt or a mismatched phase segment throws `IllegalArgumentException`.
 
@@ -587,15 +702,15 @@ On success, returns `FilledParamData` (structure same as [1.3.7](#137-validatepr
 
 On failure, throws `NegotiationParamExtractionException` (structure same as 1.3.7). Error codes:
 
-- `negotiation_invalid_input` (the message is not an accept negotiation message, or the context is null)
+- `negotiation.invalid_input` (the message is not an accept negotiation message, or the context is null)
 
-- `negotiation_rule_violation` (the negotiation context violates a structural rule)
+- `negotiation.invalid_context_id` / `negotiation.round_exceeded` (the negotiation context violates a structural rule)
 
-- `negotiation_semantic_rejected` (the conclusion is not Accept, or the content does not satisfy the accept-phase constraints)
+- `negotiation.semantic_rejected` (the conclusion is not Accept, or the content does not satisfy the accept-phase constraints)
 
-- `negotiation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM failures, retryable)
 
-- `template_not_found` (validation prompt resources missing)
+- `template.not_found` (validation prompt resources missing)
 
 Programming errors: a null prompt or schema throws `NullPointerException`; a blank prompt or a phase segment that is not `accept-reject` throws `IllegalArgumentException`.
 
@@ -640,15 +755,15 @@ On success, returns `FilledParamData` (structure same as [1.3.7](#137-validatepr
 
 On failure, throws `NegotiationParamExtractionException` (structure same as 1.3.7). Error codes:
 
-- `negotiation_invalid_input` (the message is not a reject negotiation message, or the context is null)
+- `negotiation.invalid_input` (the message is not a reject negotiation message, or the context is null)
 
-- `negotiation_rule_violation` (the negotiation context violates a structural rule)
+- `negotiation.invalid_context_id` / `negotiation.round_exceeded` (the negotiation context violates a structural rule)
 
-- `negotiation_semantic_rejected` (the conclusion is not Reject, or the content does not satisfy the reject-phase constraints)
+- `negotiation.semantic_rejected` (the conclusion is not Reject, or the content does not satisfy the reject-phase constraints)
 
-- `negotiation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM failures, retryable)
 
-- `template_not_found` (validation prompt resources missing)
+- `template.not_found` (validation prompt resources missing)
 
 Programming errors: a null prompt or schema throws `NullPointerException`; a blank prompt or a phase segment that is not `accept-reject` throws `IllegalArgumentException`.
 
@@ -674,7 +789,7 @@ public MetadataContent generateTaskPromptFromText(String text, TemplateUri templ
 
 **Typical scenarios**: the client agent converts the user's natural-language task description (e.g. a private-line complaint diagnosis request) into a Task-T protocol message for a specified scenario; suitable when the target template is already known and scenario recognition should be skipped.
 
-**Function Description**: generates a task prompt message from natural-language text with the specified Task-T template, **skipping scenario recognition** (the template is explicitly specified by the caller). One LLM slot-extraction step runs, then the template is rendered deterministically. The built-in slot schema is validated during generation (a missing or invalid required slot fails fast with `slot_validation_error`).
+**Function Description**: generates a task prompt message from natural-language text with the specified Task-T template, **skipping scenario recognition** (the template is explicitly specified by the caller). One LLM slot-extraction step runs, then the template is rendered deterministically. The built-in slot schema is validated during generation (a missing or invalid required slot fails fast with a `slot.*` error code such as `slot.not_provided`).
 
 **Input**
 
@@ -719,21 +834,27 @@ On failure, throws `PromptGenerationException` (an `A2ATError` subclass, a runti
 | ---- | ---- | ---- |
 | getCode() | String | Machine-readable error code, see below |
 | getMessage() | String | Human-readable failure description |
-| failedParameters() | List&lt;SlotValidationError&gt; | Details of failed slot validations (non-empty on `slot_validation_error`); structure defined in the common conventions |
+| failedParameters() | List&lt;SlotValidationError&gt; | Details of failed slot validations (non-empty on slot-domain failure codes such as `slot.not_provided`); structure defined in the common conventions |
 
 Error codes:
 
-- `template_not_found` (template missing)
+- `template.not_found` (template missing)
 
-- `prompt_resource_load_error` (prompt resource load failure)
+- `template.load_failed` (prompt resource load failure)
 
-- `slot_schema_not_found` (slot schema missing)
+- `slot.schema_not_found` (slot schema missing)
 
-- `llm_invocation_failed` (LLM call failure)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM call failures, retryable)
 
-- `slot_validation_error` (required slot missing or invalid value)
+- `slot.not_provided` (a required slot is not provided in the input)
 
-- `render_failed` (template rendering failure)
+- `slot.constraint_violated` (a slot value is outside the allowed range)
+
+- `slot.rule_violation` (fallback for other slot-validation rule violations)
+
+- `template.render_failed` (template rendering failure)
+
+- `input.text_too_long` (input longer than `A2AT_INPUT_TEXT_MAX_CHARS`)
 
 Programming errors: a null text or templateUri throws `NullPointerException`.
 
@@ -780,7 +901,7 @@ public MetadataContent generateTaskPromptFromDataWithSchema(
 
 **Typical scenarios**: the client agent converts structured task parameters from an upstream system (field names may differ from the template slots; the schema describes the field semantics) into a Task-T protocol message; suitable when the task parameters are already available in structured form.
 
-**Function Description**: generates a task prompt from structured data plus a semantic schema with the specified Task-T template, **skipping scenario recognition**. The `schema` describes the business meaning of each input field (description / examples / enum, etc.), guiding slot filling and value constraints; each key of data corresponds to one slot value. The built-in slot schema is validated during generation as well (a missing or invalid required slot fails fast with `slot_validation_error`).
+**Function Description**: generates a task prompt from structured data plus a semantic schema with the specified Task-T template, **skipping scenario recognition**. The `schema` describes the business meaning of each input field (description / examples / enum, etc.), guiding slot filling and value constraints; each key of data corresponds to one slot value. The built-in slot schema is validated during generation as well (a missing or invalid required slot fails fast with a `slot.*` error code such as `slot.not_provided`).
 
 **Input**
 
@@ -924,16 +1045,18 @@ On failure, throws `ContentValidationException` (an `A2ATError` subclass):
 | ---- | ---- | ---- |
 | getCode() | String | Machine-readable error code, see below |
 | getMessage() | String | Human-readable failure description |
-| errors() | List&lt;SlotValidationError&gt; | Per-slot error details (slot-level error codes such as `missing_required`, `invalid_value`, `format_error`); structure defined in the common conventions |
+| errors() | List&lt;SlotValidationError&gt; | Per-slot error details (slot-level error codes such as `content.param_missing`, `content.entry_field_missing`, `content.format_error`); structure defined in the common conventions |
 | params() | Map&lt;String, Object&gt; | Partial extraction parameters captured before the rejection (slots that could not be extracted have null values) |
 
 Error codes:
 
-- `validation_semantic_rejected` (semantic validation rejected, including missing or invalid required parameters)
+- `negotiation.semantic_rejected` (semantic validation rejected, including missing or invalid required parameters; the per-slot details in `errors()` use the `content.*` codes, e.g. `content.param_missing`, `content.entry_field_missing`, `content.format_error`, `content.value_not_allowed`)
 
-- `validation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM failures, retryable)
 
-- `validation_prompt_resource_not_found` (validation prompt resources missing)
+- `template.not_found` (validation prompt resources missing)
+
+- `input.text_too_long` (prompt longer than `A2AT_INPUT_TEXT_MAX_CHARS`)
 
 Programming errors: a null prompt / schema / templateUri throws `NullPointerException`; a blank prompt throws `IllegalArgumentException`.
 
@@ -953,8 +1076,8 @@ extracted =
 On validation rejection (a negative sample with a missing key slot, from case 3 of `TaskTDemoMain`):
 
 ```text
-ContentValidationException: [validation_semantic_rejected] ...
-    slot=task_object code=missing_required message=...
+ContentValidationException: [negotiation.semantic_rejected] ...
+    slot=task_object code=content.param_missing message=... facts={section_label=任务对象}
 ```
 
 ### 1.3.13 generateNotificationPromptFromText
@@ -1177,11 +1300,13 @@ On success, returns `FilledParamData` (structure same as [1.3.12](#1312-validate
 
 On failure, throws `ContentValidationException` (structure same as 1.3.12). Error codes:
 
-- `validation_semantic_rejected` (required parameter missing or invalid value)
+- `negotiation.semantic_rejected` (required parameter missing or invalid value; the per-slot details in `errors()` use the `content.*` codes)
 
-- `validation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM failures, retryable)
 
-- `validation_prompt_resource_not_found` (validation prompt resources missing)
+- `template.not_found` (validation prompt resources missing)
+
+- `input.text_too_long` (prompt longer than `A2AT_INPUT_TEXT_MAX_CHARS`)
 
 Programming errors: a null prompt / schema / templateUri throws `NullPointerException`; a blank prompt throws `IllegalArgumentException`.
 
@@ -1234,7 +1359,7 @@ MetadataContent result = client.generateAuthPromptFromText(
 
 On success, returns `MetadataContent` (structure same as [1.3.10](#1310-generatetaskpromptfromtext); `extensionUri` is `https://projects.tmforum.org/a2aproject/telecommunication/extensions/Authorization-T/v1`).
 
-On failure, throws `PromptGenerationException` (structure same as 1.3.10); for example, an operation type outside the "add/modify/delete/query authorization policy" range is rejected with `slot_validation_error`. Programming errors: a null text or templateUri throws `NullPointerException`.
+On failure, throws `PromptGenerationException` (structure same as 1.3.10); for example, an operation type outside the "add/modify/delete/query authorization policy" range is rejected with `slot.constraint_violated`. Programming errors: a null text or templateUri throws `NullPointerException`.
 
 **Response Example**
 
@@ -1385,11 +1510,13 @@ On success, returns `FilledParamData` (structure same as [1.3.12](#1312-validate
 
 On failure, throws `ContentValidationException` (structure same as 1.3.12). Error codes:
 
-- `validation_semantic_rejected` (required parameter missing or invalid value, e.g. an add entry missing required fields or a validity period format error)
+- `negotiation.semantic_rejected` (required parameter missing or invalid value, e.g. an add entry missing required fields (`content.entry_field_missing`) or a validity period format error (`content.format_error`))
 
-- `validation_llm_infrastructure_error` (LLM infrastructure failure, retryable)
+- `llm.invocation_failed` / `llm.response_invalid` (LLM failures, retryable)
 
-- `validation_prompt_resource_not_found` (validation prompt resources missing)
+- `template.not_found` (validation prompt resources missing)
+
+- `input.text_too_long` (prompt longer than `A2AT_INPUT_TEXT_MAX_CHARS`)
 
 Programming errors: a null prompt / schema / templateUri throws `NullPointerException`; a blank prompt throws `IllegalArgumentException`.
 
@@ -1463,7 +1590,7 @@ On failure (`success()` is `false`; no exception is thrown, the failure payload 
 
 | Field | Type | Description |
 | ---- | ---- | ---- |
-| code | String | Machine-readable error code: `scenario_not_matched` (scenario recognition missed), `prompt_resource_load_error` (prompt resource load failure), `template_not_found` (template missing), `render_failed` (rendering failure) |
+| code | String | Machine-readable error code from the error-code catalog, e.g. `scenario.not_matched` (scenario recognition missed), `input.text_too_long` (input length guard), `template.load_failed` (prompt resource load failure), `template.not_found` (template missing), `slot.schema_not_found` (slot schema missing), `slot.not_provided` (required slot missing), `template.render_failed` (rendering failure), `llm.invocation_failed` / `llm.response_invalid` (LLM failures) |
 | message | String | Human-readable failure description |
 | stage | String | Stage where the failure occurred: `scenario` (scenario recognition), `generation` (template loading/rendering) |
 
@@ -1496,7 +1623,7 @@ On failure (the input does not match any built-in scenario):
 ```text
 result.success() = false
 result.failure() =
-{ code=scenario_not_matched, message=Scenario recognition failed., stage=scenario }
+{ code=scenario.not_matched, message=The input does not match any known scenario: <reason>, stage=scenario }
 ```
 
 ### 1.3.20 checkTaskPrompt
@@ -1554,7 +1681,7 @@ On failure (`success()` is `false`; no exception is thrown, the failure payload 
 
 | Field | Type | Description |
 | ---- | ---- | ---- |
-| code | String | Machine-readable error code: `processed_prompt_parse_error` (message parsing/scenario recognition failure), `template_not_found` (template missing), `slot_validation_error` (slot validation failure, including missing required values, out-of-range values, and format mismatches) |
+| code | String | Machine-readable error code from the error-code catalog: `scenario.not_matched` (message parsing/scenario recognition failure), `template.not_found` (template missing), slot-domain codes such as `slot.not_provided` (missing required value), `slot.constraint_violated` (out-of-range value) and `slot.rule_violation` (other slot rule violations), `input.text_too_long` (input length guard) |
 | message | String | Human-readable failure description |
 | stage | String | Stage where the failure occurred: `prompt_parse` (message parsing), `generation` (template loading), `slot_validation` (slot validation) |
 
@@ -1571,7 +1698,7 @@ On failure (the message is missing a required slot; the error code and stage com
 ```text
 result.success() = false
 result.failure() =
-{ code=slot_validation_error, message=Required slot 'task_object' is missing., stage=slot_validation }
+{ code=slot.not_provided, message='Task Object' is not provided in the input., stage=slot_validation }
 ```
 
 
