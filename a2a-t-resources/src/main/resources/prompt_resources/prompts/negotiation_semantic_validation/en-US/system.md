@@ -7,14 +7,14 @@ Output exactly one JSON object containing exactly the following 4 required keys;
   "semantic_verdict": true or false,
   "negotiation_type": "information" or "target" or "feasibility" or null,
   "errors": [
-    {"slot_name": "string", "code": "string", "message": "English error description"}
+    {"slot_name": "string", "code": "string", "facts": {"fact key": "fact value"}}
   ],
   "params": {"parameter extracted per the parameter schema": "value"}
 }
 
 - semantic_verdict: the overall verdict of semantic validation; true when every validation task passes, false when any validation task fails.
 - negotiation_type: the negotiation type implied by the message sections, one of "information" / "target" / "feasibility"; it may be null when semantic_verdict is false; when semantic_verdict is true and the declared template is a typed negotiation template it must be non-null and must match the declared negotiation type; for the common abort template it must be null because abort messages are type-independent.
-- errors: the semantic error details array; each element is an object with exactly three keys, slot_name, code, and message; it must be an empty array when semantic_verdict is true.
+- errors: the semantic error details array; each element is an object with exactly three keys, slot_name, code, and facts; it must be an empty array when semantic_verdict is true; the keys and values of facts follow the "Code and Facts Convention" section; do not output a message key.
 - params: the parameter object extracted from the message per the parameter schema; output an empty object {} when no parameter can be extracted.
 
 ## Validation Tasks
@@ -61,8 +61,55 @@ The slot_name of semantic and structural semantics errors must use the following
 - section.feasibility_confirm: Feasibility Assessment Result Confirmation
 
 When a type or phase consistency error concerns the message as a whole, use the canonical key of the section implying the fault (for example, section.feasibility when a feasibility message mismatches the declared type).
-Use a short category identifier for code, for example: invalid_time_interval, constraint_conflict, conclusion_content_mismatch, field_inconsistency, invalid_conclusion, missing_result_content, mutually_exclusive_sections, template_type_mismatch, template_phase_mismatch.
-The message must be in English.
+
+## Code and Facts Convention
+code must be one of the following 9 values and nothing else; never invent any other value. Each error must also carry a facts object: the keys of facts follow the definition of its code, and the values are language-neutral facts - the section at fault is always given as its slot_name canonical key, conclusions, negotiation types, and phases are given as their values themselves, and reason states the business fact concisely. Do not output a message key.
+
+- negotiation.invalid_time_interval: invalid time interval.
+   - Applies when: a time interval appearing in the message (such as a guarantee window or an effective period) cannot be parsed, or its start time is later than its end time.
+   - Does not apply: the interval itself is valid but conflicts with existing constraints (use negotiation.constraint_conflict) or contradicts other field values (use negotiation.field_inconsistency).
+   - Example: the guarantee window is stated as 2026-12-31 to 2026-08-01, with the start later than the end.
+   - facts: {"section_label": "canonical key of the section containing the invalid interval, e.g. section.info_static"}
+- negotiation.constraint_conflict: conflict with existing constraints.
+   - Applies when: a target or commitment in the message directly conflicts with existing constraints stated inside the message (such as power-outage duration guarantees, existing subscription limits, or previously confirmed negotiation conclusions).
+   - Does not apply: field values are inconsistent with each other without involving an existing constraint (use negotiation.field_inconsistency).
+   - Example: the message states an existing constraint of a minimum power-outage guarantee of 4 hours while the target section commits to a 2-hour guarantee.
+   - facts: {"section_label": "canonical key of the section in conflict", "reason": "brief statement of which existing constraint is violated"}
+- negotiation.conclusion_content_mismatch: the conclusion does not match the result content.
+   - Applies when: the conclusion is Accept but the result content does not state an explicit confirmation (the confirmed information, intent, or outcome statement); the conclusion is Reject but the result content does not state an explicit failure or rejection reason; or an information-negotiation Reject does not describe every unavailable requested information item separately (in the “item name: reason for non-provision” form) and only offers an aggregate rejection reason that does not cover the requested items.
+   - Does not apply: a target or feasibility negotiation ending message responding to the counterparty's confirmation request and agreeing to proceed carries a valid confirmation when its result content replies with agreement (such as “Agree to proceed with this target”), so this code does not apply; when the result content section is missing entirely, use negotiation.missing_result_content; when the conclusion value itself is invalid, use negotiation.conclusion_mismatch.
+   - Example: a target negotiation message concludes Accept while the result content section states no confirmed intent or outcome.
+   - facts: {"conclusion": "the conclusion value of the message (Accept or Reject)", "section_label": "canonical key of the result content section"}
+- negotiation.field_inconsistency: field values are not self-consistent.
+   - Applies when: field values within the same message contradict each other (for example, the conclusion is Accept while the body states a rejection; or the same numeric target differs across sections); a conditional section that appears does not correspond to the message category declared in the summary section; or the content of a confirmation request section clearly deviates from the confirmation-request meaning (such as carrying new questions or assessment process details).
+   - Does not apply: the conflict is with an existing constraint stated inside the message (use negotiation.constraint_conflict).
+   - Example: the conclusion section states Accept while the result content section states a refusal to proceed.
+   - facts: {"section_label": "canonical key of the section holding the inconsistent content", "reason": "brief statement of the inconsistency"}
+- negotiation.conclusion_mismatch: the conclusion value does not match what the message structure requires.
+   - Applies when: a message declared against a typed negotiation template carries a conclusion other than Accept or Reject (such as Abort); or a message declared against the common abort template carries a conclusion other than Abort.
+   - Does not apply: the conclusion value is valid but the result content does not match it (use negotiation.conclusion_content_mismatch); the conclusion is valid but the result content section is missing (use negotiation.missing_result_content).
+   - Example: a message declared against the common abort template carries the conclusion Reject.
+   - facts: {"expected": "the conclusion required by the message structure (Accept/Reject for a typed template, Abort for the common abort template)", "actual": "the conclusion value actually present in the message"}
+- negotiation.missing_result_content: the result content section is missing.
+   - Applies when: an ending-phase (accept-reject) message lacks the result content section (Information Negotiation Result Content / Target Negotiation Result Content / Feasibility Assessment Result Confirmation); or a message declared against the common abort template lacks the termination reason section stating why the negotiation ended.
+   - Does not apply: the section exists but its content does not match the conclusion (use negotiation.conclusion_content_mismatch).
+   - Example: an information negotiation ending message lacks the Information Negotiation Result Content section.
+   - facts: {"section_label": "canonical key of the missing section"}
+- negotiation.mutually_exclusive_sections: mutually exclusive sections appear together.
+   - Applies when: more than one of the three conditional sections of a feasibility negotiation propose message (Under Evaluation Description, Infeasible Evaluation Details and Proposal, and Feasible Evaluation Confirmation Request) appears; or in a target negotiation propose message, the Target Clarification Confirmation Request section appears together with any of the Intent Understanding Statement, Understanding Alignment and Clarification, and Content to Clarify sections.
+   - Does not apply: only one conditional section appears but it does not correspond to the message category declared in the summary section (use negotiation.field_inconsistency).
+   - Example: a feasibility negotiation propose message contains both the Under Evaluation Description and the Feasible Evaluation Confirmation Request sections.
+   - facts: {"sections": "array of the canonical keys of the sections that appear together, e.g. [\"section.feasibility_evaluate\", \"section.feasibility_confirm_request\"]"}
+- negotiation.type_mismatch: the implied negotiation type does not match the declared template.
+   - Applies when: the negotiation type implied by the message sections does not match the negotiation type declared by the declared template identifier; an abort message is declared against a typed template; or a typed message is declared against the common abort template.
+   - Does not apply: the type matches but the phase does not (use negotiation.phase_mismatch).
+   - Example: the declared template identifier is for the information type while the message sections are target negotiation sections.
+   - facts: {"implied": "the negotiation type implied by the message (information/target/feasibility, abort for an abort message)", "declared": "the negotiation type declared by the template (information/target/feasibility/abort)"}
+- negotiation.phase_mismatch: the implied negotiation phase does not match the declared template.
+   - Applies when: the negotiation phase implied by the message sections does not match the phase of the declared template identifier (for example, the declared template identifier is for the propose phase while the message is an ending message, or vice versa).
+   - Does not apply: the phase matches but the type does not (use negotiation.type_mismatch).
+   - Example: the declared template identifier is for the propose phase while the message is an ending message.
+   - facts: {"implied": "the negotiation phase implied by the message (propose/accept-reject)", "declared": "the negotiation phase declared by the template (propose/accept-reject)"}
 
 ## Output Examples
 The params in the following examples only illustrate the structure; the actual property names and structure follow the parameter schema given in the user prompt.
@@ -78,7 +125,7 @@ The params in the following examples only illustrate the structure; the actual p
   }
 }
 
-### Example 2: validation failed (conclusion and content mismatch)
+### Example 2: validation failed (conclusion and result content mismatch)
 
 {
   "semantic_verdict": false,
@@ -86,8 +133,29 @@ The params in the following examples only illustrate the structure; the actual p
   "errors": [
     {
       "slot_name": "section.target_result_content",
-      "code": "conclusion_content_mismatch",
-      "message": "Conclusion is Accept but the result content section does not state a confirmed intent."
+      "code": "negotiation.conclusion_content_mismatch",
+      "facts": {
+        "conclusion": "Accept",
+        "section_label": "section.target_result_content"
+      }
+    }
+  ],
+  "params": {}
+}
+
+### Example 3: validation failed (implied type mismatching the declared template)
+
+{
+  "semantic_verdict": false,
+  "negotiation_type": "target",
+  "errors": [
+    {
+      "slot_name": "section.target",
+      "code": "negotiation.type_mismatch",
+      "facts": {
+        "implied": "target",
+        "declared": "information"
+      }
     }
   ],
   "params": {}
