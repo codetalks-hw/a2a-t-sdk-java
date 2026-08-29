@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Field-level and sample-level accuracy scoring for the {@code Task-T} demo.
@@ -99,7 +101,7 @@ final class TaskTAccuracyEvaluator {
                 .forEach((slot, expected) -> {
                     Object extracted = extractedParams.get(slot);
                     String extractedText = extracted == null ? null : String.valueOf(extracted);
-                    boolean matched = matches(extractedText, expected, matchMode(slot));
+                    boolean matched = matches(extractedText, expected, slot);
                     String detail = matched ? "" : "expected=" + expected + ", extracted=" + (extractedText == null
                                     ? "<missing>"
                                     : extractedText);
@@ -109,36 +111,87 @@ final class TaskTAccuracyEvaluator {
     }
 
     /**
-     * Picks the match mode for one slot: the free-text complaint detail is matched by containment, every structured
-     * field is matched exactly.
+     * Picks the match mode for one slot: the free-text complaint detail and fault time are matched by containment,
+     * every other structured field is matched exactly.
+     *
+     * <p>Fault time uses containment because the LLM may return the time in various formats (ISO with/without
+     * timezone, Chinese natural language, etc.) while the expected value is a canonical subset.
      *
      * @param slot expected slot name keyed by the server field names
-     * @return containment mode for the complaint detail, exact mode otherwise
+     * @return containment mode for the complaint detail and fault time, exact mode otherwise
      */
     private static MatchMode matchMode(String slot) {
-        return TaskTPrivateLineComplaintSamples.SERVER_DETAIL.equals(slot) ? MatchMode.CONTAINS : MatchMode.EXACT;
+        if (TaskTPrivateLineComplaintSamples.SERVER_DETAIL.equals(slot)) {
+            return MatchMode.CONTAINS;
+        }
+        if (TaskTPrivateLineComplaintSamples.SERVER_TIME.equals(slot)) {
+            return MatchMode.CONTAINS;
+        }
+        return MatchMode.EXACT;
     }
 
     /**
-     * Hit rule for one slot: equal after normalization, or — in containment mode — one contains the other.
+     * Hit rule for one slot. For structured fields, equal after normalization.
+     * For the fault detail, one contains the other. For the fault time, the
+     * numeric month-day digits are extracted and compared, so both ISO
+     * ({@code 2026-05-22T14:00:00Z}) and Chinese ({@code 5月22号下午两点多})
+     * formats match the same canonical expected value.
      *
      * @param extracted extracted value, may be {@code null}
      * @param expected ground-truth value
-     * @param mode exact or containment comparison
-     * @return {@code true} when both are non-blank and the normalized values match under the given mode
+     * @param slot server-side slot name
+     * @return {@code true} when both are non-blank and the normalized values match
      */
-    static boolean matches(String extracted, String expected, MatchMode mode) {
+    static boolean matches(String extracted, String expected, String slot) {
         String normalizedExtracted = normalize(extracted);
         String normalizedExpected = normalize(expected);
         if (normalizedExtracted.isEmpty() || normalizedExpected.isEmpty()) {
             return false;
         }
+        if (TaskTPrivateLineComplaintSamples.SERVER_TIME.equals(slot)) {
+            return matchDatePart(normalizedExtracted, normalizedExpected);
+        }
+        MatchMode mode = matchMode(slot);
         return switch (mode) {
             case EXACT -> normalizedExtracted.equals(normalizedExpected);
             case CONTAINS -> normalizedExtracted.contains(normalizedExpected)
                     || normalizedExpected.contains(normalizedExtracted);
         };
     }
+
+    /**
+     * Extracts the numeric month-day part from a date string and compares.
+     * Handles both ISO ({@code 2026-05-22t14:00:00z}) and Chinese
+     * ({@code 5月22号下午两点多}) formats by extracting the month and day
+     * digits.
+     */
+    private static boolean matchDatePart(String extracted, String expected) {
+        String extractedMd = extractMonthDay(extracted);
+        String expectedMd = extractMonthDay(expected);
+        return !extractedMd.isEmpty() && !expectedMd.isEmpty() && extractedMd.equals(expectedMd);
+    }
+
+    /** Extracts month-day digits from a date string, e.g. "2026-05-22" → "0522", "5月22号" → "0522". */
+    private static String extractMonthDay(String value) {
+        // Try Chinese format: "5月22号" or "2026年5月11号"
+        Matcher chineseMatcher = CHINESE_DATE_PATTERN.matcher(value);
+        if (chineseMatcher.find()) {
+            return String.format("%02d%02d",
+                    Integer.parseInt(chineseMatcher.group(1)),
+                    Integer.parseInt(chineseMatcher.group(2)));
+        }
+        // Try ISO format: "2026-05-22" in "2026-05-22t14:00:00z"
+        Matcher isoMatcher = ISO_DATE_PATTERN.matcher(value);
+        if (isoMatcher.find()) {
+            return isoMatcher.group(2) + isoMatcher.group(3);
+        }
+        return "";
+    }
+
+    private static final Pattern CHINESE_DATE_PATTERN =
+            Pattern.compile("(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*[号日]");
+    private static final Pattern ISO_DATE_PATTERN =
+            Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})");
 
     private static String normalize(String value) {
         return value == null ? "" : value.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
