@@ -35,9 +35,18 @@ The A2A-T SDK exposes exactly two public entry points: the client entry `A2ATCli
 - **Exception hierarchy:** every SDK processing failure is a subclass of `A2ATError`; catching `A2ATError` covers all processing failures, and `getCode()` returns the machine-readable error code. All messages are rendered by the SDK from per-code message templates and follow `A2AT_LANGUAGE`. The following business exceptions extend `A2ATBusinessException` and additionally expose `getFacts()` carrying the structured fact values behind the rendered message:
   - Generation failures throw `PromptGenerationException` (Task-T / Notification-T / Authorization-T) or `NegotiationGenerationException` (Negotiation-T);
   - Validation-plus-extraction failures throw `ContentValidationException` (Task-T / Notification-T / Authorization-T) or `NegotiationParamExtractionException` (Negotiation-T).
+- **SlotValidationError:** per-slot validation error details, returned with validation-failure exceptions or failure payloads (the `getErrors()` / `failedParameters()` / `errors()` mentioned in the output descriptions of the APIs all refer to this definition):
+
+| Field | Type | Description |
+| ---- | ---- | ---- |
+| slotName | String | Name of the slot in error |
+| code | String | Slot-level error code, taken from the 1.4 error code list, e.g. `slot.not_provided`, `content.param_missing`, `content.entry_field_missing`, `content.format_error` |
+| message | String | Human-readable error description, rendered by the SDK from the message template of the error code and following `A2AT_LANGUAGE` |
+| facts | Map&lt;String, String&gt; | Structured fact values behind the rendered message (e.g. `section_label`, `index`, `field_label`), may be null |
+
 - **TemplateUri:** the template URI value type. Prefer building it with the `net.openan.a2at.sdk.core.model.StandardTemplates` constants; for strings coming from outside the code, parse them with `TemplateUri.parse(String)`, which returns an `Optional<TemplateUri>` and never throws. The currently supported TemplateUri constants are listed below:
 
-| Constant | Description | Template URI |
+| Constant | Description | TemplateUri |
 | ---- | ---- | ---- |
 | StandardTemplates.ENERGY_SAVING | Task-T energy-saving task template | Task-T/network-layer/ran-energy-saving/v1 |
 | StandardTemplates.PRIVATE_LINE_COMPLAINT | Task-T private-line complaint task template | Task-T/network-layer/private-line-complaint/v1 |
@@ -57,7 +66,7 @@ The A2A-T SDK exposes exactly two public entry points: the client entry `A2ATCli
 ## 1.2 Constraints and Limitations
 
 - Some APIs involve LLM calls. Control the call rate and concurrency of these APIs according to the concurrency capacity of the connected model service and your business time-limit requirements.
-- APIs that involve LLM calls guard the length of text `text` inputs: when the input exceeds the `A2AT_INPUT_TEXT_MAX_CHARS` characters configured in `client.env` or `server.env`, the error code `input_text_too_long` is reported; the default value of this configuration item is 16384 (16×1024). Structured data that involves no LLM calls is not subject to this limit.
+- APIs that involve LLM calls guard the length of text `text` inputs: when the input exceeds the `A2AT_INPUT_TEXT_MAX_CHARS` characters configured in `client.env` or `server.env`, the error code `input.text_too_long` is reported; the default value of this configuration item is 16384 (16×1024). Structured data that involves no LLM calls is not subject to this limit.
 
 ## 1.3 API Description
 
@@ -98,8 +107,7 @@ NegotiationContext ctx = new NegotiationContext(
         "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", 1, NegotiationContext.DEFAULT_MAX_ROUNDS);
 
 MetadataContent propose = client.generateNegotiationProposePromptFromText(
-        "Please provide the following missing information: 1. Access port name: please provide the service access port name; "
-                + "2. Complaint category: private line interruption or poor private line quality. "
+        "Please provide the following missing information: complaint category: private line interruption or poor private line quality. "
                 + "Both parameters are required; diagnosis cannot start without them.",
         ctx,
         StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE);
@@ -154,10 +162,7 @@ promptText  :
 Please supplement the relevant content based on <Required Information Items>.
 
 ## Required Information Items
-1. Access Port Name: e.g. P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1
-2. Complaint Category: e.g. dedicated-line quality degradation
-3. Private Line Service Identifier
-Relationship between missing items: OR
+1. Complaint Category: e.g. dedicated-line quality degradation
 ```
 
 ### 1.3.2 generateNegotiationAcceptPromptFromText
@@ -373,7 +378,7 @@ public MetadataContent generateNegotiationAcceptPromptFromData(
 
 **Typical scenarios**: the negotiation responder (usually the client agent) programmatically fills in the parameters per the peer's requested slot list and generates an accept message from structured items to return.
 
-**Function Description**: deterministically generates a negotiation accept message from structured-data input, **without calling the LLM**. `content.conclusion()` must be `ACCEPT`; any other conclusion (including `ABORT`) is rejected with `IllegalArgumentException`.
+**Function Description**: deterministically generates a negotiation accept message from structured-data input, **without calling the LLM**. `content.conclusion()` must be `ACCEPT`; any other conclusion (including `ABORT`) is rejected with the `negotiation.conclusion_mismatch` business error.
 
 **Input**
 
@@ -414,7 +419,7 @@ On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). E
 
 - `negotiation.field_missing` (a required field is missing during rendering)
 
-Programming errors: a null argument or a null context within it throws `NullPointerException`; a mismatched content type or a phase segment that is not `accept-reject` throws `IllegalArgumentException`; a `conclusion` that is not `ACCEPT` is rejected with the `negotiation.conclusion_mismatch` business error.
+Programming errors: a null argument or a null context within it throws `NullPointerException`; a mismatched content type or a phase segment that is not `accept-reject` throws `IllegalArgumentException`. A `conclusion` that is not `ACCEPT` is rejected with the `negotiation.conclusion_mismatch` business error.
 
 **Response Example**
 
@@ -441,7 +446,7 @@ public MetadataContent generateNegotiationRejectPromptFromData(
 
 **Typical scenarios**: the negotiation responder, after programmatically determining that the peer's request cannot be satisfied, generates a reject message from structured items (the items that cannot be provided and the reasons) to return.
 
-**Function Description**: deterministically generates a negotiation reject message from structured-data input, **without calling the LLM**. `content.conclusion()` must be `REJECT`; any other conclusion is rejected with `IllegalArgumentException`.
+**Function Description**: deterministically generates a negotiation reject message from structured-data input, **without calling the LLM**. `content.conclusion()` must be `REJECT`; any other conclusion is rejected with the `negotiation.conclusion_mismatch` business error.
 
 **Input**: same as [generateNegotiationAcceptPromptFromData](#135-generatenegotiationacceptpromptfromdata), but with the conclusion `REJECT`. Reject content: `InformationEndingContent(REJECT, items)` (items that cannot be provided and the reasons), `TargetEndingContent(REJECT, null, failureReason)` (rejection reason), `FeasibilityEndingContent(REJECT, feasibilitySummary)` (infeasibility conclusion summary).
 
@@ -469,7 +474,7 @@ On failure, throws `NegotiationGenerationException` (structure same as 1.3.1). E
 
 - `negotiation.field_missing` (a required field is missing during rendering)
 
-Programming errors: a null argument or a null context within it throws `NullPointerException`; a mismatched content type or a phase segment that is not `accept-reject` throws `IllegalArgumentException`; a `conclusion` that is not `REJECT` is rejected with the `negotiation.conclusion_mismatch` business error.
+Programming errors: a null argument or a null context within it throws `NullPointerException`; a mismatched content type or a phase segment that is not `accept-reject` throws `IllegalArgumentException`. A `conclusion` that is not `REJECT` is rejected with the `negotiation.conclusion_mismatch` business error.
 
 **Response Example**
 
@@ -502,7 +507,7 @@ public FilledParamData validateProposePromptAndDataFilling(
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
 | prompt | String | Yes | Negotiation propose message text to validate (`MetadataContent.promptText()`); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
-| context | NegotiationContext | No | Negotiation context traveling with the message; null is reported as `negotiation.invalid_input` |
+| context | NegotiationContext | Yes | Negotiation context traveling with the message; a null value is reported as `negotiation.invalid_input` |
 | schema | Map&lt;String, Object&gt; | Yes | Caller-provided parameter JSON Schema declaring the parameters to extract |
 | templateUri | TemplateUri | Yes | Propose template |
 
@@ -1501,7 +1506,7 @@ On failure (`success()` is `false`; no exception is thrown, the failure payload 
 
 | Field | Type | Description |
 | ---- | ---- | ---- |
-| code | String | Machine-readable error code from the error-code catalog, e.g. `scenario.not_matched` (scenario recognition missed), `input.text_too_long` (input length guard), `template.load_failed` (prompt resource load failure), `template.not_found` (template missing), `slot.schema_not_found` (slot schema missing), `slot.not_provided` (required slot missing), `template.render_failed` (rendering failure), `llm.invocation_failed` / `llm.response_invalid` (LLM failures) |
+| code | String | Machine-readable error code from the error-code list, e.g. `scenario.not_matched` (scenario recognition missed), `input.text_too_long` (input length guard), `template.load_failed` (prompt resource load failure), `template.not_found` (template missing), `slot.schema_not_found` (slot schema missing), `slot.not_provided` (required slot missing), `template.render_failed` (rendering failure), `llm.invocation_failed` / `llm.response_invalid` (LLM failures) |
 | message | String | Human-readable failure description |
 | stage | String | Stage where the failure occurred: `scenario` (scenario recognition), `generation` (template loading/rendering) |
 
@@ -1592,7 +1597,7 @@ On failure (`success()` is `false`; no exception is thrown, the failure payload 
 
 | Field | Type | Description |
 | ---- | ---- | ---- |
-| code | String | Machine-readable error code from the error-code catalog: `scenario.not_matched` (message parsing/scenario recognition failure), `template.not_found` (template missing), slot-domain codes such as `slot.not_provided` (missing required value), `slot.constraint_violated` (out-of-range value) and `slot.rule_violation` (other slot rule violations), `input.text_too_long` (input length guard) |
+| code | String | Machine-readable error code from the error-code list: `scenario.not_matched` (message parsing/scenario recognition failure), `template.not_found` (template missing), slot-domain codes such as `slot.not_provided` (missing required value), `slot.constraint_violated` (out-of-range value) and `slot.rule_violation` (other slot rule violations), `input.text_too_long` (input length guard) |
 | message | String | Human-readable failure description |
 | stage | String | Stage where the failure occurred: `prompt_parse` (message parsing), `generation` (template loading), `slot_validation` (slot validation) |
 
@@ -1612,7 +1617,7 @@ result.failure() =
 { code=slot.not_provided, message='Task Object' is not provided in the input., stage=slot_validation }
 ```
 
-## 1.4 Error Code Catalog
+## 1.4 Error Code List
 
 **Error code categories**: BUSINESS = expected business failures the caller can act on, carried by `A2ATBusinessException` subclasses; INFRA = infrastructure failures, carried by a plain `A2ATError`.
 

@@ -99,7 +99,7 @@ Each module's `src/test/java` mirrors the main package structure, covering the n
 
 ### Run the First Demo in Three Steps
 
-Taking the `subscribe_incident` (incident subscription) scenario as an example: the client generates a Notification-T task prompt from natural-language input and sends it to the server over a real HTTP A2A link; the server validates the message, establishes the event subscription, and pushes notifications. Run all commands from the **repository root**:
+Taking the `subscribe_incident` (incident subscription) scenario as an example: the client generates a Notification-T task prompt based on natural-language input and sends it to the server over a real HTTP A2A link; the server validates the message, establishes the event subscription, and pushes notifications. Run all commands from the **repository root**:
 
 ```bash
 # 1. Build (generates a2a-t-sample/target/sample.args)
@@ -154,7 +154,7 @@ For more runnable samples (end-to-end negotiation, service recovery, authorizati
 Before use, it is recommended to confirm the following limitations:
 
 - The built-in LLM invocation chain is unified externally as an OpenAI adaptation layer.
-- Prompt resources currently only support local files.
+- LLM prompt resources are built in and do not support customization or extension.
 - Negotiation state storage currently only provides an in-memory implementation and does not guarantee persistence.
 - The bundled resources and language coverage are limited, and do not include remote resource loading capabilities such as `registry-center`.
 - This document primarily introduces the SDK itself, and does not cover the CLI, hosted services, deployment processes, or ready-to-use application solutions.

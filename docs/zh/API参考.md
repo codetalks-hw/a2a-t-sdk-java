@@ -2,7 +2,7 @@
 
 ## 1.1 简介
 
-A2A-T SDK 的对外 仅提供两个入口：客户端入口 `A2ATClient`（提示词生成、协商消息生成与校验）与服务端入口 `A2ATServer`（提示词校验、协商消息生成与校验），API分类总览见下
+A2A-T SDK 对外仅提供两个入口：客户端入口 `A2ATClient`（提示词生成、协商消息生成与校验）与服务端入口 `A2ATServer`（提示词校验、协商消息生成与校验），API 分类总览见下。
 
 - **API 总览**
 
@@ -35,9 +35,18 @@ A2A-T SDK 的对外 仅提供两个入口：客户端入口 `A2ATClient`（提�
 - **异常体系：** 所有 SDK 处理失败均为 `A2ATError` 子类，捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取机器可读错误码。所有消息均由 SDK 按错误码模板渲染，语言跟随 `A2AT_LANGUAGE`。如下业务异常均继承 `A2ATBusinessException`，额外提供 `getFacts()` 返回渲染消息所依据的结构化事实值；
   - 模板生成失败抛 `PromptGenerationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationGenerationException`（Negotiation-T）。
   - 模板校验+提参失败抛 `ContentValidationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationParamExtractionException`（Negotiation-T）。
+- **SlotValidationError：** 逐槽位校验错误明细，随校验失败异常或失败负载返回（各接口输出说明中的 `getErrors()` / `failedParameters()` / `errors()` 均引用此定义）：
+
+| 字段 | 类型 | 说明                                                                                                                       |
+| ---- | ---- |--------------------------------------------------------------------------------------------------------------------------|
+| slotName | String | 出错槽位名                                                                                                                    |
+| code | String | 槽位级错误码，取值来自 1.4 错误码列表，如 `slot.not_provided`、`content.param_missing`、`content.entry_field_missing`、`content.format_error` |
+| message | String | 人类可读的错误说明，由 SDK 按错误码的消息模板渲染，语言跟随 `A2AT_LANGUAGE`                                                                         |
+| facts | Map&lt;String, String&gt; | 渲染消息所依据的结构化事实值（如 `section_label`、`index`、`field_label`），可为 null                                                          |
+
 - **TemplateUri：** 模板 URI 值类型，推荐用 `net.openan.a2at.sdk.core.model.StandardTemplates` 常量构造；来自外部的字符串用 `TemplateUri.parse(String)` 解析，返回 `Optional<TemplateUri>` 且不抛异常，当前支持的TemplateUri常量如下：
 
-| 常量名称 | 含义 | TemplateURI |
+| 常量名称 | 含义 | TemplateUri |
 | ---- | ---- | ---- |
 | StandardTemplates.ENERGY_SAVING | Task-T 节能任务模板 | Task-T/network-layer/ran-energy-saving/v1 |
 | StandardTemplates.PRIVATE_LINE_COMPLAINT | Task-T 专线投诉任务模板 | Task-T/network-layer/private-line-complaint/v1 |
@@ -56,7 +65,7 @@ A2A-T SDK 的对外 仅提供两个入口：客户端入口 `A2ATClient`（提�
 ## 1.2 约束和限制
 
 - 部分接口涉及到LLM调用，使用时需根据对所接模型服务可提供的并发能力，结合业务时限要求，控制使用API时的调用频率和并发。
-- 涉及到LLM调用的API针对文本`text`输入会做长度防护，在输入超过`client.env`或`server.env`中配置的 `A2AT_INPUT_TEXT_MAX_CHARS` 字符时，会报错误码 `input_text_too_long` ，该配置项默认配置为 16384（16×1024）；不涉及LLM调用的结构化数据不受此限制。
+- 涉及到LLM调用的API针对文本`text`输入会做长度防护，在输入超过`client.env`或`server.env`中配置的 `A2AT_INPUT_TEXT_MAX_CHARS` 字符时，会报错误码 `input.text_too_long` ，该配置项默认配置为 16384（16×1024）；不涉及LLM调用的结构化数据不受此限制。
 
 ## 1.3 API说明
 
@@ -97,8 +106,7 @@ NegotiationContext ctx = new NegotiationContext(
         "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", 1, NegotiationContext.DEFAULT_MAX_ROUNDS);
 
 MetadataContent propose = client.generateNegotiationProposePromptFromText(
-        "请提供以下缺失信息：1. 接入端口名称：请提供业务接入端口名称；"
-                + "2. 投诉分类：专线中断或专线质差。两个参数均为必选，缺少无法启动诊断。",
+        "请提供以下缺失信息：投诉分类：专线中断或专线质差。两个参数均为必选，缺少无法启动诊断。",
         ctx,
         StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE);
 
@@ -152,10 +160,7 @@ promptText  :
 请根据<所需信息项>补充相关内容。
 
 ## 所需信息项
-1. 接入端口名称：举例：P533-珠江旧城-PTN3900-23-TPA1EG24-1
-2. 投诉分类：举例：专线质差
-3. 专线业务标识
-缺失项之间的关系：OR
+1. 投诉分类：举例：专线质差
 ```
 
 ### 1.3.2 generateNegotiationAcceptPromptFromText
@@ -370,7 +375,7 @@ public MetadataContent generateNegotiationAcceptPromptFromData(
 
 **典型场景**：协商响应方（通常是客户端Agent）按对端请求的槽位清单程序化补参后，以结构化条目生成接受报文回传。
 
-**功能说明**：从结构化数据输入确定性生成协商接受报文，**不调用 LLM**。`content.conclusion()` 必须为 `ACCEPT`，其他结论（含 `ABORT`）以 `IllegalArgumentException` 拒绝。
+**功能说明**：从结构化数据输入确定性生成协商接受报文，**不调用 LLM**。`content.conclusion()` 必须为 `ACCEPT`，其他结论（含 `ABORT`）以 `negotiation.conclusion_mismatch` 业务错误拒绝。
 
 **输入说明**
 
@@ -411,7 +416,7 @@ MetadataContent accept = client.generateNegotiationAcceptPromptFromData(
 
 - `negotiation.field_missing`（渲染缺少必填字段）
 
-编程错误：入参或其 context 为 null 抛 `NullPointerException`；内容类型不符或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`；`conclusion` 不是 `ACCEPT` 以 `negotiation.conclusion_mismatch` 业务错误拒绝。
+编程错误：入参或其 context 为 null 抛 `NullPointerException`；内容类型不符或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`。`conclusion` 不是 `ACCEPT` 以 `negotiation.conclusion_mismatch` 业务错误拒绝。
 
 **响应样例**
 
@@ -438,7 +443,7 @@ public MetadataContent generateNegotiationRejectPromptFromData(
 
 **典型场景**：协商响应方程序化判定无法满足对端请求后，以结构化条目（无法提供的项及原因）生成拒绝报文回传。
 
-**功能说明**：从结构化数据输入确定性生成协商拒绝报文，**不调用 LLM**。`content.conclusion()` 必须为 `REJECT`，其他结论以 `IllegalArgumentException` 拒绝。
+**功能说明**：从结构化数据输入确定性生成协商拒绝报文，**不调用 LLM**。`content.conclusion()` 必须为 `REJECT`，其他结论以 `negotiation.conclusion_mismatch` 业务错误拒绝。
 
 **输入说明**：同 [generateNegotiationAcceptPromptFromData](#135-generatenegotiationacceptpromptfromdata)，但结论为 `REJECT`。拒绝内容：`InformationEndingContent(REJECT, items)`（无法提供的项及原因）、`TargetEndingContent(REJECT, null, failureReason)`（拒绝原因）、`FeasibilityEndingContent(REJECT, feasibilitySummary)`（不可行结论摘要）。
 
@@ -466,7 +471,7 @@ MetadataContent reject = client.generateNegotiationRejectPromptFromData(
 
 - `negotiation.field_missing`（渲染缺少必填字段）
 
-编程错误：入参或其 context 为 null 抛 `NullPointerException`；内容类型不符或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`；`conclusion` 不是 `REJECT` 以 `negotiation.conclusion_mismatch` 业务错误拒绝。
+编程错误：入参或其 context 为 null 抛 `NullPointerException`；内容类型不符或 phase 段不是 `accept-reject` 抛 `IllegalArgumentException`。`conclusion` 不是 `REJECT` 以 `negotiation.conclusion_mismatch` 业务错误拒绝。
 
 **响应样例**
 
@@ -499,7 +504,7 @@ public FilledParamData validateProposePromptAndDataFilling(
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
 | prompt | String | 是 | 待校验的协商发起报文文本（`MetadataContent.promptText()`）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
-| context | NegotiationContext | 否 | 随报文传输的协商上下文；null 报 `negotiation.invalid_input` |
+| context | NegotiationContext | 是 | 随报文传输的协商上下文；为 null 时报 `negotiation.invalid_input` |
 | schema | Map&lt;String, Object&gt; | 是 | 调用方提供的参数 JSON Schema，声明要提取的参数 |
 | templateUri | TemplateUri | 是 | propose 模板 |
 
@@ -1492,7 +1497,7 @@ if (result.success()) {
 
 | 字段 | 类型 | 说明 |
 | ---- | ---- | ---- |
-| code | String | 机器可读错误码，取值来自错误码目录，如 `scenario.not_matched`（场景识别未命中）、`input.text_too_long`（输入长度防护）、`template.load_failed`（提示词资源加载失败）、`template.not_found`（模板缺失）、`slot.schema_not_found`（槽位 Schema 缺失）、`slot.not_provided`（必填槽缺失）、`template.render_failed`（渲染失败）、`llm.invocation_failed` / `llm.response_invalid`（LLM 失败） |
+| code | String | 机器可读错误码，取值来自错误码列表，如 `scenario.not_matched`（场景识别未命中）、`input.text_too_long`（输入长度防护）、`template.load_failed`（提示词资源加载失败）、`template.not_found`（模板缺失）、`slot.schema_not_found`（槽位 Schema 缺失）、`slot.not_provided`（必填槽缺失）、`template.render_failed`（渲染失败）、`llm.invocation_failed` / `llm.response_invalid`（LLM 失败） |
 | message | String | 人类可读的失败描述 |
 | stage | String | 失败发生的阶段：`scenario`（场景识别）、`generation`（模板加载/渲染） |
 
@@ -1583,7 +1588,7 @@ if (result.success()) {
 
 | 字段 | 类型 | 说明 |
 | ---- | ---- | ---- |
-| code | String | 机器可读错误码，取值来自错误码目录：`scenario.not_matched`（报文解析/场景识别失败）、`template.not_found`（模板缺失）、槽位域码如 `slot.not_provided`（必填缺失）、`slot.constraint_violated`（取值越界）、`slot.rule_violation`（其它槽位规则违规）、`input.text_too_long`（输入长度防护） |
+| code | String | 机器可读错误码，取值来自错误码列表：`scenario.not_matched`（报文解析/场景识别失败）、`template.not_found`（模板缺失）、槽位域码如 `slot.not_provided`（必填缺失）、`slot.constraint_violated`（取值越界）、`slot.rule_violation`（其它槽位规则违规）、`input.text_too_long`（输入长度防护） |
 | message | String | 人类可读的失败描述 |
 | stage | String | 失败发生的阶段：`prompt_parse`（报文解析）、`generation`（模板加载）、`slot_validation`（槽位校验） |
 
@@ -1603,7 +1608,7 @@ result.failure() =
 { code=slot.not_provided, message=输入中未提供「任务对象」。, stage=slot_validation }
 ```
 
-## 1.4 错误码目录
+## 1.4 错误码列表
 
 **错误码分类**：BUSINESS = 调用方可行动的预期业务失败，由 `A2ATBusinessException` 子类携带；INFRA = 基础设施失败，由普通 `A2ATError` 携带。
 
