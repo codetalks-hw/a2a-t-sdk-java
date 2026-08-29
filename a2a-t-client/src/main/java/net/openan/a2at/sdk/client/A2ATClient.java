@@ -3,6 +3,7 @@ package net.openan.a2at.sdk.client;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import net.openan.a2at.sdk.client.model.PromptGenerationResult;
 import net.openan.a2at.sdk.client.prompt.assembly.DefaultA2ATClientBuilder;
@@ -11,18 +12,21 @@ import net.openan.a2at.sdk.core.model.A2ATConfig;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentService;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
+import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
 import net.openan.a2at.sdk.negotiation.runtime.RoleBoundNegotiationOrchestrator;
 import net.openan.a2at.sdk.negotiation.types.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.types.model.NegotiationStatus;
 import net.openan.a2at.sdk.negotiation.types.model.NegotiationType;
 import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
+import org.jspecify.annotations.NonNull;
 
 /**
- * High-level client facade for prompt generation and negotiation APIs. The caller provides the `.env` file path
- * explicitly, typically after copying the repository `env.example`.
+ * High-level client facade for prompt generation and negotiation APIs. The caller provides the {@code .env} file path
+ * explicitly, typically after copying the repository {@code env.example}.
  *
  * @since 2026-06
  */
@@ -37,27 +41,31 @@ public final class A2ATClient {
     private final TemplateQueryService templateQueryService;
 
     /**
-     * Creates a client facade from one user-supplied `.env` path.
+     * Creates a client facade from one user-supplied {@code .env} path.
      *
-     * @param envPath user-supplied `.env` file path
+     * @param envPath user-supplied {@code .env} file path
      */
     public A2ATClient(Path envPath) {
         Path resolvedEnvPath = envPath.toAbsolutePath().normalize();
         A2ATConfig config =
-                NegotiationContentService.resolvePromptResourceLocalRootDir(A2ATConfig.load(resolvedEnvPath), resolvedEnvPath);
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(resolvedEnvPath), resolvedEnvPath);
         DefaultA2ATClientBuilder builder =
                 DefaultA2ATClientBuilder.builder().envPath(resolvedEnvPath).config(config);
         this.promptGenerationOrchestrator = builder.buildPromptGenerationOrchestrator();
         this.negotiationOrchestrator = builder.buildNegotiationOrchestrator();
-        this.negotiationContentService = new NegotiationContentService(builder.buildNegotiationGenerationOrchestrator());
+        this.negotiationContentService =
+                new NegotiationContentService(builder.buildNegotiationGenerationOrchestrator());
         this.templateQueryService = builder.buildTemplateQueryService();
     }
 
     /**
-     * Generates a processed task prompt from raw user input.
+     * Generates a processed task prompt from raw user input. Both text and structured input ({@code Map}) are unified
+     * through LLM extraction; there is no zero-LLM rule shortcut.
      *
-     * @param userInput user-provided task description or structured input map
-     * @return prompt generation result containing either rendered prompt text or failure details
+     * @param userInput user-provided task description (text or structured input map); a String input longer than the
+     *     configured maximum length ({@code A2AT_INPUT_TEXT_MAX_CHARS}) fails fast without any LLM call
+     * @return prompt generation result containing either rendered prompt text or failure details; a String input over
+     *     the limit yields the failure code {@code input.text_too_long}
      */
     public PromptGenerationResult generateTaskPrompt(Object userInput) {
         return promptGenerationOrchestrator.generateTaskPrompt(userInput);
@@ -70,59 +78,85 @@ public final class A2ATClient {
      * @param text natural-language task input
      * @param templateUri template URI identifying the target template
      * @return metadata content carrying the resolved template URI, rendered prompt text, and extension URI
+     * @throws NullPointerException if the text or template URI is null
+     * @throws net.openan.a2at.sdk.core.exception.PromptGenerationException with the code {@code template.not_found},
+     *     {@code template.load_failed}, {@code slot.schema_not_found}, {@code llm.invocation_failed},
+     *     {@code template.render_failed} or {@code slot.not_provided} when generating the prompt fails, or the code
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
-    public MetadataContent generateTaskPromptFromText(
-            String text, String templateUri) {
+    public MetadataContent generateTaskPromptFromText(@NonNull String text, @NonNull TemplateUri templateUri) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(templateUri, "templateUri");
         return promptGenerationOrchestrator.generateTaskPromptFromText(text, templateUri);
     }
 
     /**
-     * Generates a task prompt with metadata from structured input and an optional data schema using the template
-     * identified by the template URI, bypassing scenario recognition.
+     * Generates a task prompt with metadata from structured input and a data schema using the template identified by
+     * the template URI, bypassing scenario recognition.
      *
      * @param data structured task input as a string-to-object map
-     * @param schema optional data schema map for schema-guided extraction
+     * @param schema data schema map describing the meaning of each input field; must not be null or empty
      * @param templateUri template URI identifying the target template
      * @return metadata content carrying the resolved template URI, rendered prompt text, and extension URI
+     * @throws NullPointerException if the template URI, data or schema is null
+     * @throws IllegalArgumentException if the schema is empty
+     * @throws net.openan.a2at.sdk.core.exception.PromptGenerationException with the code {@code template.not_found},
+     *     {@code template.load_failed}, {@code slot.schema_not_found}, {@code llm.invocation_failed},
+     *     {@code template.render_failed} or {@code slot.not_provided} when generating the prompt fails
      */
     public MetadataContent generateTaskPromptFromDataWithSchema(
-            Map<String, Object> data, Map<String, Object> schema, String templateUri) {
+            @NonNull Map<String, Object> data, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
+        Objects.requireNonNull(data, "data");
+        Objects.requireNonNull(schema, "schema");
+        Objects.requireNonNull(templateUri, "templateUri");
         return promptGenerationOrchestrator.generateTaskPromptFromDataWithSchema(data, schema, templateUri);
     }
 
     /**
      * Generates an authorization prompt with metadata from natural-language input using the template identified by the
-     * authorization type, bypassing scenario recognition.
+     * template URI, bypassing scenario recognition.
      *
-     * <p><b>Experimental:</b> Authorization-T template resources (such as {@code authz-policy-mgr}) are bundled and
-     * discovered automatically, but Authorization-T slot schemas are not yet bundled, so template-driven slot
-     * extraction fails until Authorization-T slot resources are added or provided through the local resource root.
+     * <p>Authorization-T slot schemas are bundled with a2a-t-resources, so the entry point works out of the box with
+     * classpath resource source.
      *
      * @param text natural-language authorization input
-     * @param authorizationType authorization type used as the template identifier
+     * @param templateUri template URI identifying the target template
      * @return metadata content carrying the resolved template URI, rendered prompt text, and extension URI
+     * @throws NullPointerException if the text or template URI is null
+     * @throws net.openan.a2at.sdk.core.exception.PromptGenerationException with the code {@code template.not_found},
+     *     {@code template.load_failed}, {@code slot.schema_not_found}, {@code llm.invocation_failed},
+     *     {@code template.render_failed} or {@code slot.not_provided} when generating the prompt fails, or the code
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
-    public MetadataContent generateAuthPromptFromText(
-            String text, String authorizationType) {
-        return promptGenerationOrchestrator.generateAuthPromptFromText(text, authorizationType);
+    public MetadataContent generateAuthPromptFromText(@NonNull String text, @NonNull TemplateUri templateUri) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(templateUri, "templateUri");
+        return promptGenerationOrchestrator.generateAuthPromptFromText(text, templateUri);
     }
 
     /**
-     * Generates an authorization prompt with metadata from structured input and an optional data schema using the
-     * template identified by the authorization type, bypassing scenario recognition.
+     * Generates an authorization prompt with metadata from structured input and a data schema using the template
+     * identified by the template URI, bypassing scenario recognition.
      *
-     * <p><b>Experimental:</b> Authorization-T template resources (such as {@code authz-policy-mgr}) are bundled and
-     * discovered automatically, but Authorization-T slot schemas are not yet bundled, so template-driven slot
-     * extraction fails until Authorization-T slot resources are added or provided through the local resource root.
+     * <p>Authorization-T slot schemas are bundled with a2a-t-resources, so the entry point works out of the box with
+     * classpath resource source.
      *
      * @param data structured authorization input as a string-to-object map
-     * @param schema optional data schema map for schema-guided extraction
-     * @param authorizationType authorization type used as the template identifier
+     * @param schema data schema map describing the meaning of each input field; must not be null or empty
+     * @param templateUri template URI identifying the target template
      * @return metadata content carrying the resolved template URI, rendered prompt text, and extension URI
+     * @throws NullPointerException if the template URI, data or schema is null
+     * @throws IllegalArgumentException if the schema is empty
+     * @throws net.openan.a2at.sdk.core.exception.PromptGenerationException with the code {@code template.not_found},
+     *     {@code template.load_failed}, {@code slot.schema_not_found}, {@code llm.invocation_failed},
+     *     {@code template.render_failed} or {@code slot.not_provided} when generating the prompt fails
      */
     public MetadataContent generateAuthPromptFromDataWithSchema(
-            Map<String, Object> data, Map<String, Object> schema, String authorizationType) {
-        return promptGenerationOrchestrator.generateAuthPromptFromDataWithSchema(data, schema, authorizationType);
+            @NonNull Map<String, Object> data, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
+        Objects.requireNonNull(data, "data");
+        Objects.requireNonNull(schema, "schema");
+        Objects.requireNonNull(templateUri, "templateUri");
+        return promptGenerationOrchestrator.generateAuthPromptFromDataWithSchema(data, schema, templateUri);
     }
 
     /**
@@ -132,23 +166,37 @@ public final class A2ATClient {
      * @param text natural-language notification input
      * @param templateUri template URI identifying the target template
      * @return metadata content carrying the resolved template URI, rendered prompt text, and extension URI
+     * @throws NullPointerException if the text or template URI is null
+     * @throws net.openan.a2at.sdk.core.exception.PromptGenerationException with the code {@code template.not_found},
+     *     {@code template.load_failed}, {@code slot.schema_not_found}, {@code llm.invocation_failed},
+     *     {@code template.render_failed} or {@code slot.not_provided} when generating the prompt fails, or the code
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
-    public MetadataContent generateNotificationPromptFromText(
-            String text, String templateUri) {
+    public MetadataContent generateNotificationPromptFromText(@NonNull String text, @NonNull TemplateUri templateUri) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(templateUri, "templateUri");
         return promptGenerationOrchestrator.generateNotificationPromptFromText(text, templateUri);
     }
 
     /**
-     * Generates a notification prompt with metadata from structured input and an optional data schema using the
-     * template identified by the template URI, bypassing scenario recognition.
+     * Generates a notification prompt with metadata from structured input and a data schema using the template
+     * identified by the template URI, bypassing scenario recognition.
      *
      * @param data structured notification input as a string-to-object map
-     * @param schema optional data schema map for schema-guided extraction
+     * @param schema data schema map describing the meaning of each input field; must not be null or empty
      * @param templateUri template URI identifying the target template
      * @return metadata content carrying the resolved template URI, rendered prompt text, and extension URI
+     * @throws NullPointerException if the template URI, data or schema is null
+     * @throws IllegalArgumentException if the schema is empty
+     * @throws net.openan.a2at.sdk.core.exception.PromptGenerationException with the code {@code template.not_found},
+     *     {@code template.load_failed}, {@code slot.schema_not_found}, {@code llm.invocation_failed},
+     *     {@code template.render_failed} or {@code slot.not_provided} when generating the prompt fails
      */
     public MetadataContent generateNotificationPromptFromDataWithSchema(
-            Map<String, Object> data, Map<String, Object> schema, String templateUri) {
+            @NonNull Map<String, Object> data, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
+        Objects.requireNonNull(data, "data");
+        Objects.requireNonNull(schema, "schema");
+        Objects.requireNonNull(templateUri, "templateUri");
         return promptGenerationOrchestrator.generateNotificationPromptFromDataWithSchema(data, schema, templateUri);
     }
 
@@ -195,16 +243,17 @@ public final class A2ATClient {
      * generator of the negotiation type addressed by the template URI and rendered from that template.
      *
      * @param data typed propose input carrying the negotiation context and the typed content
-     * @param templateUri template URI such as {@code Negotiation-T/v1/information-negotiation/propose}; its phase
+     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/propose/v1}; its phase
      *     segment must be {@code propose}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the data or its context is null,
-     *     the template URI is malformed, or its phase or type contradicts the method or the content type
+     * @throws NullPointerException if the data or its context is null
+     * @throws IllegalArgumentException if the template URI phase or type contradicts the method or the content type
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
-    public MetadataContent generateNegotiationProposePromptFromData(NegotiationProposeData data, String templateUri) {
+    public MetadataContent generateNegotiationProposePromptFromData(
+            @NonNull NegotiationProposeData data, @NonNull TemplateUri templateUri) {
         return negotiationContentService.generateProposeFromData(data, templateUri);
     }
 
@@ -215,17 +264,18 @@ public final class A2ATClient {
      * mismatched conclusion is a content error.
      *
      * @param data typed terminal input carrying the negotiation context and the typed ending content
-     * @param templateUri template URI such as {@code Negotiation-T/v1/information-negotiation/accept-reject}; its phase
+     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its phase
      *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the data or its context is null,
-     *     the template URI is malformed, its phase or type contradicts the method or the content, or the content
-     *     conclusion is not {@code Accept}
+     * @throws NullPointerException if the data or its context is null
+     * @throws IllegalArgumentException if the template URI phase or type contradicts the method or the content, or the
+     *     content conclusion is not {@code Accept}
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
-    public MetadataContent generateNegotiationAcceptPromptFromData(NegotiationEndingData data, String templateUri) {
+    public MetadataContent generateNegotiationAcceptPromptFromData(
+            @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
         return negotiationContentService.generateAcceptFromData(data, templateUri);
     }
 
@@ -236,18 +286,40 @@ public final class A2ATClient {
      * mismatched conclusion is a content error.
      *
      * @param data typed terminal input carrying the negotiation context and the typed ending content
-     * @param templateUri template URI such as {@code Negotiation-T/v1/feasibility-negotiation/accept-reject}; its phase
+     * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its phase
      *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the data or its context is null,
-     *     the template URI is malformed, its phase or type contradicts the method or the content, or the content
-     *     conclusion is not {@code Reject}
+     * @throws NullPointerException if the data or its context is null
+     * @throws IllegalArgumentException if the template URI phase or type contradicts the method or the content, or the
+     *     content conclusion is not {@code Reject}
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
-    public MetadataContent generateNegotiationRejectPromptFromData(NegotiationEndingData data, String templateUri) {
+    public MetadataContent generateNegotiationRejectPromptFromData(
+            @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
         return negotiationContentService.generateRejectFromData(data, templateUri);
+    }
+
+    /**
+     * Generates an abort negotiation message from typed data.
+     *
+     * <p>This variant is deterministic and never calls an LLM. Abort messages are type-independent: the addressed
+     * template must be the common abort template and the content carries only the termination reason.
+     *
+     * @param data typed abort input carrying the negotiation context and the termination reason
+     * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
+     * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
+     * @throws NullPointerException if the data or its context is null
+     * @throws IllegalArgumentException if the template URI does not address the common abort template or the
+     *     termination reason is blank
+     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
+     */
+    public MetadataContent generateNegotiationAbortPromptFromData(
+            @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
+        return negotiationContentService.generateAbortFromData(data, templateUri);
     }
 
     /**
@@ -256,24 +328,27 @@ public final class A2ATClient {
      * <p>This variant runs one LLM content-extraction step constrained by the template URI and then renders
      * deterministically like the from-data variant. The template is loaded before the LLM call and the extraction step
      * is retried up to the configured attempt limit on the retryable failure codes
-     * {@code negotiation_content_extract_failed} and {@code negotiation_llm_infrastructure_error}.
+     * {@code negotiation.content_extract_failed} and {@code llm.invocation_failed}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context injected into the rendered message without any LLM involvement
-     * @param templateUri template URI such as {@code Negotiation-T/v1/target-negotiation/propose}; its phase segment
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
+     * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}; its phase segment
      *     must be {@code propose}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the context is null or the
-     *     template URI is malformed or its phase contradicts the method
+     * @throws NullPointerException if the context is null
+     * @throws IllegalArgumentException if the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses a required field, or {@code negotiation_invalid_input} when the text is blank or the extracted
-     *     content contradicts the phase
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} when the extraction step fails
+     *     after exhausting its retries, {@code negotiation.field_missing} when the extracted content misses a required
+     *     field, or {@code negotiation.invalid_input} when the text is blank or the extracted content contradicts the
+     *     phase, or the code {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateNegotiationProposePromptFromText(
-            String text, net.openan.a2at.sdk.negotiation.content.NegotiationContext context, String templateUri) {
+            @NonNull String text,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull TemplateUri templateUri) {
         return negotiationContentService.generateProposeFromText(text, context, templateUri);
     }
 
@@ -285,21 +360,24 @@ public final class A2ATClient {
      * conclusion must be {@code Accept}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context injected into the rendered message without any LLM involvement
-     * @param templateUri template URI such as {@code Negotiation-T/v1/information-negotiation/accept-reject}; its phase
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
+     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its phase
      *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the context is null or the
-     *     template URI is malformed or its phase contradicts the method
+     * @throws NullPointerException if the context is null
+     * @throws IllegalArgumentException if the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses a required field, or {@code negotiation_invalid_input} when the text is blank or the extracted
-     *     conclusion is not {@code Accept}
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} when the extraction step fails
+     *     after exhausting its retries, {@code negotiation.field_missing} when the extracted content misses a required
+     *     field, or {@code negotiation.invalid_input} when the text is blank or the extracted conclusion is not
+     *     {@code Accept}, or the code {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateNegotiationAcceptPromptFromText(
-            String text, net.openan.a2at.sdk.negotiation.content.NegotiationContext context, String templateUri) {
+            @NonNull String text,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull TemplateUri templateUri) {
         return negotiationContentService.generateAcceptFromText(text, context, templateUri);
     }
 
@@ -311,30 +389,62 @@ public final class A2ATClient {
      * conclusion must be {@code Reject}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context injected into the rendered message without any LLM involvement
-     * @param templateUri template URI such as {@code Negotiation-T/v1/feasibility-negotiation/accept-reject}; its phase
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
+     * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its phase
      *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the context is null or the
-     *     template URI is malformed or its phase contradicts the method
+     * @throws NullPointerException if the context is null
+     * @throws IllegalArgumentException if the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses a required field, or {@code negotiation_invalid_input} when the text is blank or the extracted
-     *     conclusion is not {@code Reject}
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} when the extraction step fails
+     *     after exhausting its retries, {@code negotiation.field_missing} when the extracted content misses a required
+     *     field, or {@code negotiation.invalid_input} when the text is blank or the extracted conclusion is not
+     *     {@code Reject}, or the code {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateNegotiationRejectPromptFromText(
-            String text, net.openan.a2at.sdk.negotiation.content.NegotiationContext context, String templateUri) {
+            @NonNull String text,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull TemplateUri templateUri) {
         return negotiationContentService.generateRejectFromText(text, context, templateUri);
+    }
+
+    /**
+     * Generates an abort negotiation message from free text.
+     *
+     * <p>This variant runs one LLM content-extraction step constrained by the common abort template and then renders
+     * deterministically like the from-data variant. The template is loaded before the LLM call and the extraction step
+     * is retried up to the configured attempt limit on the retryable failure codes
+     * {@code negotiation.content_extract_failed} and {@code llm.invocation_failed}.
+     *
+     * @param text free-text input stating the termination reason
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
+     * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
+     * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
+     * @throws NullPointerException if the context is null
+     * @throws IllegalArgumentException if the template URI does not address the common abort template
+     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed} or {@code llm.invocation_failed} when the extraction step fails
+     *     after exhausting its retries, {@code negotiation.field_missing} when the extracted content misses the
+     *     termination reason, or {@code negotiation.invalid_input} when the text is blank, or the code
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
+     */
+    public MetadataContent generateNegotiationAbortPromptFromText(
+            @NonNull String text,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull TemplateUri templateUri) {
+        return negotiationContentService.generateAbortFromText(text, context, templateUri);
     }
 
     /**
      * Lists every template available for the configured language across all A2A-T extensions.
      *
      * <p>This query never throws: the extension directories are discovered from the bundled resource tree itself, so
-     * templates of extensions added later are included automatically. Templates that exist nowhere for the language
-     * are skipped and an empty list is returned when no template can be loaded at all.
+     * templates of extensions added later are included automatically. Templates that exist nowhere for the language are
+     * skipped and an empty list is returned when no template can be loaded at all.
      *
      * @return loadable templates of the configured language across all extensions, sorted by template URI; empty when
      *     none can be loaded
@@ -346,120 +456,140 @@ public final class A2ATClient {
     /**
      * Loads one template by its URI, regardless of the extension.
      *
-     * <p>This query never throws: a missing template or an unusable URI yields an empty result together with a warning
-     * log instead of a failure.
+     * <p>This query never throws: a missing template yields an empty result together with a warning log instead of a
+     * failure.
      *
-     * @param uri template URI such as {@code Negotiation-T/v1/target-negotiation/propose} or
-     *     {@code Task-T/v1/energy-saving}
-     * @return the addressed template, or an empty optional when the URI is malformed or no template exists for it in
-     *     the configured language
+     * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1} or
+     *     {@code Task-T/network-layer/ran-energy-saving/v1}
+     * @return the addressed template, or an empty optional when no template exists for it in the configured language
      */
-    public Optional<PromptTemplate> getPrompt(String uri) {
-        return templateQueryService.getPrompt(uri);
-    }
-
-    /**
-     * Lists every negotiation template available for the configured language.
-     *
-     * <p>This query never throws: templates that exist nowhere for the language are skipped and an empty list is
-     * returned when no template can be loaded at all.
-     *
-     * @return loadable negotiation templates of the configured language, in a fixed type and phase order; empty when
-     *     none can be loaded
-     */
-    public List<PromptTemplate> getNegotiationPrompts() {
-        return negotiationContentService.getNegotiationPrompts();
-    }
-
-    /**
-     * Loads one negotiation template by its URI.
-     *
-     * <p>This query never throws: a missing template or an unusable URI yields an empty result together with a warning
-     * log instead of a failure.
-     *
-     * @param uri template URI such as {@code Negotiation-T/v1/target-negotiation/propose}
-     * @return the addressed template, or an empty optional when the URI is malformed or no template exists for it in
-     *     the configured language
-     */
-    public Optional<PromptTemplate> getNegotiationPrompt(String uri) {
-        return negotiationContentService.getNegotiationPrompt(uri);
+    public Optional<PromptTemplate> getPrompt(@NonNull TemplateUri templateUri) {
+        return templateQueryService.getPrompt(templateUri);
     }
 
     /**
      * Validates a propose-phase negotiation message and extracts its parameters.
      *
-     * <p>The pipeline first checks the template URI format, then runs the deterministic rule gate (recognition of the
-     * negotiation context section and its strong constraints) before any LLM call, then performs one LLM semantic
-     * validation call that also extracts the parameters, and finally merges the parameters with the context parameters
-     * taking precedence. The semantic step is retried up to the configured attempt limit on the retryable LLM
-     * infrastructure failure code.
+     * <p>The pipeline checks the template URI before any LLM call, runs the deterministic rule gate on the negotiation
+     * context carried in the {@code negotiationContext} metadata entry, then performs one LLM semantic validation call
+     * that also extracts the parameters, and finally merges the parameters with the context parameters taking
+     * precedence. The semantic step is retried up to the configured attempt limit on the retryable LLM infrastructure
+     * failure code.
      *
      * @param prompt rendered negotiation message text to validate
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected negotiation type and phase; its phase segment must be
      *     {@code propose}
      * @return filled parameter data carrying the context parameters and the extracted parameters
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the schema is null or the template
-     *     URI is malformed or its phase contradicts the method
+     * @throws NullPointerException if the prompt or schema is null
+     * @throws IllegalArgumentException if the prompt is blank, or the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.rule_violation} when the negotiation context violates a rule,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} when the semantic step fails after exhausting its retries, or
+     *     {@code template.not_found} when the semantic validation prompt resources are missing
      */
-    public FilledParamData validateAndFillingProposeData(
-            String prompt, Map<String, Object> schema, String templateUri) {
-        return negotiationContentService.validateAndFillingProposeData(prompt, schema, templateUri);
+    public FilledParamData validateProposePromptAndDataFilling(
+            @NonNull String prompt,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull Map<String, Object> schema,
+            @NonNull TemplateUri templateUri) {
+        return negotiationContentService.validateProposePromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
     /**
      * Validates an accept-phase negotiation message and extracts its parameters.
      *
-     * <p>The pipeline is the one of {@link #validateAndFillingProposeData(String, Map, String)} with the expected phase
-     * fixed to accept: the template URI must declare the {@code accept-reject} segment and the message must satisfy the
+     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected phase fixed to
+     * accept: the template URI must declare the {@code accept-reject} segment and the message must satisfy the
      * accept-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected negotiation type and phase; its phase segment must be
      *     {@code accept-reject}
      * @return filled parameter data carrying the context parameters and the extracted parameters
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the schema is null or the template
-     *     URI is malformed or its phase contradicts the method
+     * @throws NullPointerException if the prompt or schema is null
+     * @throws IllegalArgumentException if the prompt is blank, or the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.rule_violation} when the negotiation context violates a rule,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} when the semantic step fails after exhausting its retries, or
+     *     {@code template.not_found} when the semantic validation prompt resources are missing
      */
-    public FilledParamData validateAndFillingAcceptData(String prompt, Map<String, Object> schema, String templateUri) {
-        return negotiationContentService.validateAndFillingAcceptData(prompt, schema, templateUri);
+    public FilledParamData validateAcceptPromptAndDataFilling(
+            @NonNull String prompt,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull Map<String, Object> schema,
+            @NonNull TemplateUri templateUri) {
+        return negotiationContentService.validateAcceptPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
     /**
      * Validates a reject-phase negotiation message and extracts its parameters.
      *
-     * <p>The pipeline is the one of {@link #validateAndFillingProposeData(String, Map, String)} with the expected phase
-     * fixed to reject: the template URI must declare the {@code accept-reject} segment and the message must satisfy the
+     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected phase fixed to
+     * reject: the template URI must declare the {@code accept-reject} segment and the message must satisfy the
      * reject-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected negotiation type and phase; its phase segment must be
      *     {@code accept-reject}
      * @return filled parameter data carrying the context parameters and the extracted parameters
-     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationContentException if the schema is null or the template
-     *     URI is malformed or its phase contradicts the method
+     * @throws NullPointerException if the prompt or schema is null
+     * @throws IllegalArgumentException if the prompt is blank, or the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.rule_violation} when the negotiation context violates a rule,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} when the semantic step fails after exhausting its retries, or
+     *     {@code template.not_found} when the semantic validation prompt resources are missing
      */
-    public FilledParamData validateAndFillingRejectData(String prompt, Map<String, Object> schema, String templateUri) {
-        return negotiationContentService.validateAndFillingRejectData(prompt, schema, templateUri);
+    public FilledParamData validateRejectPromptAndDataFilling(
+            @NonNull String prompt,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull Map<String, Object> schema,
+            @NonNull TemplateUri templateUri) {
+        return negotiationContentService.validateRejectPromptAndDataFilling(prompt, context, schema, templateUri);
+    }
+
+    /**
+     * Validates an abort negotiation message and extracts its parameters.
+     *
+     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected phase fixed to
+     * abort: the template URI must address the common abort template and the message must satisfy the abort-phase
+     * semantic constraints.
+     *
+     * @param prompt rendered negotiation message text to validate
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
+     * @param schema caller-provided parameter JSON schema describing the parameters to extract
+     * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
+     * @return filled parameter data carrying the context parameters and the extracted parameters
+     * @throws NullPointerException if the prompt or schema is null
+     * @throws IllegalArgumentException if the prompt is blank, or the template URI does not address the common abort
+     *     template
+     * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.rule_violation} when the negotiation context violates a rule,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} when the semantic step fails after exhausting its retries, or
+     *     {@code template.not_found} when the semantic validation prompt resources are missing
+     */
+    public FilledParamData validateAbortPromptAndDataFilling(
+            @NonNull String prompt,
+            net.openan.a2at.sdk.core.model.NegotiationContext context,
+            @NonNull Map<String, Object> schema,
+            @NonNull TemplateUri templateUri) {
+        return negotiationContentService.validateAbortPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 }

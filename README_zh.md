@@ -51,7 +51,7 @@ SPDX-License-Identifier: Apache-2.0
 - 客户端 API：提供任务提示词生成结果流，以及 `start_negotiation`、`receive_negotiation`、`continue_negotiation` 等协商入口。
 - 服务端校验 API：面向符合 SDK 格式的 `processed task prompt`，执行元数据解析、槽位提取和槽位校验。
 - 协商类型：内置 `information` 协商类型。
-- Negotiation-T 内容层：以模板为驱动的协商消息生成（`fromData` 确定性执行、`fromText` 含一次 LLM 抽取）、合规校验与参数提取（`validateAndFilling*Data`）以及协商模板查询。参见[开发指南 §1.10](docs/zh/开发指南.md)。
+- Negotiation-T 内容层：以模板为驱动的协商消息生成（`fromData` 确定性执行、`fromText` 含一次 LLM 抽取）、合规校验与参数提取（`validatePromptAndDataFilling*Data`）以及协商模板查询。参见[开发指南 §1.10](docs/zh/开发指南.md)。
 - 资源组织：内置提示词资源位于 `a2a-t-resources/src/main/resources/prompt_resources`，包含 `prompts`、`scenarios`、`slots`、`templates`。
 - 内置示例场景：当前随包提供 `subscribe_incident`等场景。
 
@@ -67,6 +67,7 @@ SPDX-License-Identifier: Apache-2.0
 - `a2a-t-negotiation`：协商类型、运行时状态机与状态存储。
 - `a2a-t-client`：客户端封装，提供任务提示词生成与协商入口。
 - `a2a-t-server`：服务端封装，提供A2A-T协议报文的校验与协商入口。
+- `a2a-t-corpus`：A2A-T 一致性测试语料模块——纯测试模块，含数据驱动用例与属性测试。
 - `a2a-t-sample`：可运行的客户端/服务端示例。
 
 ## 安装与环境要求

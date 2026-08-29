@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "properties": {
+    "operationType": {
+      "type": "string",
+      "enum": [
+        "新增授权策略",
+        "修改授权策略",
+        "删除授权策略",
+        "查询授权策略"
+      ],
+      "description": "授权策略的操作类型"
+    },
+    "policyList": {
+      "type": "array",
+      "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+      "items": {
+        "type": "object",
+        "properties": {
+          "policyId": {
+            "type": "string",
+            "description": "策略的唯一标识"
+          },
+          "scene": {
+            "type": "string",
+            "description": "动网操作支撑的业务场景"
+          },
+          "actionType": {
+            "type": "string",
+            "description": "动网操作的处置类型"
+          },
+          "operationName": {
+            "type": "string",
+            "description": "所授权的动网操作的具体名称"
+          },
+          "validityPeriod": {
+            "type": "string",
+            "description": "授权策略的生效时间区间"
+          }
+        }
+      }
+    }
+  }
+}

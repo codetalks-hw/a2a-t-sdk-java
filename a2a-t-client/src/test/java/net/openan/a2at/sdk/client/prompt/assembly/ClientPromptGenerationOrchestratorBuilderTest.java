@@ -2,20 +2,22 @@ package net.openan.a2at.sdk.client.prompt.assembly;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
 import net.openan.a2at.sdk.client.model.PromptGenerationResult;
-import net.openan.a2at.sdk.client.prompt.extractor.ClientSlotValueExtractor;
-import net.openan.a2at.sdk.client.prompt.loader.ClientTemplateLoader;
 import net.openan.a2at.sdk.client.prompt.orchestration.DefaultClientPromptGenerationOrchestrator;
-import net.openan.a2at.sdk.client.prompt.recognition.ClientScenarioRecognizer;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.prompt.analysis.impl.PromptSlotValueExtractor;
+import net.openan.a2at.sdk.prompt.analysis.impl.ScenarioRecognizer;
 import net.openan.a2at.sdk.prompt.analysis.model.ScenarioRecognitionResult;
+import net.openan.a2at.sdk.prompt.analysis.model.StructuredSlotExtractionResult;
+import net.openan.a2at.sdk.prompt.resources.loader.PromptTemplateTextLoader;
 import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
-import net.openan.a2at.sdk.prompt.taskrendering.api.TaskPromptRenderer;
+import net.openan.a2at.sdk.prompt.taskrendering.TaskPromptRenderer;
 import org.junit.jupiter.api.Test;
 
 class ClientPromptGenerationOrchestratorBuilderTest {
@@ -23,13 +25,13 @@ class ClientPromptGenerationOrchestratorBuilderTest {
     @Test
     void buildCreatesStructuredDefaultPromptGenerationAssembly() {
         RecordingClient llmClient = new RecordingClient(
-                "{\"matched\":true,\"scenario_code\":\"energy-saving\",\"error_message\":null}",
+                "{\"matched\":true,\"scenario_code\":\"ran-energy-saving\",\"error_message\":null}",
                 "{\"slots\":{\"site\":\"Site A\",\"additional_notes\":\"critical\",\"limit\":\"5\",\"severity\":\"high\"},\"slot_errors\":[]}");
 
         DefaultClientPromptGenerationOrchestrator orchestrator = ClientPromptGenerationOrchestratorBuilder.builder()
                 .llmClient(llmClient)
                 .scenarios(List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")))
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")))
                 .language("en-US")
                 .scenarioSystemPrompt("Identify the best matching scenario.")
                 .scenarioUserPrompt("Choose from the provided scenario list.")
@@ -53,7 +55,7 @@ class ClientPromptGenerationOrchestratorBuilderTest {
     @Test
     void buildUsesExplicitCollaboratorsWhenProvided() {
         RecordingScenarioRecognizer scenarioRecognizer =
-                new RecordingScenarioRecognizer(new ScenarioRecognitionResult(true, "energy-saving", null));
+                new RecordingScenarioRecognizer(new ScenarioRecognitionResult(true, "ran-energy-saving", null));
         RecordingTemplateLoader templateLoader = new RecordingTemplateLoader("Site: {site}\nNotes: {additional_notes}");
         RecordingSlotValueExtractor slotValueExtractor =
                 new RecordingSlotValueExtractor(Map.of("site", "Site B", "additional_notes", "follow-up"));
@@ -61,7 +63,7 @@ class ClientPromptGenerationOrchestratorBuilderTest {
         DefaultClientPromptGenerationOrchestrator orchestrator = ClientPromptGenerationOrchestratorBuilder.builder()
                 .llmClient(new RecordingClient())
                 .scenarios(List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")))
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")))
                 .language("zh-CN")
                 .scenarioSystemPrompt("scenario-system")
                 .scenarioUserPrompt("scenario-user")
@@ -80,14 +82,26 @@ class ClientPromptGenerationOrchestratorBuilderTest {
         assertEquals("Analyze Site B.", scenarioRecognizer.lastInput);
         assertEquals("scenario-system", scenarioRecognizer.lastSystemPrompt);
         assertEquals("scenario-user", scenarioRecognizer.lastUserPrompt);
-        assertEquals("energy-saving", templateLoader.lastScenarioCode);
+        assertEquals("ran-energy-saving", templateLoader.lastScenarioCode);
         assertEquals("zh-CN", templateLoader.lastLanguage);
         assertSame("Analyze Site B.", slotValueExtractor.lastUserInput);
-        assertEquals("energy-saving", slotValueExtractor.lastScenarioCode);
+        assertEquals("ran-energy-saving", slotValueExtractor.lastScenarioCode);
         assertEquals("zh-CN", slotValueExtractor.lastLanguage);
-        assertEquals(
-                normalizeLineEndings("Site: {site}\nNotes: {additional_notes}"),
-                normalizeLineEndings(slotValueExtractor.lastTemplateText));
+    }
+
+    @Test
+    void buildThrowsIllegalStateExceptionWhenLlmClientIsMissing() {
+        IllegalStateException ex =
+                assertThrows(IllegalStateException.class, () -> ClientPromptGenerationOrchestratorBuilder.builder()
+                        .scenarios(List.of(new ScenarioDefinition(
+                                "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")))
+                        .language("en-US")
+                        .scenarioSystemPrompt("Identify the best matching scenario.")
+                        .scenarioUserPrompt("Choose from the provided scenario list.")
+                        .slotSystemPrompt("Extract slots from the input.")
+                        .slotUserPrompt("Return slots as JSON.")
+                        .build());
+        assertTrue(ex.getMessage().contains("LLM client"));
     }
 
     private static String normalizeLineEndings(String text) {
@@ -116,7 +130,7 @@ class ClientPromptGenerationOrchestratorBuilderTest {
         }
     }
 
-    private static final class RecordingScenarioRecognizer implements ClientScenarioRecognizer {
+    private static final class RecordingScenarioRecognizer implements ScenarioRecognizer {
 
         private final ScenarioRecognitionResult result;
 
@@ -140,7 +154,7 @@ class ClientPromptGenerationOrchestratorBuilderTest {
         }
     }
 
-    private static final class RecordingTemplateLoader implements ClientTemplateLoader {
+    private static final class RecordingTemplateLoader implements PromptTemplateTextLoader {
 
         private final String templateText;
 
@@ -160,7 +174,7 @@ class ClientPromptGenerationOrchestratorBuilderTest {
         }
     }
 
-    private static final class RecordingSlotValueExtractor implements ClientSlotValueExtractor {
+    private static final class RecordingSlotValueExtractor implements PromptSlotValueExtractor {
 
         private final Map<String, String> slotValues;
 
@@ -170,20 +184,16 @@ class ClientPromptGenerationOrchestratorBuilderTest {
 
         private String lastLanguage;
 
-        private String lastTemplateText;
-
         private RecordingSlotValueExtractor(Map<String, String> slotValues) {
             this.slotValues = slotValues;
         }
 
         @Override
-        public Map<String, String> extractSlots(
-                Object userInput, String scenarioCode, String language, String templateText) {
+        public StructuredSlotExtractionResult extractSlots(Object userInput, String scenarioCode, String language) {
             this.lastUserInput = userInput;
             this.lastScenarioCode = scenarioCode;
             this.lastLanguage = language;
-            this.lastTemplateText = templateText;
-            return slotValues;
+            return new StructuredSlotExtractionResult(slotValues, List.of());
         }
     }
 }

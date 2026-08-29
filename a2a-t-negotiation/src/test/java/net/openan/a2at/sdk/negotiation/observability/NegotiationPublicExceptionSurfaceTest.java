@@ -9,13 +9,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.core.exception.A2ATParamExtractionError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProcessingException;
@@ -34,15 +36,14 @@ class NegotiationPublicExceptionSurfaceTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String INFORMATION_PROPOSE_URI = "Negotiation-T/v1/information-negotiation/propose";
+    private static final TemplateUri INFORMATION_PROPOSE_URI = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
 
     private static final List<Class<?>> PUBLIC_EXCEPTION_TYPES = List.of(
             A2ATError.class,
             A2ATParamExtractionError.class,
             NegotiationProcessingException.class,
             NegotiationGenerationException.class,
-            NegotiationParamExtractionException.class,
-            NegotiationContentException.class);
+            NegotiationParamExtractionException.class);
 
     @Test
     void noPublicExceptionTypeExposesAStageProperty() {
@@ -72,14 +73,19 @@ class NegotiationPublicExceptionSurfaceTest {
 
         List<String> messages = List.of(
                 failureMessageOf(() -> orchestrator.generateProposeFromText(
-                        "请提供节能区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI)),
-                failureMessageOf(() -> orchestrator.validateAndFillingProposeData(
-                        "## 协商上下文\n- id: " + UUID + "\n- round: 1\n- maxRounds: 5",
+                        "请提供节能区域。",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE_URI)),
+                failureMessageOf(() -> orchestrator.validateProposePromptAndDataFilling(
+                        "## 所需信息项\n1. 区域\n",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE_URI)),
-                failureMessageOf(() -> new NegotiationContext(" ", 1, 5)),
+                failureMessageOf(() -> new NegotiationContext(" ", 1, 5, NegotiationPerformative.PROPOSE)),
                 failureMessageOf(() -> orchestrator.generateProposeFromText(
-                        "text", new NegotiationContext(UUID, 1, 5), "malformed-template-uri")));
+                        "text",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        StandardTemplates.ENERGY_SAVING)));
 
         for (String message : messages) {
             assertTrue(message != null && !message.isBlank(), "failure messages must not be blank");
@@ -100,16 +106,19 @@ class NegotiationPublicExceptionSurfaceTest {
         NegotiationGenerationException generationFailure = catchFailure(
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromText(
-                        "请提供节能区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI));
-        assertTrue(generationFailure.getCode().equals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+                        "请提供节能区域。",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE_URI));
+        assertTrue(generationFailure.getCode().equals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
 
         NegotiationParamExtractionException extractionFailure = catchFailure(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateAndFillingProposeData(
-                        "## 协商上下文\n- id: " + UUID + "\n- round: 1\n- maxRounds: 5",
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        "## 所需信息项\n1. 区域\n",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE_URI));
-        assertTrue(extractionFailure.getCode().equals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+        assertTrue(extractionFailure.getCode().equals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
         assertFalse(extractionFailure.getErrors().isEmpty());
         assertTrue(extractionFailure.getErrors().stream()
                 .allMatch(error -> error.slotName() != null && !error.slotName().isBlank()));

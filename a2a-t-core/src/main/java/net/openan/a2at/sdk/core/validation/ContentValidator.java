@@ -2,6 +2,8 @@ package net.openan.a2at.sdk.core.validation;
 
 import java.util.Map;
 import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Entry point for validating content and extracting filled parameters.
@@ -18,9 +20,13 @@ public interface ContentValidator {
      *
      * @param prompt content prompt text
      * @param schema caller-provided parameter JSON schema
-     * @param templateUri URI of the template the content is validated against
+     * @param templateUri URI of the template the content is validated against, such as
+     *     {@code Task-T/network-layer/ran-energy-saving/v1}
      * @return filled parameter data carrying the merged parameters
+     * @throws ContentValidationException with {@code validation_invalid_input} if the template URI is null or
+     *     malformed, the prompt is null or blank, or the schema is null
      * @throws ContentValidationException if the validation fails at any stage
      */
-    FilledParamData validate(String prompt, Map<String, Object> schema, String templateUri);
+    FilledParamData validate(
+            @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri);
 }

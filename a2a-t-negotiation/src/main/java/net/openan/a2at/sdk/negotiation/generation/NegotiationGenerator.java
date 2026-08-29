@@ -1,8 +1,7 @@
 package net.openan.a2at.sdk.negotiation.generation;
 
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 
@@ -13,9 +12,9 @@ import net.openan.a2at.sdk.core.model.PromptTemplate;
  * delegate the final rendering step. The registry is the only supported dispatch path; it guarantees the exact runtime
  * type of the content before a generator is invoked.
  *
- * @since 2026-06
+ * @since 2026-08
  */
-public interface NegotiationGenerator {
+interface NegotiationGenerator {
 
     /**
      * Generates the negotiation message text for one content object.
@@ -25,7 +24,7 @@ public interface NegotiationGenerator {
      * @param template loaded template to render
      * @param vocabulary vocabulary supplying the slot names of the message language
      * @return rendered negotiation message text
-     * @throws NegotiationContentException if the content does not match this generator or violates an input rule
+     * @throws IllegalArgumentException if the content does not match this generator or violates an input rule
      */
     String generate(
             NegotiationContext context, NegotiationContent content, PromptTemplate template, Vocabulary vocabulary);

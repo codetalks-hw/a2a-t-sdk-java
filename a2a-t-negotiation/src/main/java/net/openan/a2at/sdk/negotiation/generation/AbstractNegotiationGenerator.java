@@ -2,13 +2,14 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.content.NegotiationConclusion;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 
 /**
  * Shared plumbing of the six negotiation generators.
@@ -20,8 +21,6 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
 
     private final NegotiationPromptRenderer promptRenderer = new NegotiationPromptRenderer();
 
-    private final NegotiationContextRenderer contextRenderer = new NegotiationContextRenderer();
-
     private final NegotiationItemFormatter itemFormatter = new NegotiationItemFormatter();
 
     /**
@@ -32,37 +31,37 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
      * @param expectedType exact content class this generator serves
      * @param generatorName human-readable generator name used in the failure message
      * @return content cast to the expected type
-     * @throws NegotiationContentException if the content is null or of another runtime type
+     * @throws IllegalArgumentException if the content is null or of another runtime type
      */
     protected static <T extends NegotiationContent> T contentOf(
             NegotiationContent content, Class<T> expectedType, String generatorName) {
         if (content == null || content.getClass() != expectedType) {
-            throw new NegotiationContentException(
+            throw new IllegalArgumentException(
                     generatorName + " requires content of type " + expectedType.getSimpleName() + " but received "
-                            + (content == null ? "null" : content.getClass().getSimpleName()) + ".",
-                    "content");
+                            + (content == null ? "null" : content.getClass().getSimpleName()) + ".");
         }
         return expectedType.cast(content);
     }
 
     /**
-     * Validates that a conclusion is renderable, rejecting null and the abort conclusion.
+     * Validates that a conclusion is renderable by a typed ending generator, rejecting null and the abort conclusion.
      *
      * @param conclusion conclusion carried by ending content
      * @return the validated conclusion
-     * @throws NegotiationContentException if the conclusion is null or abort
+     * @throws NullPointerException if the conclusion is null
+     * @throws IllegalArgumentException if the conclusion is abort; the abort message has no typed conclusion slot and
+     *     is generated through the abort phase against the common abort template instead
      */
     protected static NegotiationConclusion renderableConclusion(NegotiationConclusion conclusion) {
-        if (conclusion == null) {
-            throw new NegotiationContentException(
-                    "Negotiation conclusion must not be null; accept and reject are the renderable conclusions.",
-                    "content.conclusion");
-        }
+        Objects.requireNonNull(
+                conclusion,
+                "Negotiation conclusion must not be null; accept and reject are the renderable"
+                        + " conclusions of a typed negotiation.");
         if (conclusion == NegotiationConclusion.ABORT) {
-            throw new NegotiationContentException(
-                    "Negotiation conclusion Abort has no template section to render; terminate an exhausted"
-                            + " negotiation with a reject message instead.",
-                    "content.conclusion");
+            throw new IllegalArgumentException(
+                    "Typed negotiation templates carry no Abort conclusion slot; generate the abort message of a"
+                            + " terminated negotiation with generateAbortFromData against the common abort template"
+                            + " instead.");
         }
         return conclusion;
     }
@@ -71,14 +70,16 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
      * Validates that a required text field is present.
      *
      * @param value field value
-     * @param field field path used in the failure
-     * @param description field description used in the failure message
+     * @param field field path used in the failure facts
+     * @param description field description used in the failure reason
+     * @param vocabulary vocabulary of the message language, used to render the failure message
      * @return the validated text
-     * @throws NegotiationContentException if the value is null or blank
+     * @throws NegotiationGenerationException with the code {@code negotiation.content_invalid} if the value is null or
+     *     blank
      */
-    protected static String requiredText(String value, String field, String description) {
+    protected static String requiredText(String value, String field, String description, Vocabulary vocabulary) {
         if (value == null || value.isBlank()) {
-            throw new NegotiationContentException(description + " must not be blank.", field);
+            throw contentInvalid(field, description + " must not be blank.", vocabulary);
         }
         return value;
     }
@@ -87,28 +88,34 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
      * Validates that a required item list is present and non-empty.
      *
      * @param items item list
-     * @param field field path used in the failure
-     * @param description field description used in the failure message
+     * @param field field path used in the failure facts
+     * @param description field description used in the failure reason
+     * @param vocabulary vocabulary of the message language, used to render the failure message
      * @return the validated item list
-     * @throws NegotiationContentException if the list is null or empty
+     * @throws NegotiationGenerationException with the code {@code negotiation.content_invalid} if the list is null or
+     *     empty
      */
     protected static List<NegotiationItem> requiredItems(
-            List<NegotiationItem> items, String field, String description) {
+            List<NegotiationItem> items, String field, String description, Vocabulary vocabulary) {
         if (items == null || items.isEmpty()) {
-            throw new NegotiationContentException(description + " must contain at least one item.", field);
+            throw contentInvalid(field, description + " must contain at least one item.", vocabulary);
         }
         return items;
     }
 
     /**
-     * Builds the slot value for the negotiation context section.
+     * Builds the coded failure for invalid negotiation content data of a from-data generation.
      *
-     * @param context negotiation context of the message
-     * @param vocabulary vocabulary of the message language
-     * @return rendered context list
+     * @param field content field path
+     * @param reason failure reason
+     * @param vocabulary vocabulary of the message language, used to render the failure message
+     * @return generation failure carrying the code {@code negotiation.content_invalid}
      */
-    protected String contextSlotValue(NegotiationContext context, Vocabulary vocabulary) {
-        return contextRenderer.render(context);
+    protected static NegotiationGenerationException contentInvalid(String field, String reason, Vocabulary vocabulary) {
+        return new NegotiationGenerationException(
+                ErrorCatalog.NEGOTIATION_CONTENT_INVALID,
+                vocabulary.language(),
+                Map.of("field", field, "reason", reason));
     }
 
     /**

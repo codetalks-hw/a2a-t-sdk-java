@@ -2,7 +2,7 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
+import java.util.Objects;
 
 /**
  * Assembles the LLM message list of one negotiation LLM step.
@@ -12,9 +12,9 @@ import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
  * supplied for that token name; a supplied null value is replaced with an empty string and bracket tokens without a
  * supplied value are left unchanged.
  *
- * @since 2026-06
+ * @since 2026-08
  */
-public class NegotiationMessageBuilder {
+final class NegotiationMessageBuilder {
 
     /** Token name receiving the negotiation phase of the step, such as {@code propose} or {@code accept}. */
     public static final String TOKEN_PHASE = "phase";
@@ -42,12 +42,10 @@ public class NegotiationMessageBuilder {
      * Creates a message builder on one prompt resource loader.
      *
      * @param resourceLoader loader supplying the system and user prompts
+     * @throws NullPointerException if the resource loader is null
      */
     public NegotiationMessageBuilder(NegotiationPromptResourceLoader resourceLoader) {
-        if (resourceLoader == null) {
-            throw new NegotiationContentException(
-                    "Negotiation message builder requires a prompt resource loader.", "resourceLoader");
-        }
+        Objects.requireNonNull(resourceLoader, "Negotiation message builder requires a prompt resource loader.");
         this.resourceLoader = resourceLoader;
     }
 

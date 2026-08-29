@@ -18,7 +18,9 @@ class LLMClientConfigTest {
                 0.2d,
                 15.5d,
                 300,
-                100);
+                100,
+                true,
+                "none");
 
         assertEquals("openai", config.provider());
         assertEquals("gpt-4o-mini", config.model());
@@ -28,7 +30,9 @@ class LLMClientConfigTest {
         assertEquals(1024, config.maxTokens());
         assertEquals(0.2d, config.temperature());
         assertEquals(15.5d, config.timeoutSeconds());
+        assertEquals(true, config.disableSystemProxy());
         assertEquals(300, config.sessionMaxTotal());
         assertEquals(100, config.sessionMaxPerProvider());
+        assertEquals("none", config.reasoningEffort());
     }
 }

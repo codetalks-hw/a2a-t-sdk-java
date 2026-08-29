@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
-import net.openan.a2at.sdk.core.exception.SdkException;
+import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
 import net.openan.a2at.sdk.resources.ClasspathPromptResourceLoader;
 import net.openan.a2at.sdk.resources.PromptResourceKey;
@@ -23,13 +23,12 @@ public final class ClasspathPromptScenarioCatalogLoader {
     }
 
     public List<ScenarioDefinition> load(String language) {
-        String payload =
-                resourceLoader.loadText(new PromptResourceKey("scenarios", "catalog", language, "scenarios.json"));
+        String payload = resourceLoader.loadText(PromptResourceKey.scenario(language, "scenarios.json"));
         try {
             return PromptResourceJsonParser.parse(payload, ScenarioCatalog.class)
                     .scenarios();
         } catch (JsonProcessingException exception) {
-            throw new SdkException("Failed to parse scenario catalog for language: " + language, exception);
+            throw new A2ATError("Failed to parse scenario catalog for language: " + language, exception);
         }
     }
 

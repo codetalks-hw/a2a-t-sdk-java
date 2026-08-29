@@ -1,0 +1,241 @@
+{
+  "suite": "negotiation-fromdata-api-eval",
+  "description": "Focused capability verification of the six Negotiation-T fromData interfaces. The private-line complaint Task-T template is the business source of truth: 任务对象、投诉分类、OSS侧事件流水号 are required; 问题发生时间、投诉详情 are optional and their absence must never initiate negotiation. Propose covers all seven non-empty combinations of the three required fields plus the empty boundary. Multiple top-level fields have an AND relationship; a single field has a null relationship; the three alternative representations inside 任务对象 have an OR relationship. Accept returns real values for requested required fields, while Reject returns an itemized reason containing 无法提供. Generation checks message values; validation extracts the exact field-name list, accept/reject payloads, and relationship through the shared InformationNegotiationSchemas contracts (items:[{name, requirement|value|reason}]) also used by the fromText samples.",
+  "scenario": "private-line-complaint",
+  "fields": {
+    "required": [
+      "任务对象",
+      "投诉分类",
+      "OSS侧事件流水号"
+    ],
+    "optional": [
+      "问题发生时间",
+      "投诉详情"
+    ]
+  },
+  "cases": [
+    {
+      "id": "FD-P01",
+      "api": "propose",
+      "intent": "propose：请求补充全部三个必选槽位（任务对象+投诉分类+OSS流水号），items 为含义+样例说明，报文应逐字携带全部说明与关系句",
+      "input": {
+        "items": {
+          "任务对象": "专线业务对象标识，三选一：专线业务名称（如SZ_汇聚专线业务_100M_SPN）、专线业务标识（如5571d707-5aad-11ea-8629-286ed488cff3）、接入端口名称（如P781-珠江新城-PTN7900-23-TPA1EG24-17）",
+          "投诉分类": "投诉场景分类，取值专线中断或专线质差",
+          "OSS侧事件流水号": "OSS侧事件流水号，如event-id-20260602-08841"
+        },
+        "relationship": "任务对象、投诉分类和OSS侧事件流水号三项均为必选，三项之间为AND关系；缺少任一项均无法启动诊断"
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P02",
+      "api": "propose",
+      "intent": "propose：请求补充单必选槽位（任务对象），item 为含义+样例说明",
+      "input": {
+        "items": {
+          "任务对象": "专线业务对象标识，三选一：专线业务名称（如SZ_汇聚专线业务_100M_SPN）、专线业务标识（如5571d707-5aad-11ea-8629-286ed488cff3）、接入端口名称（如P781-珠江新城-PTN7900-23-TPA1EG24-17）"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P03",
+      "api": "propose",
+      "intent": "propose：请求补充单必选槽位（投诉分类），item 为含义+取值说明",
+      "input": {
+        "items": {
+          "投诉分类": "投诉场景分类，取值专线中断或专线质差"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P04",
+      "api": "propose",
+      "intent": "propose：请求补充单必选槽位（OSS侧事件流水号），item 为含义+样例说明",
+      "input": {
+        "items": {
+          "OSS侧事件流水号": "OSS侧事件流水号，如event-id-20260602-08841"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P05",
+      "api": "propose",
+      "intent": "propose：请求补充双必选槽位（任务对象+投诉分类）",
+      "input": {
+        "items": {
+          "任务对象": "专线业务对象标识，三选一：专线业务名称（如SZ_汇聚专线业务_100M_SPN）、专线业务标识（如5571d707-5aad-11ea-8629-286ed488cff3）、接入端口名称（如P781-珠江新城-PTN7900-23-TPA1EG24-17）",
+          "投诉分类": "投诉场景分类，取值专线中断或专线质差"
+        },
+        "relationship": "任务对象和投诉分类均为必选，两项之间为AND关系；缺少任一项均无法启动诊断"
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P06",
+      "api": "propose",
+      "intent": "propose：请求补充双必选槽位（任务对象+OSS侧事件流水号）",
+      "input": {
+        "items": {
+          "任务对象": "专线业务对象标识，三选一：专线业务名称（如SZ_汇聚专线业务_100M_SPN）、专线业务标识（如5571d707-5aad-11ea-8629-286ed488cff3）、接入端口名称（如P781-珠江新城-PTN7900-23-TPA1EG24-17）",
+          "OSS侧事件流水号": "OSS侧事件流水号，如event-id-20260602-08841"
+        },
+        "relationship": "任务对象和OSS侧事件流水号均为必选，两项之间为AND关系；缺少任一项均无法启动诊断"
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P07",
+      "api": "propose",
+      "intent": "propose：请求补充双必选槽位（投诉分类+OSS侧事件流水号）",
+      "input": {
+        "items": {
+          "投诉分类": "投诉场景分类，取值专线中断或专线质差",
+          "OSS侧事件流水号": "OSS侧事件流水号，如event-id-20260602-08841"
+        },
+        "relationship": "投诉分类和OSS侧事件流水号均为必选，两项之间为AND关系；缺少任一项均无法启动诊断"
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/propose/v1"
+      }
+    },
+    {
+      "id": "FD-P08",
+      "api": "propose",
+      "intent": "propose：items 为空对象（数据边界；接口应拒绝零请求项——PR #151 修复验证用例）",
+      "input": {
+        "items": {}
+      },
+      "expect": {
+        "succeeds": false
+      }
+    },
+    {
+      "id": "FD-A01",
+      "api": "accept",
+      "intent": "accept：补齐全部必选字段（端口名+分类+流水号实值）",
+      "input": {
+        "items": {
+          "任务对象": "P781-珠江新城-PTN7900-23-TPA1EG24-17",
+          "投诉分类": "专线中断",
+          "OSS侧事件流水号": "event-id-20260602-08841"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/accept-reject/v1",
+        "contains": [
+          "Accept"
+        ]
+      }
+    },
+    {
+      "id": "FD-A02",
+      "api": "accept",
+      "intent": "accept：补齐单必选字段（任务对象=专线业务标识形态）",
+      "input": {
+        "items": {
+          "任务对象": "5571d707-5aad-11ea-8629-286ed488cff3"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/accept-reject/v1",
+        "contains": [
+          "Accept"
+        ]
+      }
+    },
+    {
+      "id": "FD-A03",
+      "api": "accept",
+      "intent": "accept：补齐单必选字段（投诉分类）",
+      "input": {
+        "items": {
+          "投诉分类": "专线中断"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/accept-reject/v1",
+        "contains": [
+          "Accept"
+        ]
+      }
+    },
+    {
+      "id": "FD-A04",
+      "api": "accept",
+      "intent": "accept：补齐单必选字段（OSS侧事件流水号）",
+      "input": {
+        "items": {
+          "OSS侧事件流水号": "event-id-20260602-08841"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/accept-reject/v1",
+        "contains": [
+          "Accept"
+        ]
+      }
+    },
+    {
+      "id": "FD-R01",
+      "api": "reject",
+      "intent": "reject：单字段无法提供（任务对象，站点清单不可用），报文应含 Reject 结论、字段名与无法提供的原因",
+      "input": {
+        "items": {
+          "任务对象": "站点清单不可用，无法提供"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/accept-reject/v1",
+        "contains": [
+          "Reject"
+        ]
+      }
+    },
+    {
+      "id": "FD-R02",
+      "api": "reject",
+      "intent": "reject：双字段无法提供（任务对象+OSS侧事件流水号），报文应含 Reject 结论与两项名称+原因",
+      "input": {
+        "items": {
+          "任务对象": "站点清单不可用，无法提供",
+          "OSS侧事件流水号": "工单系统不可访问，无法提供"
+        }
+      },
+      "expect": {
+        "succeeds": true,
+        "template": "Negotiation-T/information-negotiation/accept-reject/v1",
+        "contains": [
+          "Reject"
+        ]
+      }
+    }
+  ]
+}

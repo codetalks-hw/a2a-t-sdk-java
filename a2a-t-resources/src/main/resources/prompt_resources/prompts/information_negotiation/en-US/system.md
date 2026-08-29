@@ -15,7 +15,7 @@ The negotiation phase of the input text is given by the phase field in the user 
   "relationship": "relationship between the missing items, or null"
 }
 
-2. Ending phase (accept / reject / accept-reject): extract the negotiation conclusion and the finally confirmed information items. Output structure:
+2. Ending phase (accept / reject / accept-reject): extract the negotiation conclusion and its result content. Output structure:
 
 {
   "conclusion": "Accept or Reject",
@@ -25,16 +25,16 @@ The negotiation phase of the input text is given by the phase field in the user 
 }
 
 ## Field Rules
-- items: required array. Each element is an object with exactly two keys, name and value; name is the information item name (string), value is the item's value, meaning, format, or example (string, may be null). Output an empty array when the input contains no information items.
+- items: required array. Each element is an object with exactly two keys, name and value; name is the information item name (string), value is the item's value, meaning, format, or example (string, may be null). The propose phase may output an empty array when the input contains no information items; the ending phase must contain at least one item.
 - relationship: output in the propose phase only. Either a string or null; when the input does not state a relationship between the missing items, it must be null. Do not fabricate.
 - conclusion: output in the ending phase only. Its value must be either "Accept" or "Reject" and must faithfully reflect the conclusion expressed by the input text; never output "Abort".
 
 ## Extraction Principles
 1. Extract only content explicitly expressed in the input text; do not fill in values from general knowledge or guess.
 2. In the propose phase, expressions such as "we still need / please provide / missing" introduce the information items to obtain; qualifying statements that follow (format, example, meaning) become the value of that item.
-3. In the ending phase, when the input answers the requested information, the answer content maps to items; the accepting or rejecting stance expressed by the input maps to conclusion.
+3. In the ending phase, when conclusion is Accept, map each answer to its requested item. When conclusion is Reject, output one item for every requested information item explicitly identified as unavailable: use that information item's name as name and its concrete non-provision reason as value. If one reason applies to multiple items, repeat it in each corresponding item; do not merge them into one aggregate "Rejection reason" item. A Reject conclusion must never produce an empty items array.
 4. Descriptions of dependencies, exclusivity, or composition between information items map to relationship.
-5. When uncertain: output null for optional fields and an empty array for required arrays; never fabricate content.
+5. When uncertain: output null for optional fields. The propose-phase items array may be empty. The ending-phase items array must not be empty; when Reject has no explicit reason, output one item with a null value for each unavailable information item explicitly named in the input, and do not fabricate reasons or add items that are not named.
 
 ## Output Examples
 
@@ -58,9 +58,12 @@ The negotiation phase of the input text is given by the phase field in the user 
   ]
 }
 
-### Example 3: ending phase (reject)
+### Example 3: ending phase (reject, itemized)
 
 {
   "conclusion": "Reject",
-  "items": []
+  "items": [
+    {"name": "access-port name", "value": "The resource query service is under maintenance and cannot provide it."},
+    {"name": "complaint category", "value": "The resource query service is under maintenance and cannot provide it."}
+  ]
 }

@@ -2,20 +2,20 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import net.openan.a2at.sdk.negotiation.content.InfoEndingContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
-import net.openan.a2at.sdk.negotiation.content.Vocabulary;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.negotiation.content.InformationEndingContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
+import net.openan.a2at.sdk.negotiation.content.Vocabulary;
 
 /**
  * Generator for information negotiation terminal messages.
  *
  * <p>The message carries the terminal conclusion literal and the information items delivered with it.
  *
- * @since 2026-06
+ * @since 2026-08
  */
-public final class InformationEndingGenerator extends AbstractNegotiationGenerator {
+final class InformationEndingGenerator extends AbstractNegotiationGenerator {
 
     /**
      * Generates an information negotiation accept or reject message.
@@ -29,10 +29,12 @@ public final class InformationEndingGenerator extends AbstractNegotiationGenerat
     @Override
     public String generate(
             NegotiationContext context, NegotiationContent content, PromptTemplate template, Vocabulary vocabulary) {
-        InfoEndingContent endingContent = contentOf(content, InfoEndingContent.class, "Information ending generator");
+        InformationEndingContent endingContent =
+                contentOf(content, InformationEndingContent.class, "Information ending generator");
         renderableConclusion(endingContent.conclusion());
+        requiredItems(
+                endingContent.items(), "items", "Information negotiation terminal message result content", vocabulary);
         Map<String, String> slots = new LinkedHashMap<>();
-        slots.put(vocabulary.get("slot.context"), contextSlotValue(context, vocabulary));
         slots.put(
                 vocabulary.get("slot.info_conclusion"),
                 endingContent.conclusion().literal());

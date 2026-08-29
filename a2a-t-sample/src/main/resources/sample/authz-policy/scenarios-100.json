@@ -1,0 +1,5458 @@
+{
+  "scenarios": [
+    {
+      "label": "a-data-starve-01",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "scene": "校园专网",
+          "actionType": "业务抢通"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-data-starve-01-varname",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "bizScene": "校园专网",
+          "handling": "业务抢通"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "bizScene": {
+              "type": "string",
+              "description": "动网操作所支撑的业务场景"
+            },
+            "handling": {
+              "type": "string",
+              "description": "动网操作对应的处置类型"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-nl-unsupported-01",
+      "entry": "from_text",
+      "input": {
+        "text": "推送所有校园专网的授权策略"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-nl-unsupported-03",
+      "entry": "from_text",
+      "input": {
+        "text": "冻结所有跟业务投诉诊断相关的授权"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-nl-neg-01",
+      "entry": "from_text",
+      "input": {
+        "text": "不要新增校园专网的授权策略，我还没准备好"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-nl-neg-03",
+      "entry": "from_text",
+      "input": {
+        "text": "除了政企专网，其他场景的授权都删掉"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是除政企专网之外的其他场景\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      }
+    },
+    {
+      "label": "a-nl-neg-04",
+      "entry": "from_text",
+      "input": {
+        "text": "暂时不需要修改应急通信的授权有效期"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-nl-meta-01",
+      "entry": "from_text",
+      "input": {
+        "text": "如何新增校园专网的授权策略？请说明步骤"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-nl-meta-02",
+      "entry": "from_text",
+      "input": {
+        "text": "授权策略的修改流程是什么"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "a-data-unsupported-01",
+      "entry": "from_text",
+      "input": {
+        "text": "推送授权策略的操作描述"
+      },
+      "expected": {
+        "client": {
+          "outcome": "slot.not_provided",
+          "slot_errors": [
+            {
+              "slot_name": "授权策略的操作类型",
+              "code": "slot.not_provided"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b1-nl-missing-01",
+      "entry": "from_text",
+      "input": {
+        "text": "加个校园专网的授权，处置用业务抢通，做个隧道调优，有效期先不填后面补"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b1-nl-missing-01-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "加个校园专网的授权，处置用业务抢通，做个隧道调优，有效期先不填后面补"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                },
+                "remark": {
+                  "type": "string",
+                  "description": "策略备注说明"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b1-data-missing-06",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "视频保障",
+          "actionType": "业务恢复",
+          "operationName": "隧道调优"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是视频保障，处置类型是业务恢复，操作名称是隧道调优\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b1-data-missing-06-varname",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "视频保障",
+          "actionType": "业务恢复",
+          "operationName": "隧道调优"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是视频保障，处置类型是业务恢复，操作名称是隧道调优\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "策略明细",
+              "code": "content.entry_field_missing"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置动作"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体动作名"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b1-data-nolist-01",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "删除授权策略"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "删除授权策略"
+              ],
+              "description": "授权策略的操作类型"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.param_missing"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b1-data-nolist-01-varname",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "删除授权策略"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "删除授权策略"
+              ],
+              "description": "授权策略的操作类型"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policies",
+              "code": "content.param_missing"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b1-data-missing-11",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "海外漫游",
+          "actionType": "业务抢通",
+          "operationName": "信号增强"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          },
+          "required": [
+            "operationType",
+            "scene",
+            "actionType",
+            "operationName",
+            "validityPeriod"
+          ]
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是海外漫游，处置类型是业务抢通，操作名称是信号增强\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      }
+    },
+    {
+      "label": "b1-data-missing-11-varfields",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "海外漫游",
+          "actionType": "业务抢通",
+          "operationName": "信号增强"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          },
+          "required": [
+            "operationType",
+            "scene",
+            "actionType",
+            "operationName",
+            "validityPeriod"
+          ]
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是海外漫游，处置类型是业务抢通，操作名称是信号增强\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b2-nl-format-01",
+      "entry": "from_text",
+      "input": {
+        "text": "新增授权，场景校园专网，处置业务抢通，操作隧道调优，有效期2026-13-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是2026-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b2-nl-format-01-varreq",
+      "entry": "from_text",
+      "input": {
+        "text": "新增一个授权，业务场景校园专网，处置类型网络出了问题要赶紧恢复，操作名称频段调整，有效期2026-01-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是网络出了问题要赶紧恢复，操作名称是频段调整，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.value_not_allowed"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 content.value_not_allowed"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间，YYYY-MM-DD~YYYY-MM-DD格式或\"永久生效\"；须为完整区间（仅单个日期视为区间不完整），且起始日期必须早于结束日期"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b2-nl-format-06",
+      "entry": "from_text",
+      "input": {
+        "text": "新增授权，业务场景车联网，处置类型业务优化，操作名称频段调整，有效期2030-01-01~2026-01-01"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是车联网，处置类型是业务优化，操作名称是频段调整，有效期是2030-01-01~2026-01-01\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b2-nl-format-06-varreq",
+      "entry": "from_text",
+      "input": {
+        "text": "新增授权，业务场景车联网，处置类型业务优化，操作名称频段调整，有效期2030-01-01~2026-01-01"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是车联网，处置类型是业务优化，操作名称是频段调整，有效期是2030-01-01~2026-01-01\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "有效期须为 ISO 8601 时间戳，如 2026-01-01T00:00:00Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b2-nl-format-07",
+      "entry": "from_text",
+      "input": {
+        "text": "加个授权，场景视频保障，处置业务恢复，操作路由调优，有效期到2030-12-31为止"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是视频保障，处置类型是业务恢复，操作名称是路由调优，有效期是2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b2-nl-format-07-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "加个授权，场景视频保障，处置业务恢复，操作路由调优，有效期到2030-12-31为止"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是视频保障，处置类型是业务恢复，操作名称是路由调优，有效期是2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "策略明细",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时段"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b2-data-format-06",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "海外漫游",
+          "actionType": "业务抢通",
+          "operationName": "频段调整",
+          "validityPeriod": "2026-13-01~2030-12-31"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是海外漫游，处置类型是业务抢通，操作名称是频段调整，有效期是2026-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b2-data-format-06-varfields",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "海外漫游",
+          "actionType": "业务抢通",
+          "operationName": "频段调整",
+          "validityPeriod": "2026-13-01~2030-12-31"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是海外漫游，处置类型是业务抢通，操作名称是频段调整，有效期是2026-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b3-nl-invalid-mod-01",
+      "entry": "from_text",
+      "input": {
+        "text": "把7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3这个授权的业务场景改成校园专网"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，业务场景改成校园专网\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.value_not_allowed"
+            }
+          ],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "scene": "校园专网"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "b3-nl-invalid-mod-01-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "把7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3这个授权的业务场景改成校园专网"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，业务场景改成校园专网\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "策略明细",
+              "code": "content.value_not_allowed"
+            }
+          ],
+          "params": {
+            "operationType": "修改授权策略",
+            "策略明细": [
+              {
+                "标识": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "scene": "校园专网"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b3-nl-conflict-01",
+      "entry": "from_text",
+      "input": {
+        "text": "把 7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3 的授权策略有效期改成'2027-01-01~2030-12-31 和 2028-01-01~2029-06-30'两个值"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是2027-01-01~2030-12-31，有效期是2028-01-01~2029-06-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.semantic_conflict"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b3-nl-conflict-01-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "把 7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3 的授权策略有效期改成'2027-01-01~2030-12-31 和 2028-01-01~2029-06-30'两个值"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是2027-01-01~2030-12-31，有效期是2028-01-01~2029-06-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "策略明细",
+              "code": "content.semantic_conflict"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b4-nl-bad-id-01",
+      "entry": "from_text",
+      "input": {
+        "text": "删除ABC-123这个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是ABC-123\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "删除授权策略",
+            "policyList": [
+              {
+                "policyId": "ABC-123",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "b4-nl-bad-id-01-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "删除ABC-123这个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是ABC-123\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "删除授权策略",
+            "policies": [
+              {
+                "pid": "ABC-123",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": null
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                },
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b4-nl-bad-id-02",
+      "entry": "from_text",
+      "input": {
+        "text": "修改12345的授权有效期到2027-01-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是12345，有效期是2027-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "12345",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "2027-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "b4-nl-bad-id-02-varflat",
+      "entry": "from_text",
+      "input": {
+        "text": "修改12345的授权有效期到2027-01-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是12345，有效期是2027-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyId": "12345",
+            "newValidityPeriod": "2027-01-01~2030-12-31"
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyId": {
+            "type": "string",
+            "description": "要修改的策略的唯一标识"
+          },
+          "newValidityPeriod": {
+            "type": "string",
+            "description": "修改后的新生效时间区间，YYYY-MM-DD~YYYY-MM-DD格式或永久生效"
+          }
+        }
+      }
+    },
+    {
+      "label": "b4-nl-bad-id-02-varuuid",
+      "entry": "from_text",
+      "input": {
+        "text": "修改12345的授权有效期到2027-01-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是12345，有效期是2027-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识，须为UUID格式"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间，YYYY-MM-DD~YYYY-MM-DD格式或\"永久生效\"；须为完整区间（仅单个日期视为区间不完整），且起始日期必须早于结束日期"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "b5-nl-invalid-06",
+      "entry": "from_text",
+      "input": {
+        "text": "修改7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3的授权"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "b5-nl-invalid-06-varflat",
+      "entry": "from_text",
+      "input": {
+        "text": "修改7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3的授权"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "newValidityPeriod",
+              "code": "content.entry_field_missing"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyId": {
+            "type": "string",
+            "description": "策略的唯一标识"
+          },
+          "newValidityPeriod": {
+            "type": "string",
+            "description": "修改后新的生效时间区间，YYYY-MM-DD~YYYY-MM-DD格式或永久生效"
+          }
+        }
+      }
+    },
+    {
+      "label": "b5-nl-invalid-07",
+      "entry": "from_text",
+      "input": {
+        "text": "新增授权，业务场景校园专网，处置类型业务抢通，操作名称隧道调优，有效期永久生效，到2030年12月31日为止"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效，到2030-12-31为止\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.semantic_conflict"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-01",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增一个授权策略，业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期从2026-01-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "校园专网",
+                "actionType": "业务抢通",
+                "operationName": "隧道调优",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-01-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增一个授权策略，业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期从2026-01-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policies": [
+              {
+                "pid": null,
+                "domain": "校园专网",
+                "handling": "业务抢通",
+                "opName": "隧道调优",
+                "effectivePeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-04",
+      "entry": "from_text",
+      "input": {
+        "text": "新增授权：业务场景=应急通信，处置类型=业务调整，操作名称=隧道调优，有效期=2027-03-15~2029-09-30"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，处置类型是业务调整，操作名称是隧道调优，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "应急通信",
+                "actionType": "业务调整",
+                "operationName": "隧道调优",
+                "validityPeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-04-varreq",
+      "entry": "from_text",
+      "input": {
+        "text": "新增授权：业务场景=应急通信，处置类型=业务调整，操作名称=隧道调优，有效期=2027-03-15~2029-09-30"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，处置类型是业务调整，操作名称是隧道调优，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "生效截止日期，单值，格式 YYYY-MM-DD"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-11",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增一个授权策略，业务场景是工业视觉质检，处置类型是割接，操作名称是光功率调衡，有效期从2026-01-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是工业视觉质检，处置类型是割接，操作名称是光功率调衡，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "工业视觉质检",
+                "actionType": "割接",
+                "operationName": "光功率调衡",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-11-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增一个授权策略，业务场景是工业视觉质检，处置类型是割接，操作名称是光功率调衡，有效期从2026-01-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是工业视觉质检，处置类型是割接，操作名称是光功率调衡，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "工业视觉质检",
+                "actionType": "割接",
+                "operationName": "光功率调衡",
+                "validityPeriod": "2026-01-01~2030-12-31",
+                "remark": null
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                },
+                "remark": {
+                  "type": "string",
+                  "description": "策略备注，可选，未提供时为null"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-07",
+      "entry": "from_text",
+      "input": {
+        "text": "有效期2026-06-01~2030-06-18，操作名称频段调整，处置类型业务恢复，业务场景医疗专线，新增一个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "医疗专线",
+                "actionType": "业务恢复",
+                "operationName": "频段调整",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-07-varflat",
+      "entry": "from_text",
+      "input": {
+        "text": "有效期2026-06-01~2030-06-18，操作名称频段调整，处置类型业务恢复，业务场景医疗专线，新增一个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policies": [
+              {
+                "scene": "医疗专线",
+                "actionType": "业务恢复",
+                "operationName": "频段调整",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "策略记录列表，每条含场景、处置、操作与生效时段",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-data-add-01",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "车联网",
+          "actionType": "业务优化",
+          "operationName": "网络优化",
+          "validityPeriod": "2026-01-01~2030-12-31"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是车联网，处置类型是业务优化，操作名称是网络优化，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "车联网",
+                "actionType": "业务优化",
+                "operationName": "网络优化",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-data-add-01-varsch",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "bizScene": "车联网",
+          "handling": "业务优化",
+          "opName": "网络优化",
+          "timeRange": "2026-01-01~2030-12-31"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ],
+              "description": "授权策略的操作类型"
+            },
+            "bizScene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "handling": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "opName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "timeRange": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是车联网，处置类型是业务优化，操作名称是网络优化，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "车联网",
+                "actionType": "业务优化",
+                "operationName": "网络优化",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-12",
+      "entry": "from_text",
+      "input": {
+        "text": "为物联网专线新增一个倒换类型的授权，操作是流量重定向，有效期从2026-08-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是物联网专线，处置类型是倒换，操作名称是流量重定向，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "物联网专线",
+                "actionType": "倒换",
+                "operationName": "流量重定向",
+                "validityPeriod": "2026-08-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-nl-add-12-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "为物联网专线新增一个倒换类型的授权，操作是流量重定向，有效期从2026-08-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是物联网专线，处置类型是倒换，操作名称是流量重定向，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "策略明细": [
+              {
+                "标识": null,
+                "scene": "物联网专线",
+                "actionType": "倒换",
+                "operationName": "流量重定向",
+                "生效时段": "2026-08-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-data-add-10",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "无人机回传",
+          "actionType": "业务调整",
+          "operationName": "隧道调优",
+          "validityPeriod": "2026年8月1日到2030年12月31日"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是无人机回传，处置类型是业务调整，操作名称是隧道调优，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "无人机回传",
+                "actionType": "业务调整",
+                "operationName": "隧道调优",
+                "validityPeriod": "2026-08-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c1-data-add-10-varreq",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "scene": "无人机回传",
+          "actionType": "业务调整",
+          "operationName": "隧道调优",
+          "validityPeriod": "2026年8月1日到2030年12月31日"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "动网操作的处置类型"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "所授权的动网操作的具体名称"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是无人机回传，处置类型是业务调整，操作名称是隧道调优，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "须为 ISO 8601 时间戳，如 2026-01-01T00:00:00Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-nl-multi-01",
+      "entry": "from_text",
+      "input": {
+        "text": "新增两条授权策略：第一条，业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期从2026-01-01到2030-12-31；第二条，业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期从2026-06-01到2030-06-18"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是2026-01-01~2030-12-31\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "校园专网",
+                "actionType": "业务抢通",
+                "operationName": "隧道调优",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              },
+              {
+                "policyId": null,
+                "scene": "医疗专线",
+                "actionType": "业务恢复",
+                "operationName": "频段调整",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-nl-multi-01-varflat",
+      "entry": "from_text",
+      "input": {
+        "text": "新增两条授权策略：第一条，业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期从2026-01-01到2030-12-31；第二条，业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期从2026-06-01到2030-06-18"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是2026-01-01~2030-12-31\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policies": [
+              {
+                "scene": "校园专网",
+                "actionType": "业务抢通",
+                "operationName": "隧道调优",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              },
+              {
+                "scene": "医疗专线",
+                "actionType": "业务恢复",
+                "operationName": "频段调整",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "策略记录列表，每条含场景、处置、操作与生效时段",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-nl-multi-03",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我加三条授权：校园专网用业务抢通做隧道调优，永久生效；医疗专线用业务恢复做频段调整，有效期2026-06-01到2030-06-18；政企专网用业务优化做路由调整，有效期2027-03-15到2029-09-30"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n3. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "校园专网",
+                "actionType": "业务抢通",
+                "operationName": "隧道调优",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "医疗专线",
+                "actionType": "业务恢复",
+                "operationName": "频段调整",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              },
+              {
+                "policyId": null,
+                "scene": "政企专网",
+                "actionType": "业务优化",
+                "operationName": "路由调整",
+                "validityPeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-nl-multi-03-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我加三条授权：校园专网用业务抢通做隧道调优，永久生效；医疗专线用业务恢复做频段调整，有效期2026-06-01到2030-06-18；政企专网用业务优化做路由调整，有效期2027-03-15到2029-09-30"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n3. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "校园专网",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "医疗专线",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              },
+              {
+                "policyId": null,
+                "scene": "政企专网",
+                "validityPeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-nl-multi-04",
+      "entry": "from_text",
+      "input": {
+        "text": "新增四条授权策略：第1条业务场景应急通信，处置类型业务抢通，操作名称链路切换，有效期永久生效；第2条业务场景海外漫游，处置类型业务恢复，操作名称带宽扩容，有效期2026-01-01~2030-12-31；第3条业务场景视频保障，处置类型业务优化，操作名称信号增强，有效期2027-03-15~2029-09-30；第4条业务场景车联网，处置类型业务调整，操作名称网络优化，有效期2026-06-01~2030-06-18"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，处置类型是业务抢通，操作名称是链路切换，有效期是永久生效\n2. 业务场景是海外漫游，处置类型是业务恢复，操作名称是带宽扩容，有效期是2026-01-01~2030-12-31\n3. 业务场景是视频保障，处置类型是业务优化，操作名称是信号增强，有效期是2027-03-15~2029-09-30\n4. 业务场景是车联网，处置类型是业务调整，操作名称是网络优化，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "应急通信",
+                "actionType": "业务抢通",
+                "operationName": "链路切换",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "海外漫游",
+                "actionType": "业务恢复",
+                "operationName": "带宽扩容",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              },
+              {
+                "policyId": null,
+                "scene": "视频保障",
+                "actionType": "业务优化",
+                "operationName": "信号增强",
+                "validityPeriod": "2027-03-15~2029-09-30"
+              },
+              {
+                "policyId": null,
+                "scene": "车联网",
+                "actionType": "业务调整",
+                "operationName": "网络优化",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-nl-multi-04-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "新增四条授权策略：第1条业务场景应急通信，处置类型业务抢通，操作名称链路切换，有效期永久生效；第2条业务场景海外漫游，处置类型业务恢复，操作名称带宽扩容，有效期2026-01-01~2030-12-31；第3条业务场景视频保障，处置类型业务优化，操作名称信号增强，有效期2027-03-15~2029-09-30；第4条业务场景车联网，处置类型业务调整，操作名称网络优化，有效期2026-06-01~2030-06-18"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，处置类型是业务抢通，操作名称是链路切换，有效期是永久生效\n2. 业务场景是海外漫游，处置类型是业务恢复，操作名称是带宽扩容，有效期是2026-01-01~2030-12-31\n3. 业务场景是视频保障，处置类型是业务优化，操作名称是信号增强，有效期是2027-03-15~2029-09-30\n4. 业务场景是车联网，处置类型是业务调整，操作名称是网络优化，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "策略明细": [
+              {
+                "标识": null,
+                "scene": "应急通信",
+                "actionType": "业务抢通",
+                "operationName": "链路切换",
+                "生效时段": "永久生效"
+              },
+              {
+                "标识": null,
+                "scene": "海外漫游",
+                "actionType": "业务恢复",
+                "operationName": "带宽扩容",
+                "生效时段": "2026-01-01~2030-12-31"
+              },
+              {
+                "标识": null,
+                "scene": "视频保障",
+                "actionType": "业务优化",
+                "operationName": "信号增强",
+                "生效时段": "2027-03-15~2029-09-30"
+              },
+              {
+                "标识": null,
+                "scene": "车联网",
+                "actionType": "业务调整",
+                "operationName": "网络优化",
+                "生效时段": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-data-multi-07",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "policyCount": 3,
+          "details": [
+            {
+              "scene": "校园专网",
+              "actionType": "业务抢通",
+              "operationName": "隧道调优",
+              "validityPeriod": "永久生效"
+            },
+            {
+              "scene": "医疗专线",
+              "actionType": "业务恢复",
+              "operationName": "频段调整",
+              "validityPeriod": "2026-06-01~2030-06-18"
+            },
+            {
+              "scene": "政企专网",
+              "actionType": "业务优化",
+              "operationName": "路由调整",
+              "validityPeriod": "2027-03-15~2029-09-30"
+            }
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "policyCount": {
+              "type": "integer",
+              "description": "要新增的策略数量"
+            },
+            "details": {
+              "type": "array",
+              "description": "策略详情列表",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "scene": {
+                    "type": "string",
+                    "description": "动网操作支撑的业务场景"
+                  },
+                  "actionType": {
+                    "type": "string",
+                    "description": "动网操作的处置类型"
+                  },
+                  "operationName": {
+                    "type": "string",
+                    "description": "所授权的动网操作的具体名称"
+                  },
+                  "validityPeriod": {
+                    "type": "string",
+                    "description": "生效时间区间或永久生效"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n3. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "校园专网",
+                "actionType": "业务抢通",
+                "operationName": "隧道调优",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "医疗专线",
+                "actionType": "业务恢复",
+                "operationName": "频段调整",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              },
+              {
+                "policyId": null,
+                "scene": "政企专网",
+                "actionType": "业务优化",
+                "operationName": "路由调整",
+                "validityPeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c2-data-multi-07-dual",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "policyCount": 3,
+          "details": [
+            {
+              "scene": "校园专网",
+              "actionType": "业务抢通",
+              "operationName": "隧道调优",
+              "validityPeriod": "永久生效"
+            },
+            {
+              "scene": "医疗专线",
+              "actionType": "业务恢复",
+              "operationName": "频段调整",
+              "validityPeriod": "2026-06-01~2030-06-18"
+            },
+            {
+              "scene": "政企专网",
+              "actionType": "业务优化",
+              "operationName": "路由调整",
+              "validityPeriod": "2027-03-15~2029-09-30"
+            }
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "policyCount": {
+              "type": "integer",
+              "description": "要新增的策略数量"
+            },
+            "details": {
+              "type": "array",
+              "description": "策略详情列表",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "scene": {
+                    "type": "string",
+                    "description": "动网操作支撑的业务场景"
+                  },
+                  "actionType": {
+                    "type": "string",
+                    "description": "动网操作的处置类型"
+                  },
+                  "operationName": {
+                    "type": "string",
+                    "description": "所授权的动网操作的具体名称"
+                  },
+                  "validityPeriod": {
+                    "type": "string",
+                    "description": "生效时间区间或永久生效"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-06-01~2030-06-18\n3. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policies": [
+              {
+                "pid": null,
+                "domain": "校园专网",
+                "handling": "业务抢通",
+                "opName": "隧道调优",
+                "effectivePeriod": "永久生效"
+              },
+              {
+                "pid": null,
+                "domain": "医疗专线",
+                "handling": "业务恢复",
+                "opName": "频段调整",
+                "effectivePeriod": "2026-06-01~2030-06-18"
+              },
+              {
+                "pid": null,
+                "domain": "政企专网",
+                "handling": "业务优化",
+                "opName": "路由调整",
+                "effectivePeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-nl-mod-06",
+      "entry": "from_text",
+      "input": {
+        "text": "把7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3和a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d的有效期都改成永久生效"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是永久生效\n2. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是永久生效\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "永久生效"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-nl-mod-06-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "把7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3和a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d的有效期都改成永久生效"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是永久生效\n2. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是永久生效\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "newValidityPeriod": "永久生效"
+              },
+              {
+                "policyId": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "newValidityPeriod": "永久生效"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "newValidityPeriod": {
+                  "type": "string",
+                  "description": "修改后的生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-nl-mod-02",
+      "entry": "from_text",
+      "input": {
+        "text": "把a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d这个授权策略的有效期改为2026年6月1日到2030年6月18日"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "2026-06-01~2030-06-18"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-nl-mod-02-varreq",
+      "entry": "from_text",
+      "input": {
+        "text": "把a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d这个授权策略的有效期改为2026年6月1日到2030年6月18日"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是2026-06-01~2030-06-18\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "修改后的生效时间，须为 ISO 8601 时间戳，如 2026-01-01T00:00:00Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-nl-mod-07",
+      "entry": "from_text",
+      "input": {
+        "text": "修改a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d的授权，有效期改成2026-09-01~2031-08-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是2026-09-01~2031-08-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "2026-09-01~2031-08-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-nl-mod-07-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "修改a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d的授权，有效期改成2026-09-01~2031-08-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是2026-09-01~2031-08-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policies": [
+              {
+                "pid": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": "2026-09-01~2031-08-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-data-mod-01",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "修改授权策略",
+          "policyId": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+          "validityPeriod": "2027-01-01~2029-12-31"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ],
+              "description": "授权策略的操作类型"
+            },
+            "policyId": {
+              "type": "string",
+              "description": "策略的唯一标识"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "修改后的生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是f9e8d7c6-b5a4-3210-fedc-ba9876543210，有效期是2027-01-01~2029-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "2027-01-01~2029-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c3-data-mod-01-dual",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "修改授权策略",
+          "policyId": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+          "validityPeriod": "2027-01-01~2029-12-31"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ],
+              "description": "授权策略的操作类型"
+            },
+            "policyId": {
+              "type": "string",
+              "description": "策略的唯一标识"
+            },
+            "validityPeriod": {
+              "type": "string",
+              "description": "修改后的生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是f9e8d7c6-b5a4-3210-fedc-ba9876543210，有效期是2027-01-01~2029-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policies": [
+              {
+                "pid": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": "2027-01-01~2029-12-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c4-data-del-02",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "删除授权策略",
+          "scene": "容量规划"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "policyId": {
+              "type": "string",
+              "description": "要删除的策略唯一标识"
+            },
+            "scene": {
+              "type": "string",
+              "description": "按业务场景条件删除"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是容量规划\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      }
+    },
+    {
+      "label": "c4-data-del-02-varsch",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "删除授权策略",
+          "bizScene": "容量规划"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ],
+              "description": "授权策略的操作类型"
+            },
+            "bizScene": {
+              "type": "string",
+              "description": "动网操作支撑的业务场景"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是容量规划\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-01",
+      "entry": "from_text",
+      "input": {
+        "text": "删除7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3这个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "删除授权策略",
+            "policyList": [
+              {
+                "policyId": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-01-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "删除7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3这个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "删除授权策略",
+            "policies": [
+              {
+                "pid": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": null
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-04",
+      "entry": "from_text",
+      "input": {
+        "text": "删除所有业务场景为载波调度的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是载波调度\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-04-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "删除所有业务场景为载波调度的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是载波调度\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-04-vardesc",
+      "entry": "from_text",
+      "input": {
+        "text": "删除所有业务场景为载波调度的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是载波调度\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "删除条件字段；条目可为策略标识或业务场景条件",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-06",
+      "entry": "from_text",
+      "input": {
+        "text": "删除7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3和a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d这两个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n2. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "删除授权策略",
+            "policyList": [
+              {
+                "policyId": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": null
+              },
+              {
+                "policyId": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c4-nl-del-06-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "删除7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3和a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d这两个授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n删除授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n2. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "删除授权策略",
+            "policies": [
+              {
+                "pid": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": null
+              },
+              {
+                "pid": "a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": null
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-03",
+      "entry": "from_text",
+      "input": {
+        "text": "查询业务场景是载波调度、处置类型是业务抢通的授权"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是载波调度，处置类型是业务抢通\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "载波调度",
+                "actionType": "业务抢通",
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-03-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "查询业务场景是载波调度、处置类型是业务抢通的授权"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是载波调度，处置类型是业务抢通\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policies": [
+              {
+                "pid": null,
+                "domain": "载波调度",
+                "handling": "业务抢通",
+                "opName": null,
+                "effectivePeriod": null
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-05",
+      "entry": "from_text",
+      "input": {
+        "text": "查询业务场景是视频保障、处置类型是故障切换的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是视频保障，处置类型是故障切换\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "视频保障",
+                "actionType": "故障切换",
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-05-varreq",
+      "entry": "from_text",
+      "input": {
+        "text": "查询业务场景是视频保障、处置类型是故障切换的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是视频保障，处置类型是故障切换\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "视频保障",
+                "actionType": "故障切换",
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间，YYYY-MM-DD~YYYY-MM-DD格式或\"永久生效\"；须为完整区间（仅单个日期视为区间不完整），且起始日期必须早于结束日期"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-06",
+      "entry": "from_text",
+      "input": {
+        "text": "查询业务场景是物联网专线、处置类型是割接的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是物联网专线，处置类型是割接\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "物联网专线",
+                "actionType": "割接",
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-06-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "查询业务场景是物联网专线、处置类型是割接的授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是物联网专线，处置类型是割接\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "scene": "物联网专线",
+                "actionType": "割接"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "查询条件字段：业务场景与处置类型",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-01",
+      "entry": "from_text",
+      "input": {
+        "text": "列出所有授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": []
+          }
+        }
+      }
+    },
+    {
+      "label": "c5-nl-query-01-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "列出所有授权策略"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "策略明细": []
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-03",
+      "entry": "from_text",
+      "input": {
+        "text": "将7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3的有效期改为2026年8月1日到2030年12月31日"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policyList": [
+              {
+                "policyId": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "scene": null,
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": "2026-08-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-03-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "将7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3的有效期改为2026年8月1日到2030年12月31日"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "修改授权策略",
+            "policies": [
+              {
+                "pid": "7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3",
+                "domain": null,
+                "handling": null,
+                "opName": null,
+                "effectivePeriod": "2026-08-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-04",
+      "entry": "from_text",
+      "input": {
+        "text": "把所有授权策略都列出来"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": []
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-04-varfields",
+      "entry": "from_text",
+      "input": {
+        "text": "把所有授权策略都列出来"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": []
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "查询条件字段，按输入中的出现顺序排列。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-07",
+      "entry": "from_text",
+      "input": {
+        "text": "新增三条授权：第一条业务场景校园专网，处置类型业务抢通，操作名称隧道调优，有效期永久生效；第二条业务场景医疗专线，处置类型业务恢复，操作名称频段调整，有效期2026-13-01~2030-12-31；第三条业务场景政企专网，处置类型业务优化，操作名称路由调整，有效期2027-03-15~2029-09-30"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-13-01~2030-12-31\n3. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-07-varname",
+      "entry": "from_text",
+      "input": {
+        "text": "新增三条授权：第一条业务场景校园专网，处置类型业务抢通，操作名称隧道调优，有效期永久生效；第二条业务场景医疗专线，处置类型业务恢复，操作名称频段调整，有效期2026-13-01~2030-12-31；第三条业务场景政企专网，处置类型业务优化，操作名称路由调整，有效期2027-03-15~2029-09-30"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是业务抢通，操作名称是隧道调优，有效期是永久生效\n2. 业务场景是医疗专线，处置类型是业务恢复，操作名称是频段调整，有效期是2026-13-01~2030-12-31\n3. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policies",
+              "code": "content.format_error"
+            }
+          ]
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-06",
+      "entry": "from_text",
+      "input": {
+        "text": "新增三条授权：第一条业务场景应急通信，处置类型业务抢通，操作名称链路切换，有效期永久生效；第二条业务场景海外漫游，处置类型业务恢复，操作名称带宽扩容，有效期从2026年8月1日到2030年12月31日；第三条业务场景视频保障，处置类型业务优化，操作名称信号增强，有效期2026-01-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，处置类型是业务抢通，操作名称是链路切换，有效期是永久生效\n2. 业务场景是海外漫游，处置类型是业务恢复，操作名称是带宽扩容，有效期是2026-08-01~2030-12-31\n3. 业务场景是视频保障，处置类型是业务优化，操作名称是信号增强，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "应急通信",
+                "actionType": "业务抢通",
+                "operationName": "链路切换",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "海外漫游",
+                "actionType": "业务恢复",
+                "operationName": "带宽扩容",
+                "validityPeriod": "2026-08-01~2030-12-31"
+              },
+              {
+                "policyId": null,
+                "scene": "视频保障",
+                "actionType": "业务优化",
+                "operationName": "信号增强",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-06-varflat",
+      "entry": "from_text",
+      "input": {
+        "text": "新增三条授权：第一条业务场景应急通信，处置类型业务抢通，操作名称链路切换，有效期永久生效；第二条业务场景海外漫游，处置类型业务恢复，操作名称带宽扩容，有效期从2026年8月1日到2030年12月31日；第三条业务场景视频保障，处置类型业务优化，操作名称信号增强，有效期2026-01-01~2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，处置类型是业务抢通，操作名称是链路切换，有效期是永久生效\n2. 业务场景是海外漫游，处置类型是业务恢复，操作名称是带宽扩容，有效期是2026-08-01~2030-12-31\n3. 业务场景是视频保障，处置类型是业务优化，操作名称是信号增强，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policies": [
+              {
+                "scene": "应急通信",
+                "actionType": "业务抢通",
+                "operationName": "链路切换",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "scene": "海外漫游",
+                "actionType": "业务恢复",
+                "operationName": "带宽扩容",
+                "validityPeriod": "2026-08-01~2030-12-31"
+              },
+              {
+                "scene": "视频保障",
+                "actionType": "业务优化",
+                "operationName": "信号增强",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "策略记录列表，每条含场景、处置、操作与生效时段",
+            "items": {
+              "type": "object",
+              "properties": {
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-08",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增一个授权策略，业务场景是校园专网，处置类型是紧急扩容，操作名称是天线调整，有效期从2026-08-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是紧急扩容，操作名称是天线调整，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "校园专网",
+                "actionType": "紧急扩容",
+                "operationName": "天线调整",
+                "validityPeriod": "2026-08-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-nl-mixed-08-varreq",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增一个授权策略，业务场景是校园专网，处置类型是紧急扩容，操作名称是天线调整，有效期从2026-08-01到2030-12-31"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是校园专网，处置类型是紧急扩容，操作名称是天线调整，有效期是2026-08-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ],
+          "params": {}
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policyList": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "policyId": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "validityPeriod": {
+                  "type": "string",
+                  "description": "生效截止日期，单值，格式 YYYY-MM-DD"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-data-mixed-04",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "查询授权策略",
+          "scene": "业务投诉诊断"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "scene": {
+              "type": "string",
+              "description": "按业务场景查询"
+            },
+            "actionType": {
+              "type": "string",
+              "description": "按处置类型查询"
+            },
+            "operationName": {
+              "type": "string",
+              "description": "按操作名称查询"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是业务投诉诊断\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "业务投诉诊断",
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-data-mixed-04-varsch",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "查询授权策略",
+          "bizScene": "业务投诉诊断"
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "bizScene": {
+              "type": "string",
+              "description": "按业务场景查询"
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n查询授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是业务投诉诊断\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "查询授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "业务投诉诊断",
+                "actionType": null,
+                "operationName": null,
+                "validityPeriod": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-data-mixed-06",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "details": [
+            {
+              "scene": "政企专网",
+              "actionType": "业务优化",
+              "operationName": "路由调整",
+              "validityPeriod": "永久生效"
+            },
+            {
+              "scene": "应急通信",
+              "actionType": "业务调整",
+              "operationName": "隧道调优",
+              "validityPeriod": "2026-01-01~2030-12-31"
+            }
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "details": {
+              "type": "array",
+              "description": "策略详情列表",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "scene": {
+                    "type": "string",
+                    "description": "动网操作支撑的业务场景"
+                  },
+                  "actionType": {
+                    "type": "string",
+                    "description": "动网操作的处置类型"
+                  },
+                  "operationName": {
+                    "type": "string",
+                    "description": "所授权的动网操作的具体名称"
+                  },
+                  "validityPeriod": {
+                    "type": "string",
+                    "description": "生效时间区间或永久生效"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是永久生效\n2. 业务场景是应急通信，处置类型是业务调整，操作名称是隧道调优，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "政企专网",
+                "actionType": "业务优化",
+                "operationName": "路由调整",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "应急通信",
+                "actionType": "业务调整",
+                "operationName": "隧道调优",
+                "validityPeriod": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-data-mixed-06-varname",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "details": [
+            {
+              "scene": "政企专网",
+              "actionType": "业务优化",
+              "operationName": "路由调整",
+              "validityPeriod": "永久生效"
+            },
+            {
+              "scene": "应急通信",
+              "actionType": "业务调整",
+              "operationName": "隧道调优",
+              "validityPeriod": "2026-01-01~2030-12-31"
+            }
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "details": {
+              "type": "array",
+              "description": "策略详情列表",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "scene": {
+                    "type": "string",
+                    "description": "动网操作支撑的业务场景"
+                  },
+                  "actionType": {
+                    "type": "string",
+                    "description": "动网操作的处置类型"
+                  },
+                  "operationName": {
+                    "type": "string",
+                    "description": "所授权的动网操作的具体名称"
+                  },
+                  "validityPeriod": {
+                    "type": "string",
+                    "description": "生效时间区间或永久生效"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是政企专网，处置类型是业务优化，操作名称是路由调整，有效期是永久生效\n2. 业务场景是应急通信，处置类型是业务调整，操作名称是隧道调优，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "策略明细": [
+              {
+                "标识": null,
+                "scene": "政企专网",
+                "actionType": "业务优化",
+                "operationName": "路由调整",
+                "生效时段": "永久生效"
+              },
+              {
+                "标识": null,
+                "scene": "应急通信",
+                "actionType": "业务调整",
+                "operationName": "隧道调优",
+                "生效时段": "2026-01-01~2030-12-31"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "策略明细": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "标识": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "scene": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "actionType": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "operationName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "生效时段": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-data-mixed-12",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "details": [
+            {
+              "bizScene": "车联网",
+              "handling": "业务调整",
+              "opName": "网络优化",
+              "timeRange": "永久生效",
+              "remark": "常态化"
+            },
+            {
+              "bizScene": "无人机回传",
+              "handling": "业务抢通",
+              "opName": "带宽扩容",
+              "timeRange": "2026-06-01~2030-06-18"
+            },
+            {
+              "bizScene": "容量规划",
+              "handling": "业务优化",
+              "opName": "路由调整",
+              "timeRange": "2027-03-15~2029-09-30",
+              "remark": "试运行"
+            }
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "details": {
+              "type": "array",
+              "description": "策略详情列表",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "bizScene": {
+                    "type": "string",
+                    "description": "动网操作支撑的业务场景"
+                  },
+                  "handling": {
+                    "type": "string",
+                    "description": "动网操作的处置类型"
+                  },
+                  "opName": {
+                    "type": "string",
+                    "description": "所授权的动网操作的具体名称"
+                  },
+                  "timeRange": {
+                    "type": "string",
+                    "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是车联网，处置类型是业务调整，操作名称是网络优化，有效期是永久生效\n2. 业务场景是无人机回传，处置类型是业务抢通，操作名称是带宽扩容，有效期是2026-06-01~2030-06-18\n3. 业务场景是容量规划，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policyList": [
+              {
+                "policyId": null,
+                "scene": "车联网",
+                "actionType": "业务调整",
+                "operationName": "网络优化",
+                "validityPeriod": "永久生效"
+              },
+              {
+                "policyId": null,
+                "scene": "无人机回传",
+                "actionType": "业务抢通",
+                "operationName": "带宽扩容",
+                "validityPeriod": "2026-06-01~2030-06-18"
+              },
+              {
+                "policyId": null,
+                "scene": "容量规划",
+                "actionType": "业务优化",
+                "operationName": "路由调整",
+                "validityPeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "c6-data-mixed-12-dual",
+      "entry": "from_data_with_schema",
+      "input": {
+        "data": {
+          "operationType": "新增授权策略",
+          "details": [
+            {
+              "bizScene": "车联网",
+              "handling": "业务调整",
+              "opName": "网络优化",
+              "timeRange": "永久生效",
+              "remark": "常态化"
+            },
+            {
+              "bizScene": "无人机回传",
+              "handling": "业务抢通",
+              "opName": "带宽扩容",
+              "timeRange": "2026-06-01~2030-06-18"
+            },
+            {
+              "bizScene": "容量规划",
+              "handling": "业务优化",
+              "opName": "路由调整",
+              "timeRange": "2027-03-15~2029-09-30",
+              "remark": "试运行"
+            }
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "operationType": {
+              "type": "string",
+              "enum": [
+                "新增授权策略",
+                "修改授权策略",
+                "删除授权策略",
+                "查询授权策略"
+              ]
+            },
+            "details": {
+              "type": "array",
+              "description": "策略详情列表",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "bizScene": {
+                    "type": "string",
+                    "description": "动网操作支撑的业务场景"
+                  },
+                  "handling": {
+                    "type": "string",
+                    "description": "动网操作的处置类型"
+                  },
+                  "opName": {
+                    "type": "string",
+                    "description": "所授权的动网操作的具体名称"
+                  },
+                  "timeRange": {
+                    "type": "string",
+                    "description": "生效时间区间，YYYY-MM-DD~YYYY-MM-DD或永久生效"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是车联网，处置类型是业务调整，操作名称是网络优化，有效期是永久生效\n2. 业务场景是无人机回传，处置类型是业务抢通，操作名称是带宽扩容，有效期是2026-06-01~2030-06-18\n3. 业务场景是容量规划，处置类型是业务优化，操作名称是路由调整，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "success",
+          "slot_errors": [],
+          "params": {
+            "operationType": "新增授权策略",
+            "policies": [
+              {
+                "pid": null,
+                "domain": "车联网",
+                "handling": "业务调整",
+                "opName": "网络优化",
+                "effectivePeriod": "永久生效"
+              },
+              {
+                "pid": null,
+                "domain": "无人机回传",
+                "handling": "业务抢通",
+                "opName": "带宽扩容",
+                "effectivePeriod": "2026-06-01~2030-06-18"
+              },
+              {
+                "pid": null,
+                "domain": "容量规划",
+                "handling": "业务优化",
+                "opName": "路由调整",
+                "effectivePeriod": "2027-03-15~2029-09-30"
+              }
+            ]
+          }
+        }
+      },
+      "validate_schema": {
+        "type": "object",
+        "properties": {
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "新增授权策略",
+              "修改授权策略",
+              "删除授权策略",
+              "查询授权策略"
+            ],
+            "description": "授权策略的操作类型"
+          },
+          "policies": {
+            "type": "array",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列；未提供时为空列表",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pid": {
+                  "type": "string",
+                  "description": "策略的唯一标识"
+                },
+                "domain": {
+                  "type": "string",
+                  "description": "动网操作支撑的业务场景"
+                },
+                "handling": {
+                  "type": "string",
+                  "description": "动网操作的处置类型"
+                },
+                "opName": {
+                  "type": "string",
+                  "description": "所授权的动网操作的具体名称"
+                },
+                "effectivePeriod": {
+                  "type": "string",
+                  "description": "授权策略的生效时间区间"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "c7-nl-multierr-01",
+      "entry": "from_text",
+      "input": {
+        "text": "帮我新增两条授权策略：第一条是应急通信场景、有效期到2030年12月31日为止；第二条是无人机回传场景、业务调整处置、天线调整操作、有效期2027-13-01到2030-12-31。"
+      },
+      "expected": {
+        "client": {
+          "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急通信，有效期是2030-12-31\n2. 业务场景是无人机回传，处置类型是业务调整，操作名称是天线调整，有效期是2027-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
+        },
+        "server": {
+          "outcome": "negotiation.semantic_rejected",
+          "slot_errors": [
+            {
+              "slot_name": "policyList",
+              "code": "content.entry_field_missing"
+            },
+            {
+              "slot_name": "policyList",
+              "code": "content.format_error"
+            }
+          ],
+          "params": {}
+        }
+      }
+    }
+  ]
+}

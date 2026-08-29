@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static CI gate for A2A-T prompt templates, their slot JSON Schemas, and Negotiation-T templates."""
+"""Static CI gate for A2A-T prompt templates, their slot JSON Schemas, Negotiation-T templates, and the file-driven negotiation vocabulary."""
 
 from __future__ import annotations
 
@@ -12,75 +12,51 @@ from pathlib import Path
 
 HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 SLOT = re.compile(r"{{\s*([^{}\s]+)\s*}}")
-TASK = {"Task Description", "Task Type", "Task Target", "Task Object", "Task Context", "Constraints", "Expected Output", "Operation Type"}
+TASK = {"Task Description", "Task Type", "Task Target", "Task Object", "Task Context", "Constraints", "Expected Output", "Operation Type", "Terminology Explanation"}
 NOTIFICATION = {"Subscription Description", "Notification Topic", "Subscribe Condition", "Notification Data Format", "Expected Output"}
-AUTHORIZATION = {"Authorization Policy Operation Type", "Authorization Policy Operation Description", "Dynamic Network Operation Authorization Policy List", "Expected Output"}
+AUTHORIZATION = {"Authorization Policy Operation Type", "Authorization Policy Operation Description", "Network Operation Authorization Policy List", "Expected Output"}
 ALIASES = {
     "任务描述": "Task Description", "任务类型": "Task Type", "任务目标": "Task Target", "任务对象": "Task Object",
     "目标对象": "Task Object", "任务上下文": "Task Context", "约束条件": "Constraints", "预期输出": "Expected Output",
     "操作类型": "Operation Type",
+    "术语解释": "Terminology Explanation",
     "订阅描述": "Subscription Description", "通知主题": "Notification Topic", "订阅条件": "Subscribe Condition",
     "通知数据格式": "Notification Data Format", "上报通知数据格式": "Notification Data Format",
     "授权策略的操作类型": "Authorization Policy Operation Type",
     "授权策略的操作描述": "Authorization Policy Operation Description",
-    "动网操作的授权策略列表": "Dynamic Network Operation Authorization Policy List",
+    "动网操作的授权策略列表": "Network Operation Authorization Policy List",
 }
 
 NEGOTIATION_TYPE_SEGMENTS = ("information-negotiation", "target-negotiation", "feasibility-negotiation")
 NEGOTIATION_PHASE_SEGMENTS = ("propose", "accept-reject")
 NEGOTIATION_LANGUAGES = ("zh-CN", "en-US")
-NEGOTIATION_SECTIONS = {
-    "context": ("协商上下文", "Negotiation Context"),
-    "info_static": ("信息协商", "Information Negotiation"),
-    "info_items": ("所需信息项", "Required Information Items"),
-    "info_conclusion": ("信息协商结果", "Information Negotiation Result"),
-    "info_result_content": ("信息协商结果内容", "Information Negotiation Result Content"),
-    "target": ("目标协商", "Target Negotiation"),
-    "target_intent": ("意图理解陈述", "Intent Understanding Statement"),
-    "target_alignment": ("理解对齐与疑问澄清", "Understanding Alignment and Clarification"),
-    "target_clarification": ("待澄清内容", "Content to Clarify"),
-    "target_conclusion": ("目标协商结果", "Target Negotiation Result"),
-    "target_result_content": ("目标协商结果内容", "Target Negotiation Result Content"),
-    "feasibility": ("可行性协商", "Feasibility Negotiation"),
-    "feasibility_evaluate": ("待评估内容说明", "Under Evaluation Description"),
-    "feasibility_infeasible": ("评估不可行时的详情和提案", "Infeasible Evaluation Details and Proposal"),
-    "feasibility_conclusion": ("可行性协商结果", "Feasibility Negotiation Result"),
-    "feasibility_confirm": ("可行性评估结果确认", "Feasibility Assessment Result Confirmation"),
-}
-NEGOTIATION_SLOT_NAMES = {
-    "context": ("协商上下文", "negotiation_context"),
-    "info_items": ("所需信息项", "required_information_items"),
-    "info_conclusion": ("信息协商结果", "information_negotiation_result"),
-    "info_result_content": ("信息协商结果内容", "information_negotiation_result_content"),
-    "target": ("目标协商概述", "target_negotiation_summary"),
-    "target_intent": ("意图理解陈述", "intent_understanding_statement"),
-    "target_alignment": ("理解对齐与疑问澄清", "understanding_alignment_and_clarification"),
-    "target_clarification": ("待澄清内容", "content_to_clarify"),
-    "target_conclusion": ("目标协商结果", "target_negotiation_result"),
-    "target_result_content": ("目标协商结果内容", "target_negotiation_result_content"),
-    "feasibility": ("可行性协商概述", "feasibility_negotiation_summary"),
-    "feasibility_evaluate": ("待评估内容说明", "under_evaluation_description"),
-    "feasibility_infeasible": ("评估不可行时的详情和提案", "infeasible_evaluation_details_and_proposal"),
-    "feasibility_conclusion": ("可行性协商结果", "feasibility_negotiation_result"),
-    "feasibility_confirm": ("评估结果确认", "evaluation_result_confirmation"),
-}
 NEGOTIATION_STATIC_SECTIONS = {"info_static"}
 NEGOTIATION_PROFILES = {
-    ("information-negotiation", "propose"): ("context", "info_static", "info_items"),
-    ("information-negotiation", "accept-reject"): ("context", "info_conclusion", "info_result_content"),
-    ("target-negotiation", "propose"): ("context", "target", "target_intent", "target_alignment", "target_clarification"),
-    ("target-negotiation", "accept-reject"): ("context", "target_conclusion", "target_result_content"),
-    ("feasibility-negotiation", "propose"): ("context", "feasibility", "feasibility_evaluate", "feasibility_infeasible"),
-    ("feasibility-negotiation", "accept-reject"): ("context", "feasibility_conclusion", "feasibility_confirm"),
-}
-NEGOTIATION_TITLE_LOOKUP = {
-    title: (key, language)
-    for key, titles in NEGOTIATION_SECTIONS.items()
-    for language, title in zip(NEGOTIATION_LANGUAGES, titles)
+    ("information-negotiation", "propose"): ("info_static", "info_items"),
+    ("information-negotiation", "accept-reject"): ("info_conclusion", "info_result_content"),
+    ("target-negotiation", "propose"): ("target", "target_intent", "target_alignment", "target_clarification", "target_confirm_request"),
+    ("target-negotiation", "accept-reject"): ("target_conclusion", "target_result_content"),
+    ("feasibility-negotiation", "propose"): ("feasibility", "feasibility_evaluate", "feasibility_infeasible", "feasibility_confirm_request"),
+    ("feasibility-negotiation", "accept-reject"): ("feasibility_conclusion", "feasibility_confirm"),
 }
 NEGOTIATION_MARKER = re.compile(
     r"^\{\{(?P<slot>[^{}]+)\}\}(?:(?P<zh>（(?P<zh_kind>必填|选填)）)| \((?P<en_kind>required|optional)\))\s*$"
 )
+
+ERROR_CATALOG_DEFAULT = Path(__file__).resolve().parent.parent / "a2a-t-core/src/main/java/net/openan/a2at/sdk/core/exception/ErrorCatalog.java"
+ERROR_TEMPLATE_LANGUAGES = ("zh-CN", "en-US")
+# Error codes are layered 'domain.semantic' tokens; plain snake_case words are only trusted in "code": "..." values.
+ERROR_CODE_TOKEN = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$")
+ERROR_CATALOG_ENTRY = re.compile(
+    r'\(\s*"(?P<code>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+)",\s*Category\.(?:BUSINESS|INFRA)(?P<rest>[^)]*)\)'
+)
+ERROR_TEMPLATE_PLACEHOLDER = re.compile(r"\{([a-zA-Z][a-zA-Z0-9_]*)\}")
+PROMPT_JSON_CODE_VALUE = re.compile(r'"code"\s*:\s*"([^"]*)"')
+PROMPT_LIST_CODE_DEFINITION = re.compile(r"^\s*[-*]\s+(?:\*\*)?([a-z][a-z0-9_.]*)(?:\*\*)?\s*[：:]\s")
+PROMPT_BACKTICK_CODE = re.compile(r"`([a-z][a-z0-9_.]+)`")
+# Tokens that look like error codes but are known not to be codes.
+PROMPT_CODE_ALLOWLIST = {"string", "e.g", "i.e"}
+PROMPT_CODE_ALLOWLIST_PREFIXES = ("section.",)
 
 
 def error(path: Path, line: int, rule: str, message: str) -> str:
@@ -172,14 +148,104 @@ def lint_pair(template_path: Path, schema_path: Path) -> list[str]:
     return errors
 
 
-def negotiation_section_title(key: str, language: str) -> str:
-    titles = NEGOTIATION_SECTIONS[key]
-    return titles[0] if language == "zh-CN" else titles[1]
+def _reject_duplicate_keys(pairs: list[tuple[str, str]]) -> dict[str, str]:
+    seen: set[str] = set()
+    for key, _ in pairs:
+        if key in seen:
+            raise ValueError(f"duplicate key '{key}'")
+        seen.add(key)
+    return dict(pairs)
 
 
-def negotiation_slot_name(key: str, language: str) -> str:
-    titles = NEGOTIATION_SLOT_NAMES[key]
-    return titles[0] if language == "zh-CN" else titles[1]
+def load_negotiation_vocabularies(resource_root: Path) -> tuple[dict[str, dict[str, str]], list[str]]:
+    """Loads negotiation-vocabulary/{lang}/vocabulary.json for both languages from the resource root.
+
+    The vocabulary files are the single source of the Negotiation-T section titles and slot marker names; the tables
+    are no longer hardcoded here. Both language files must exist, parse into a flat string-to-string object without
+    duplicate keys or blank values, expose identical key sets, and carry every section.*/slot.* key the template
+    profiles reference.
+    """
+    vocabulary_root = resource_root / "negotiation-vocabulary"
+    if not vocabulary_root.is_dir():
+        return {}, [error(vocabulary_root, 1, "negotiation-vocabulary", "Missing negotiation-vocabulary directory.")]
+    errors: list[str] = []
+    for entry in sorted(vocabulary_root.iterdir()):
+        if entry.is_dir() and entry.name not in NEGOTIATION_LANGUAGES:
+            errors.append(
+                error(entry, 1, "negotiation-vocabulary", f"Unexpected negotiation vocabulary language directory: {entry.name}.")
+            )
+    vocabularies: dict[str, dict[str, str]] = {}
+    for language in NEGOTIATION_LANGUAGES:
+        path = vocabulary_root / language / "vocabulary.json"
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            errors.append(error(path, 1, "negotiation-vocabulary", f"Cannot load negotiation vocabulary: {exc}"))
+            continue
+        if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
+            errors.append(error(path, 1, "negotiation-vocabulary", "Vocabulary must be a flat JSON object mapping keys to strings."))
+            continue
+        blank_keys = sorted(key for key, value in data.items() if not value.strip())
+        if blank_keys:
+            errors.append(
+                error(path, 1, "negotiation-vocabulary-blank-value", f"Blank values are not allowed: {', '.join(blank_keys)}.")
+            )
+            continue
+        vocabularies[language] = data
+    if len(vocabularies) == len(NEGOTIATION_LANGUAGES):
+        zh_keys, en_keys = set(vocabularies["zh-CN"]), set(vocabularies["en-US"])
+        if zh_keys != en_keys:
+            details = []
+            missing_in_en = sorted(zh_keys - en_keys)
+            missing_in_zh = sorted(en_keys - zh_keys)
+            if missing_in_en:
+                details.append("missing in en-US: " + ", ".join(missing_in_en))
+            if missing_in_zh:
+                details.append("missing in zh-CN: " + ", ".join(missing_in_zh))
+            errors.append(
+                error(
+                    vocabulary_root / "en-US" / "vocabulary.json",
+                    1,
+                    "negotiation-vocabulary-parity",
+                    f"zh-CN and en-US vocabulary key sets differ ({'; '.join(details)}).",
+                )
+            )
+    required_section_keys = set(NEGOTIATION_STATIC_SECTIONS)
+    for keys in NEGOTIATION_PROFILES.values():
+        required_section_keys.update(keys)
+    required_slot_keys = required_section_keys - NEGOTIATION_STATIC_SECTIONS
+    for language in list(vocabularies):
+        path = vocabulary_root / language / "vocabulary.json"
+        vocabulary = vocabularies[language]
+        usable = True
+        for section_key in sorted(required_section_keys):
+            if f"section.{section_key}" not in vocabulary:
+                errors.append(error(path, 1, "negotiation-vocabulary-key", f"Missing required key 'section.{section_key}'."))
+                usable = False
+        for slot_key in sorted(required_slot_keys):
+            if f"slot.{slot_key}" not in vocabulary:
+                errors.append(error(path, 1, "negotiation-vocabulary-key", f"Missing required key 'slot.{slot_key}'."))
+                usable = False
+        if not usable:
+            del vocabularies[language]
+    return vocabularies, errors
+
+
+def negotiation_title_lookup(vocabularies: dict[str, dict[str, str]]) -> dict[str, tuple[str, str]]:
+    lookup: dict[str, tuple[str, str]] = {}
+    for language in NEGOTIATION_LANGUAGES:
+        for key, value in vocabularies.get(language, {}).items():
+            if key.startswith("section."):
+                lookup.setdefault(value, (key[len("section."):], language))
+    return lookup
+
+
+def negotiation_section_title(vocabulary: dict[str, str], key: str) -> str:
+    return vocabulary[f"section.{key}"]
+
+
+def negotiation_slot_name(vocabulary: dict[str, str], key: str) -> str:
+    return vocabulary[f"slot.{key}"]
 
 
 def negotiation_requirements_label(language: str) -> str:
@@ -200,7 +266,12 @@ def parse_negotiation_sections(lines: list[str]) -> list[dict]:
 
 
 def lint_negotiation_file(
-    path: Path, language: str, type_segment: str, phase_segment: str
+    path: Path,
+    language: str,
+    type_segment: str,
+    phase_segment: str,
+    vocabulary: dict[str, str],
+    title_lookup: dict[str, tuple[str, str]],
 ) -> tuple[list[str], list[tuple[str, bool | None, bool, int]] | None]:
     errors: list[str] = []
     try:
@@ -221,7 +292,7 @@ def lint_negotiation_file(
     seen: set[str] = set()
     for section in sections:
         title, line_no, body = section["title"], section["line"], section["body"]
-        lookup = NEGOTIATION_TITLE_LOOKUP.get(title)
+        lookup = title_lookup.get(title)
         if lookup is None:
             errors.append(error(path, line_no, "negotiation-section-name", f"'{title}' is not a recognized Negotiation-T section title."))
             continue
@@ -260,17 +331,15 @@ def lint_negotiation_file(
             errors.append(
                 error(path, marker_line_no, "negotiation-slot-marker", f"Slot marker in {language} template must use {language} punctuation (full-width for zh-CN, ' (required)'/' (optional)' for en-US).")
             )
-        expected_slot = negotiation_slot_name(key, language)
+        expected_slot = negotiation_slot_name(vocabulary, key)
         if marker.group("slot") != expected_slot:
             errors.append(error(path, marker_line_no, "negotiation-slot-name", f"Slot name '{{{{{marker.group('slot')}}}}}' must be '{expected_slot}'."))
         if not any(text.rstrip() == requirements_label for _, text in body):
             errors.append(error(path, line_no, "negotiation-requirements", f"Slot section '{title}' must contain a '{requirements_label}' line."))
-        if key == "context" and required is not True:
-            errors.append(error(path, marker_line_no, "negotiation-context", "The negotiation context section must be marked as required."))
         shape.append((key, required, marker.group("slot") == expected_slot, line_no))
     for key in profile:
         if key not in seen:
-            errors.append(error(path, 1, "negotiation-section-missing", f"Missing required section '{negotiation_section_title(key, language)}'."))
+            errors.append(error(path, 1, "negotiation-section-missing", f"Missing required section '{negotiation_section_title(vocabulary, key)}'."))
     return errors, shape
 
 
@@ -298,27 +367,40 @@ def lint_negotiation_alignment(
     return errors
 
 
-def lint_negotiation(templates_dir: Path) -> list[str]:
+def lint_negotiation(templates_dir: Path, vocabularies: dict[str, dict[str, str]]) -> list[str]:
     negotiation_root = templates_dir / "Negotiation-T"
     if not negotiation_root.is_dir():
         return [error(negotiation_root, 1, "negotiation-file-set", "Missing Negotiation-T templates directory.")]
     expected = {
-        Path("v1") / type_segment / phase_segment / language / "template.md"
+        Path(type_segment) / phase_segment / "v1" / language / "template.md"
         for type_segment in NEGOTIATION_TYPE_SEGMENTS
         for phase_segment in NEGOTIATION_PHASE_SEGMENTS
+        for language in NEGOTIATION_LANGUAGES
+    } | {
+        Path("common") / "abort" / "v1" / language / "template.md"
         for language in NEGOTIATION_LANGUAGES
     }
     errors: list[str] = []
     shapes: dict[tuple[str, str, str], list[tuple] | None] = {}
     found: set[Path] = set()
+    title_lookup = negotiation_title_lookup(vocabularies)
     for path in sorted(negotiation_root.rglob("template.md")):
         relative = path.relative_to(negotiation_root)
         if relative not in expected:
             errors.append(error(path, 1, "negotiation-file-set", f"Unexpected Negotiation-T template location: {relative}"))
             continue
         found.add(relative)
-        _, type_segment, phase_segment, language, _ = relative.parts
-        file_errors, shape = lint_negotiation_file(path, language, type_segment, phase_segment)
+        parts = relative.parts
+        if parts[0] == "common":
+            continue
+        type_segment, phase_segment, _, language, _ = parts
+        vocabulary = vocabularies.get(language)
+        if vocabulary is None:
+            # The vocabulary errors were already reported; without a usable vocabulary the per-file checks cannot run.
+            continue
+        file_errors, shape = lint_negotiation_file(
+            path, language, type_segment, phase_segment, vocabulary, title_lookup
+        )
         errors.extend(file_errors)
         shapes[(type_segment, phase_segment, language)] = shape
     for relative in sorted(expected - found):
@@ -329,34 +411,164 @@ def lint_negotiation(templates_dir: Path) -> list[str]:
             en_shape = shapes.get((type_segment, phase_segment, "en-US"))
             if zh_shape is None or en_shape is None:
                 continue
-            base = negotiation_root / "v1" / type_segment / phase_segment
+            base = negotiation_root / type_segment / phase_segment / "v1"
             errors.extend(lint_negotiation_alignment(base / "zh-CN" / "template.md", base / "en-US" / "template.md", zh_shape, en_shape))
     return errors
 
 
-def lint_root(root: Path) -> list[str]:
+def load_error_catalog(catalog_path: Path) -> tuple[dict[str, list[str]], list[str]]:
+    """Parses the ErrorCatalog enum source into an ordered {code: fact parameter names} table."""
+    try:
+        text = catalog_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {}, [error(catalog_path, 1, "error-catalog", f"Cannot read ErrorCatalog source: {exc}")]
+    errors: list[str] = []
+    catalog: dict[str, list[str]] = {}
+    for match in ERROR_CATALOG_ENTRY.finditer(text):
+        code = match.group("code")
+        if code in catalog:
+            errors.append(error(catalog_path, 1, "error-catalog", f"Duplicate catalog code '{code}'."))
+            continue
+        catalog[code] = re.findall(r'"([a-z0-9_]+)"', match.group("rest"))
+    if not catalog:
+        errors.append(error(catalog_path, 1, "error-catalog", "No catalog entries found in the ErrorCatalog source."))
+    return catalog, errors
+
+
+def load_error_templates(resource_root: Path, language: str) -> tuple[dict[str, str], list[str]]:
+    """Loads errors/{language}/errors.json as a flat code-to-template object."""
+    path = resource_root / "errors" / language / "errors.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        return {}, [error(path, 1, "error-template", f"Cannot load error message templates: {exc}")]
+    if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
+        return {}, [error(path, 1, "error-template", "Error message templates must be a flat JSON object mapping codes to strings.")]
+    blank = sorted(key for key, value in data.items() if not value.strip())
+    if blank:
+        return {}, [error(path, 1, "error-template-blank-value", f"Blank templates are not allowed: {', '.join(blank)}.")]
+    return data, []
+
+
+def allowed_prompt_code_token(token: str) -> bool:
+    """Returns whether one token is a known non-code token (allowlist with optional prefixes)."""
+    return token in PROMPT_CODE_ALLOWLIST or token.startswith(PROMPT_CODE_ALLOWLIST_PREFIXES)
+
+
+def lint_prompt_error_codes(prompts_dir: Path, catalog: set[str]) -> list[str]:
+    """Verifies every error code token quoted in the prompt resources is part of the ErrorCatalog.
+
+    Tokens are collected from three code-bearing positions: values of "code": "..." JSON keys (snake_case trusted
+    there), backtick-quoted tokens, and list-leading definitions such as '- content.param_missing: ...' (dotted
+    tokens only in the latter two, because snake_case words in those positions are usually field names).
+    """
+    errors: list[str] = []
+    for path in sorted(prompts_dir.rglob("*.md")):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            errors.append(error(path, 1, "prompt-error-code", f"Cannot read prompt: {exc}"))
+            continue
+        tokens: dict[str, int] = {}
+        for line_no, line in enumerate(lines, 1):
+            for value in PROMPT_JSON_CODE_VALUE.findall(line):
+                for token in value.split("|"):
+                    token = token.strip()
+                    if token and (ERROR_CODE_TOKEN.fullmatch(token) or re.fullmatch(r"[a-z][a-z0-9_]*", token)):
+                        tokens.setdefault(token, line_no)
+            match = PROMPT_LIST_CODE_DEFINITION.match(line)
+            if match and "." in match.group(1):
+                tokens.setdefault(match.group(1), line_no)
+            for token in PROMPT_BACKTICK_CODE.findall(line):
+                if "." in token:
+                    tokens.setdefault(token, line_no)
+        for token, line_no in sorted(tokens.items()):
+            if token not in catalog and not allowed_prompt_code_token(token):
+                errors.append(
+                    error(path, line_no, "prompt-error-code", f"Error code '{token}' is not part of the ErrorCatalog.")
+                )
+    return errors
+
+
+def lint_error_codes(resource_root: Path, catalog_path: Path) -> list[str]:
+    """Verifies the catalog, its message templates, and the prompt code sets stay consistent."""
+    errors: list[str] = []
+    catalog, catalog_errors = load_error_catalog(catalog_path)
+    errors.extend(catalog_errors)
+    templates: dict[str, dict[str, str]] = {}
+    for language in ERROR_TEMPLATE_LANGUAGES:
+        data, template_errors = load_error_templates(resource_root, language)
+        errors.extend(template_errors)
+        templates[language] = data
+        for code in sorted(set(data) - set(catalog)):
+            path = resource_root / "errors" / language / "errors.json"
+            errors.append(error(path, 1, "error-template-unknown-code", f"Template code '{code}' is not in the ErrorCatalog."))
+    if not catalog:
+        return errors
+    for language, data in templates.items():
+        path = resource_root / "errors" / language / "errors.json"
+        for code in sorted(set(catalog) - set(data)):
+            errors.append(error(path, 1, "error-template-missing", f"Missing {language} message template for catalog code '{code}'."))
+        for code, facts in catalog.items():
+            template = data.get(code)
+            if template is None:
+                continue
+            for placeholder in sorted(set(ERROR_TEMPLATE_PLACEHOLDER.findall(template))):
+                if placeholder not in facts:
+                    errors.append(
+                        error(
+                            path,
+                            1,
+                            "error-template-placeholder",
+                            f"Placeholder '{{{placeholder}}}' of code '{code}' ({language}) is not a declared fact parameter.",
+                        )
+                    )
+    prompts_dir = resource_root / "prompts"
+    if prompts_dir.is_dir():
+        errors.extend(lint_prompt_error_codes(prompts_dir, set(catalog)))
+    else:
+        errors.append(error(prompts_dir, 1, "error-catalog", "Missing prompts directory."))
+    return errors
+
+
+def lint_root(root: Path, catalog_path: Path) -> list[str]:
     templates, slots = root / "templates", root / "slots"
     if not templates.is_dir():
         return [error(templates, 1, "resource-root", "Missing templates directory.")]
     if not slots.is_dir():
         return [error(slots, 1, "resource-root", "Missing slots directory.")]
     errors: list[str] = []
-    for template_path in sorted(templates.glob("*/v1/*/*/template.md")):
-        schema_path = slots / template_path.relative_to(templates).parent / "slot.json"
-        if schema_path.is_file():
-            errors.extend(lint_pair(template_path, schema_path))
-    for schema_path in sorted(slots.glob("*/v1/*/*/slot.json")):
-        template_path = templates / schema_path.relative_to(slots).parent / "template.md"
-        if not template_path.is_file():
-            errors.append(error(schema_path, 1, "template-missing", f"Missing paired template: {template_path}"))
-    errors.extend(lint_negotiation(templates))
+    # Layouts: <type>/network-layer/<scenario>/v1/<lang> for Task-T/Notification-T,
+    # and <type>/<scenario>/v1/<lang> for Authorization-T.
+    template_globs = ("*/network-layer/*/v1/*/template.md", "*/*/v1/*/template.md")
+    for pattern in template_globs:
+        for template_path in sorted(templates.glob(pattern)):
+            schema_path = slots / template_path.relative_to(templates).parent / "slot.json"
+            if schema_path.is_file():
+                errors.extend(lint_pair(template_path, schema_path))
+    for pattern in template_globs:
+        for schema_path in sorted(slots.glob(pattern.replace("template.md", "slot.json"))):
+            template_path = templates / schema_path.relative_to(slots).parent / "template.md"
+            if not template_path.is_file():
+                errors.append(error(schema_path, 1, "template-missing", f"Missing paired template: {template_path}"))
+    vocabularies, vocabulary_errors = load_negotiation_vocabularies(root)
+    errors.extend(vocabulary_errors)
+    errors.extend(lint_negotiation(templates, vocabularies))
+    errors.extend(lint_error_codes(root, catalog_path))
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--resource-root", type=Path, required=True)
-    errors = lint_root(parser.parse_args().resource_root)
+    parser.add_argument(
+        "--catalog-source",
+        type=Path,
+        default=ERROR_CATALOG_DEFAULT,
+        help="Path of the ErrorCatalog.java enum source backing the error-code checks.",
+    )
+    arguments = parser.parse_args()
+    errors = lint_root(arguments.resource_root, arguments.catalog_source)
     for item in errors:
         print(item, file=sys.stderr)
     if errors:

@@ -18,14 +18,17 @@ import java.util.List;
 import java.util.Map;
 import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMClientConfig;
 import net.openan.a2at.sdk.llm.LLMClientFactory;
-import net.openan.a2at.sdk.llm.LLMRuntimeError;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.llm.LLMRuntimeError;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
@@ -38,9 +41,10 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Drives the env-configured negotiation behavior of the client facade end to end.
  *
- * <p>All three negotiation-relevant env keys must become observable in the facade behavior: the language selects the
- * Chinese templates, the local resource root overrides one template, and the LLM attempt limit bounds the retry loop of
- * the from-text generation. A second test proves the zero-configuration defaults (English templates, three attempts,
+ * <p>The negotiation-relevant env keys must become observable in the facade behavior: the language selects the Chinese
+ * templates, and the LLM attempt limit bounds the retry loop of the from-text generation. The negotiation templates are
+ * classpath-fixed, so a configured local resource root is ignored in {@code classpath} mode: the built-in template wins
+ * over any local override. A second test proves the zero-configuration defaults (English templates, three attempts,
  * built-in resources) work out of the box.
  */
 class A2ATClientNegotiationEnvConfigTest {
@@ -56,7 +60,9 @@ class A2ATClientNegotiationEnvConfigTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String INFORMATION_PROPOSE_URI = "Negotiation-T/v1/information-negotiation/propose";
+    private static final TemplateUri INFORMATION_PROPOSE = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
+
+    private static final String INFORMATION_PROPOSE_URI = INFORMATION_PROPOSE.uri();
 
     private static final String CUSTOM_TEMPLATE_MARKER = "CUSTOM-TEMPLATE-MARKER-7d31";
 
@@ -83,7 +89,7 @@ class A2ATClientNegotiationEnvConfigTest {
     }
 
     @Test
-    void languageLocalRootAndMaxAttemptsAreAllObservableInFacadeBehavior() throws IOException {
+    void languageAndMaxAttemptsAreObservableAndClasspathIgnoresLocalRoot() throws IOException {
         Path customRoot = writeCustomRootWithMarkeredTemplate();
         Path envFile = writeEnvFile(
                 "A2AT_LANGUAGE=zh-CN",
@@ -99,19 +105,21 @@ class A2ATClientNegotiationEnvConfigTest {
 
         MetadataContent result = client.generateNegotiationProposePromptFromData(
                 new NegotiationProposeData(
-                        new NegotiationContext(UUID, 1, 5),
-                        new InfoProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
-                INFORMATION_PROPOSE_URI);
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        new InformationProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
+                INFORMATION_PROPOSE);
 
-        assertTrue(result.promptText().contains("协商上下文"), "the zh-CN language must select the Chinese templates");
-        assertTrue(
+        assertTrue(result.promptText().contains("所需信息项"), "the zh-CN language must select the Chinese templates");
+        assertFalse(
                 result.promptText().contains(CUSTOM_TEMPLATE_MARKER),
-                "the local resource root template must win over the built-in template");
+                "the configured local resource root must be ignored in classpath mode and the built-in template used");
 
         NegotiationGenerationException failure = assertThrows(
                 NegotiationGenerationException.class,
                 () -> client.generateNegotiationProposePromptFromText(
-                        "请提供节能区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI));
+                        "请提供节能区域。",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE));
         assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, failure.getCode());
         assertEquals(
                 1,
@@ -131,21 +139,21 @@ class A2ATClientNegotiationEnvConfigTest {
 
         MetadataContent result = client.generateNegotiationProposePromptFromData(
                 new NegotiationProposeData(
-                        new NegotiationContext(UUID, 1, 5),
-                        new InfoProposeContent(List.of(new NegotiationItem("Region", "Songshan Lake")), null)),
-                INFORMATION_PROPOSE_URI);
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        new InformationProposeContent(List.of(new NegotiationItem("Region", "Songshan Lake")), null)),
+                INFORMATION_PROPOSE);
 
-        assertTrue(result.promptText().contains("Negotiation Context"), "the default language must be en-US");
+        assertTrue(result.promptText().contains("## Information Negotiation"), "the default language must be en-US");
         assertTrue(result.promptText().contains("Required Information Items"));
-        assertEquals(6, client.getNegotiationPrompts().size(), "the built-in resources must be used by default");
-        assertTrue(client.getNegotiationPrompt(INFORMATION_PROPOSE_URI).isPresent());
+        assertEquals(7, negotiationPrompts(client).size(), "the built-in resources must be used by default");
+        assertTrue(client.getPrompt(INFORMATION_PROPOSE).isPresent());
 
         assertThrows(
                 NegotiationGenerationException.class,
                 () -> client.generateNegotiationProposePromptFromText(
-                        "Provide the energy-saving region.",
-                        new NegotiationContext(UUID, 1, 5),
-                        INFORMATION_PROPOSE_URI));
+                        "Provide the ran-energy-saving region.",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE));
         assertEquals(
                 2,
                 retryEventCount(),
@@ -159,13 +167,20 @@ class A2ATClientNegotiationEnvConfigTest {
         return envFile;
     }
 
+    private static List<net.openan.a2at.sdk.core.model.PromptTemplate> negotiationPrompts(A2ATClient client) {
+        return client.getPrompts().stream()
+                .filter(template -> StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
+    }
+
     private Path writeCustomRootWithMarkeredTemplate() throws IOException {
         Path customTemplate = tempDir.resolve("custom-root")
                 .resolve("templates")
                 .resolve("Negotiation-T")
-                .resolve("v1")
                 .resolve("information-negotiation")
                 .resolve("propose")
+                .resolve("v1")
                 .resolve("zh-CN")
                 .resolve("template.md");
         Files.createDirectories(customTemplate.getParent());
@@ -177,10 +192,11 @@ class A2ATClientNegotiationEnvConfigTest {
     }
 
     private static String builtinTemplate(String templateUri, String language) throws IOException {
-        String typeSegment = templateUri.split("/")[2];
-        String phaseSegment = templateUri.split("/")[3];
-        String classpathPath = "prompt_resources/templates/Negotiation-T/v1/" + typeSegment + "/" + phaseSegment + "/"
-                + language + "/template.md";
+        String[] segments = templateUri.split("/");
+        String typeSegment = segments[1];
+        String phaseSegment = segments[2];
+        String classpathPath = "prompt_resources/templates/Negotiation-T/" + typeSegment + "/" + phaseSegment + "/"
+                + TemplateUri.DEFAULT_TEMPLATE_VERSION + "/" + language + "/template.md";
         InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(classpathPath);
         assertFalse(stream == null, "the built-in template must exist on the classpath: " + classpathPath);
         try (stream) {

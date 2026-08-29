@@ -74,6 +74,12 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
@@ -120,15 +126,56 @@
                                 <property
                                         name="sample.jar.path"
                                         value="${project.build.directory}${file.separator}${project.build.finalName}.jar" />
-                                <echo file="${project.build.directory}/server.javaargs.txt">-cp
-${sample.jar.path}${path.separator}${sample.runtime.classpath}
-net.openan.a2at.sample.subscribe_incident.server.ServerSampleMain
-server.env
+                                <echo file="${project.build.directory}/sample.args">-cp
+ ${sample.jar.path}${path.separator}${sample.runtime.classpath}
 </echo>
-                                <echo file="${project.build.directory}/client.javaargs.txt">-cp
+                                <echo file="${project.build.directory}/negotiation-server.javaargs.txt">-cp
 ${sample.jar.path}${path.separator}${sample.runtime.classpath}
-net.openan.a2at.sample.subscribe_incident.client.ClientSampleMain
-client.env
+net.openan.a2at.sample.private_line_complaint.negotiation.server.NegotiationServerMain
+</echo>
+                                <echo file="${project.build.directory}/negotiation-client.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.private_line_complaint.negotiation.client.NegotiationClientMain
+</echo>
+                                <echo file="${project.build.directory}/negotiation-qwen-evaluation.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.private_line_complaint.negotiation.evaluation.NegotiationQwenEvaluationMain
+</echo>
+                                <echo file="${project.build.directory}/negotiation-abnormal-evaluation.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.private_line_complaint.negotiation.evaluation.NegotiationAbnormalEvaluationMain
+</echo>
+                                <echo file="${project.build.directory}/negotiation-business-abnormal-evaluation.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.private_line_complaint.negotiation.evaluation.NegotiationBusinessAbnormalEvaluationMain
+</echo>
+                                <echo file="${project.build.directory}/negotiation.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.negotiation.NegotiationDemoApp
+</echo>
+                                <echo file="${project.build.directory}/eval.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.negotiation.eval.NegotiationEvalApp
+</echo>
+                                <echo file="${project.build.directory}/fromdata-eval.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.negotiation.eval.NegotiationFromDataApiEvalApp
+</echo>
+<echo file="${project.build.directory}/taskt.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.task_t.TaskTDemoMain
+</echo>
+                                <echo file="${project.build.directory}/service-recovery-server.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.service_recovery.server.ServerSampleMain
+</echo>
+                                <echo file="${project.build.directory}/service-recovery-client.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.service_recovery.client.ClientSampleMain
+</echo>
+                                <echo file="${project.build.directory}/authz.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.authz_policy.AuthzSampleMain
 </echo>
                             </target>
                         </configuration>

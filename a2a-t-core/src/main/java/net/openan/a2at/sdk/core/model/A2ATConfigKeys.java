@@ -54,6 +54,12 @@ public final class A2ATConfigKeys {
         /** Request timeout in seconds. */
         public static final String TIMEOUT_SECONDS = "A2AT_LLM_TIMEOUT_SECONDS";
 
+        /** Disables use of the JVM or operating-system HTTP proxy for the LLM request. */
+        public static final String DISABLE_SYSTEM_PROXY = "A2AT_LLM_DISABLE_SYSTEM_PROXY";
+
+        /** Optional reasoning effort level for reasoning models (none/minimal/low/medium/high/xhigh). */
+        public static final String REASONING_EFFORT = "A2AT_LLM_REASONING_EFFORT";
+
         /** Maximum total number of tracked sessions. */
         public static final String SESSION_MAX_TOTAL = "A2AT_LLM_SESSION_MAX_TOTAL";
 
@@ -70,6 +76,14 @@ public final class A2ATConfigKeys {
 
         /** Selects the negotiation state store implementation (e.g., in_memory). */
         public static final String STATE_STORE_TYPE = "A2AT_NEGOTIATION_STATE_STORE_TYPE";
+    }
+
+    /** Input limit configuration keys. */
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static final class Input {
+
+        /** Maximum length in characters accepted for free-text inputs before they reach an LLM step. */
+        public static final String MAX_TEXT_CHARS = "A2AT_INPUT_TEXT_MAX_CHARS";
     }
 
     /** Prompt compliance configuration keys. */

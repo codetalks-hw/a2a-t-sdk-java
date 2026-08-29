@@ -11,12 +11,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.core.model.FilledParamData;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
@@ -35,7 +38,7 @@ class NegotiationConcurrentMixedLoadTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String INFORMATION_PROPOSE_URI = "Negotiation-T/v1/information-negotiation/propose";
+    private static final TemplateUri INFORMATION_PROPOSE_URI = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
 
     private static final int THREADS = 12;
 
@@ -51,13 +54,16 @@ class NegotiationConcurrentMixedLoadTest {
                 .build();
 
         NegotiationProposeData proposeData = new NegotiationProposeData(
-                new NegotiationContext(UUID, 1, 5),
-                new InfoProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null));
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                new InformationProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null));
         MetadataContent fromDataBase = orchestrator.generateProposeFromData(proposeData, INFORMATION_PROPOSE_URI);
         MetadataContent fromTextBase = orchestrator.generateProposeFromText(
-                "请提供节能区域信息。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI);
-        FilledParamData validateBase = orchestrator.validateAndFillingProposeData(
-                fromDataBase.promptText(), Map.of("type", "object"), INFORMATION_PROPOSE_URI);
+                "请提供节能区域信息。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE_URI);
+        FilledParamData validateBase = orchestrator.validateProposePromptAndDataFilling(
+                fromDataBase.promptText(),
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                Map.of("type", "object"),
+                INFORMATION_PROPOSE_URI);
         int baselineExtractionCalls = llm.extractionCalls.get();
         int baselineSemanticCalls = llm.semanticCalls.get();
 
@@ -77,14 +83,17 @@ class NegotiationConcurrentMixedLoadTest {
                 fromTextThreads++;
                 workers.add(callableOf(() -> {
                     MetadataContent result = orchestrator.generateProposeFromText(
-                            "请提供节能区域信息。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI);
+                            "请提供节能区域信息。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE_URI);
                     assertEquals(fromTextBase.promptText(), result.promptText(), "from-text baseline");
                 }));
             } else {
                 validateThreads++;
                 workers.add(callableOf(() -> {
-                    FilledParamData filled = orchestrator.validateAndFillingProposeData(
-                            fromDataBase.promptText(), Map.of("type", "object"), INFORMATION_PROPOSE_URI);
+                    FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
+                            fromDataBase.promptText(),
+                            new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                            Map.of("type", "object"),
+                            INFORMATION_PROPOSE_URI);
                     assertEquals(validateBase.data(), filled.data(), "validation baseline");
                 }));
             }

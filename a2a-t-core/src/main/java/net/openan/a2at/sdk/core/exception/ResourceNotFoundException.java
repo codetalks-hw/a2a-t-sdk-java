@@ -1,11 +1,13 @@
 package net.openan.a2at.sdk.core.exception;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Raised when a referenced SDK resource cannot be resolved.
  *
  * @since 2026-06
  */
-public final class ResourceNotFoundException extends SdkException {
+public final class ResourceNotFoundException extends A2ATError {
 
     private final String resourcePath;
 
@@ -15,7 +17,7 @@ public final class ResourceNotFoundException extends SdkException {
      * @param message failure message
      * @param resourcePath missing classpath resource path
      */
-    public ResourceNotFoundException(String message, String resourcePath) {
+    public ResourceNotFoundException(String message, @NonNull String resourcePath) {
         super(message);
         this.resourcePath = resourcePath;
     }
@@ -25,7 +27,7 @@ public final class ResourceNotFoundException extends SdkException {
      *
      * @return missing resource path
      */
-    public String resourcePath() {
+    public @NonNull String resourcePath() {
         return resourcePath;
     }
 }

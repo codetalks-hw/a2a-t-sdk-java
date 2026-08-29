@@ -7,53 +7,64 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.core.validation.ContentValidationException;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.core.model.FilledParamData;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.runtime.NegotiationHandler;
+import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 
 class NegotiationGenerationOrchestratorTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String INFORMATION_PROPOSE_URI = "Negotiation-T/v1/information-negotiation/propose";
+    private static final TemplateUri INFORMATION_PROPOSE = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
+
+    private static final String INFORMATION_PROPOSE_URI = INFORMATION_PROPOSE.uri();
 
     @Test
     void generatesInformationProposeFromDataInChinese() {
         MetadataContent result = zhOrchestrator()
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 1, 5),
-                                new InfoProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
-                        INFORMATION_PROPOSE_URI);
+                                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                                new InformationProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
+                        INFORMATION_PROPOSE);
 
         assertEquals(INFORMATION_PROPOSE_URI, result.templateUri());
         assertEquals(NegotiationHandler.NEGOTIATION_T_URI, result.extensionUri());
         assertFalse(result.promptText().isBlank());
-        assertTrue(result.promptText().contains("- id: " + UUID));
-        assertTrue(result.promptText().contains("- round: 1"));
-        assertTrue(result.promptText().contains("- maxRounds: 5"));
-        assertTrue(result.promptText().contains("协商上下文"));
+        assertFalse(result.promptText().contains("协商上下文"), "the context section must not be rendered");
         assertTrue(result.promptText().contains("所需信息项"));
 
-        Map<String, String> metadata = result.buildMetadataContent();
-        assertEquals(2, metadata.size());
+        Map<String, Object> metadata = result.buildMetadataContent();
+        assertEquals(3, metadata.size());
         assertEquals(result.promptText(), metadata.get(NegotiationHandler.NEGOTIATION_T_URI));
         assertEquals(result.templateUri(), metadata.get(MetadataContent.TEMPLATE_URI_METADATA_KEY));
+        assertEquals(new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), result.negotiationContext());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> nestedContext =
+                (Map<String, Object>) metadata.get(MetadataContent.NEGOTIATION_CONTEXT_METADATA_KEY);
+        assertEquals(UUID, nestedContext.get("id"));
+        assertEquals(1, nestedContext.get("round"));
+        assertEquals(5, nestedContext.get("maxRounds"));
+        assertEquals("PROPOSE", nestedContext.get("performative"));
     }
 
     @Test
@@ -61,14 +72,15 @@ class NegotiationGenerationOrchestratorTest {
         MetadataContent result = orchestrator("en-US")
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 2, 5),
-                                new InfoProposeContent(List.of(new NegotiationItem("Region", "Songshan Lake")), null)),
-                        INFORMATION_PROPOSE_URI);
+                                new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
+                                new InformationProposeContent(
+                                        List.of(new NegotiationItem("Region", "Songshan Lake")), null)),
+                        INFORMATION_PROPOSE);
 
         assertEquals(INFORMATION_PROPOSE_URI, result.templateUri());
         assertFalse(result.promptText().isBlank());
-        assertTrue(result.promptText().contains("- id: " + UUID));
-        assertTrue(result.promptText().contains("Negotiation Context"));
+        assertFalse(result.promptText().contains("Negotiation Context"), "the context section must not be rendered");
+        assertEquals(new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE), result.negotiationContext());
         assertTrue(result.promptText().contains("Required Information Items"));
     }
 
@@ -82,12 +94,12 @@ class NegotiationGenerationOrchestratorTest {
                 .build();
 
         MetadataContent result = orchestrator.generateProposeFromText(
-                "请提供故障发生时间。", new NegotiationContext(UUID, 2, 5), INFORMATION_PROPOSE_URI);
+                "请提供故障发生时间。", new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE);
 
         assertEquals(1, llm.calls);
         assertEquals(INFORMATION_PROPOSE_URI, result.templateUri());
         assertFalse(result.promptText().isBlank());
-        assertTrue(result.promptText().contains("- round: 2"));
+        assertEquals(2, result.negotiationContext().round());
         assertTrue(result.promptText().contains("故障发生时间"));
     }
 
@@ -102,14 +114,15 @@ class NegotiationGenerationOrchestratorTest {
                 .build();
         MetadataContent message = orchestrator.generateProposeFromData(
                 new NegotiationProposeData(
-                        new NegotiationContext(UUID, 1, 5),
-                        new InfoProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
-                INFORMATION_PROPOSE_URI);
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        new InformationProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
+                INFORMATION_PROPOSE);
 
-        FilledParamData filled = orchestrator.validateAndFillingProposeData(
+        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
                 message.promptText(),
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                 Map.of("type", "object", "properties", Map.of("region", Map.of("type", "string"))),
-                INFORMATION_PROPOSE_URI);
+                INFORMATION_PROPOSE);
 
         assertEquals(1, llm.calls);
         assertEquals(UUID, filled.data().get("id"));
@@ -119,22 +132,20 @@ class NegotiationGenerationOrchestratorTest {
     }
 
     @Test
-    void listsAllSixTemplatesPerLanguage() {
-        assertEquals(6, zhOrchestrator().getNegotiationPrompts().size());
-        assertEquals(6, orchestrator("en-US").getNegotiationPrompts().size());
+    void listsAllSevenTemplatesPerLanguage() {
+        assertEquals(7, negotiationPrompts("zh-CN").size());
+        assertEquals(7, negotiationPrompts("en-US").size());
     }
 
     @Test
     void queriesSingleTemplateByUri() {
-        assertTrue(
-                zhOrchestrator().getNegotiationPrompt(INFORMATION_PROPOSE_URI).isPresent());
-        assertTrue(zhOrchestrator()
-                .getNegotiationPrompt("Negotiation-T/v1/target-negotiation/accept-reject")
+        assertTrue(queryService("zh-CN").getPrompt(INFORMATION_PROPOSE).isPresent());
+        assertTrue(queryService("zh-CN")
+                .getPrompt(StandardTemplates.TARGET_NEGOTIATION_ACCEPT_REJECT)
                 .isPresent());
-        assertFalse(zhOrchestrator()
-                .getNegotiationPrompt("Negotiation-T/v1/unknown-negotiation/propose")
+        assertFalse(queryService("zh-CN")
+                .getPrompt(TemplateUri.of("Negotiation-T", "unknown-negotiation", "propose"))
                 .isPresent());
-        assertFalse(zhOrchestrator().getNegotiationPrompt("malformed-uri").isPresent());
     }
 
     @Test
@@ -147,7 +158,7 @@ class NegotiationGenerationOrchestratorTest {
                 .build();
 
         MetadataContent result = orchestrator.generateProposeFromText(
-                "请提供区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI);
+                "请提供区域。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE);
 
         assertEquals(3, llm.calls);
         assertFalse(result.promptText().isBlank());
@@ -165,10 +176,12 @@ class NegotiationGenerationOrchestratorTest {
         NegotiationGenerationException failure = assertThrows(
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromText(
-                        "请提供区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI));
+                        "请提供区域。",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE));
 
         assertEquals(2, llm.calls);
-        assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), failure.getCode());
     }
 
     @Test
@@ -182,14 +195,14 @@ class NegotiationGenerationOrchestratorTest {
                 NegotiationGenerationException.class,
                 () -> generationOrchestrator.generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 1, 5),
-                                new InfoProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
-                        INFORMATION_PROPOSE_URI));
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, generationFailure.getCode());
+                                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                                new InformationProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
+                        INFORMATION_PROPOSE));
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), generationFailure.getCode());
 
         NegotiationGenerationOrchestrator validationOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
                 .language("zh-CN")
-                .semanticValidator((prompt, callerSchema, reference) -> {
+                .semanticValidator((prompt, callerSchema, reference, templateContent) -> {
                     throw new ResourceNotFoundException(
                             "Semantic validation prompt does not exist.", "prompt_resources/prompts");
                 })
@@ -197,11 +210,36 @@ class NegotiationGenerationOrchestratorTest {
 
         NegotiationParamExtractionException extractionFailure = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> validationOrchestrator.validateAndFillingProposeData(
-                        "## 协商上下文\n- id: " + UUID + "\n- round: 1\n- maxRounds: 5",
+                () -> validationOrchestrator.validateProposePromptAndDataFilling(
+                        "## 所需信息项\n1. 区域\n",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                         Map.of("type", "object"),
-                        INFORMATION_PROPOSE_URI));
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, extractionFailure.getCode());
+                        INFORMATION_PROPOSE));
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), extractionFailure.getCode());
+    }
+
+    @Test
+    void validationTemplateLoadFailurePreservesTheOriginalCause() {
+        NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
+                .language("zh-CN")
+                .templateLoader(missingTemplateLoader())
+                .build();
+
+        NegotiationParamExtractionException failure = assertThrows(
+                NegotiationParamExtractionException.class,
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        "## 所需信息项\n1. 区域\n",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        Map.of("type", "object"),
+                        INFORMATION_PROPOSE));
+
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), failure.getCode());
+        assertTrue(
+                failure.getCause() instanceof ContentValidationException,
+                "the template-load failure must preserve the mapped pipeline failure as cause for debugging");
+        assertTrue(
+                failure.getCause().getCause() instanceof ResourceNotFoundException,
+                "the original resource failure stays reachable through the cause chain");
     }
 
     @Test
@@ -215,34 +253,41 @@ class NegotiationGenerationOrchestratorTest {
 
         NegotiationParamExtractionException failure = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateAndFillingProposeData(
+                () -> orchestrator.validateProposePromptAndDataFilling(
                         "plain text without any negotiation section",
+                        null,
                         Map.of("type", "object"),
-                        INFORMATION_PROPOSE_URI));
+                        INFORMATION_PROPOSE));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, failure.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(), failure.getCode());
         assertEquals(0, llm.calls);
     }
 
     @Test
-    void rejectsMalformedTemplateUriAsAContentError() {
-        NegotiationContentException malformedUriFailure =
-                assertThrows(NegotiationContentException.class, () -> zhOrchestrator()
+    void rejectsTemplateUriThatDoesNotAddressTheExpectedPerformative() {
+        IllegalArgumentException performativeMismatchFailure =
+                assertThrows(IllegalArgumentException.class, () -> zhOrchestrator()
                         .generateProposeFromData(
                                 new NegotiationProposeData(
-                                        new NegotiationContext(UUID, 1, 5),
-                                        new InfoProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
-                                "information-negotiation/propose"));
-        assertEquals("templateUri", malformedUriFailure.getField());
+                                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                                        new InformationProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
+                                StandardTemplates.INFORMATION_NEGOTIATION_ACCEPT_REJECT));
+        assertTrue(performativeMismatchFailure
+                .getMessage()
+                .contains("Template URI does not address a negotiation template of the expected performative"
+                        + " PROPOSE (propose)"));
 
-        NegotiationContentException phaseMismatchFailure =
-                assertThrows(NegotiationContentException.class, () -> zhOrchestrator()
+        IllegalArgumentException wrongExtensionFailure =
+                assertThrows(IllegalArgumentException.class, () -> zhOrchestrator()
                         .generateProposeFromData(
                                 new NegotiationProposeData(
-                                        new NegotiationContext(UUID, 1, 5),
-                                        new InfoProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
-                                "Negotiation-T/v1/information-negotiation/accept-reject"));
-        assertEquals("templateUri", phaseMismatchFailure.getField());
+                                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                                        new InformationProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
+                                StandardTemplates.ENERGY_SAVING));
+        assertTrue(wrongExtensionFailure
+                .getMessage()
+                .contains("Template URI does not address a negotiation template of the expected performative"
+                        + " PROPOSE (propose)"));
     }
 
     private static NegotiationGenerationOrchestrator zhOrchestrator() {
@@ -255,16 +300,22 @@ class NegotiationGenerationOrchestratorTest {
                 .build();
     }
 
+    private static TemplateQueryService queryService(String language) {
+        return new TemplateQueryService(language, "classpath", null);
+    }
+
+    private static List<PromptTemplate> negotiationPrompts(String language) {
+        return queryService(language).getPrompts().stream()
+                .filter(template -> StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
+    }
+
     private static NegotiationTemplateLoader missingTemplateLoader() {
         return new NegotiationTemplateLoader() {
             @Override
             public PromptTemplate load(NegotiationReference reference) {
                 throw new ResourceNotFoundException("Negotiation template does not exist.", reference.uri());
-            }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                return List.of();
             }
         };
     }

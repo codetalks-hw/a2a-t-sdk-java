@@ -8,8 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.ConfigFileNotFoundException;
-import net.openan.a2at.sdk.core.exception.SdkException;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Reads SDK configuration from one caller-supplied `.env` file.
@@ -27,9 +28,9 @@ public final class DotEnvConfigSource {
      *
      * @param path caller-supplied `.env` file path
      * @return parsed non-empty key/value pairs
-     * @throws SdkException if the file contains more than {@value #MAX_ENTRIES} entries
+     * @throws A2ATError if the file contains more than {@value #MAX_ENTRIES} entries or cannot be read
      */
-    public static Map<String, String> load(Path path) {
+    public static @NonNull Map<String, String> load(@NonNull Path path) {
         if (!Files.exists(path)) {
             throw new ConfigFileNotFoundException(path);
         }
@@ -54,13 +55,13 @@ public final class DotEnvConfigSource {
                     continue;
                 }
                 if (values.size() >= MAX_ENTRIES) {
-                    throw new SdkException(
+                    throw new A2ATError(
                             "Config file exceeds maximum allowed entries: " + MAX_ENTRIES);
                 }
                 values.put(key, value);
             }
         } catch (IOException exception) {
-            throw new SdkException("Failed to read config file: " + path, exception);
+            throw new A2ATError("Failed to read config file: " + path, exception);
         }
         return Map.copyOf(values);
     }

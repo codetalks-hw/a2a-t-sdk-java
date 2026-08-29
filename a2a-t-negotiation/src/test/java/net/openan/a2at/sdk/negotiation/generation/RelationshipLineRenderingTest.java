@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import org.junit.jupiter.api.Test;
@@ -21,7 +24,7 @@ class RelationshipLineRenderingTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String INFORMATION_PROPOSE_URI = "Negotiation-T/v1/information-negotiation/propose";
+    private static final TemplateUri INFORMATION_PROPOSE_URI = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
 
     @Test
     void chineseRelationshipIsAppendedWithTheChineseLabel() {
@@ -76,8 +79,8 @@ class RelationshipLineRenderingTest {
         return orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 2, 5),
-                                new InfoProposeContent(
+                                new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
+                                new InformationProposeContent(
                                         List.of(new NegotiationItem(
                                                 chinese ? "节能区域" : "area", chinese ? "松山湖" : "Songshan Lake")),
                                         relationship)),

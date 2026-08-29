@@ -1,6 +1,7 @@
 package net.openan.a2at.sample.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -25,22 +26,60 @@ class NegotiationFacadeApiSymmetryTest {
             "generateNegotiationProposePromptFromData",
             "generateNegotiationAcceptPromptFromData",
             "generateNegotiationRejectPromptFromData",
+            "generateNegotiationAbortPromptFromData",
             "generateNegotiationProposePromptFromText",
             "generateNegotiationAcceptPromptFromText",
             "generateNegotiationRejectPromptFromText",
-            "getNegotiationPrompts",
-            "getNegotiationPrompt",
-            "validateAndFillingProposeData",
-            "validateAndFillingAcceptData",
-            "validateAndFillingRejectData");
+            "generateNegotiationAbortPromptFromText",
+            "validateProposePromptAndDataFilling",
+            "validateAcceptPromptAndDataFilling",
+            "validateRejectPromptAndDataFilling",
+            "validateAbortPromptAndDataFilling");
+
+    private static final List<String> REMOVED_NEGOTIATION_QUERY_METHODS =
+            List.of("getNegotiationPrompts", "getNegotiationPrompt");
+
+    private static final List<String> CROSS_EXTENSION_QUERY_METHODS = List.of("getPrompts", "getPrompt");
 
     @Test
-    void bothFacadesExposeTheSameElevenNegotiationApiMethods() {
+    void bothFacadesExposeTheSameTwelveNegotiationApiMethods() {
         Map<String, String> clientSurface = negotiationApiSurface(A2ATClient.class);
         Map<String, String> serverSurface = negotiationApiSurface(A2ATServer.class);
 
         assertEquals(new HashSet<>(NEGOTIATION_API_METHODS), clientSurface.keySet());
         assertEquals(clientSurface, serverSurface);
+    }
+
+    @Test
+    void neitherFacadeExposesTheRemovedNegotiationQueryMethods() {
+        for (Class<?> facade : List.of(A2ATClient.class, A2ATServer.class)) {
+            for (String removedMethod : REMOVED_NEGOTIATION_QUERY_METHODS) {
+                boolean present = Arrays.stream(facade.getMethods())
+                        .anyMatch(method -> method.getName().equals(removedMethod));
+                assertFalse(
+                        present,
+                        facade.getSimpleName() + " must not expose the removed " + removedMethod + " query method");
+            }
+        }
+    }
+
+    @Test
+    void bothFacadesExposeTheSameCrossExtensionQueryMethods() {
+        assertEquals(
+                new HashSet<>(CROSS_EXTENSION_QUERY_METHODS),
+                Arrays.stream(A2ATClient.class.getMethods())
+                        .filter(method -> CROSS_EXTENSION_QUERY_METHODS.contains(method.getName()))
+                        .map(Method::getName)
+                        .collect(Collectors.toSet()));
+        assertEquals(
+                Arrays.stream(A2ATClient.class.getMethods())
+                        .filter(method -> CROSS_EXTENSION_QUERY_METHODS.contains(method.getName()))
+                        .map(NegotiationFacadeApiSymmetryTest::methodSignature)
+                        .collect(Collectors.toSet()),
+                Arrays.stream(A2ATServer.class.getMethods())
+                        .filter(method -> CROSS_EXTENSION_QUERY_METHODS.contains(method.getName()))
+                        .map(NegotiationFacadeApiSymmetryTest::methodSignature)
+                        .collect(Collectors.toSet()));
     }
 
     private static Map<String, String> negotiationApiSurface(Class<?> facade) {

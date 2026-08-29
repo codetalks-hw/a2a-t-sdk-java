@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
+import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.exception.SdkException;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotSchema;
 import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
 import net.openan.a2at.sdk.resources.ClasspathPromptResourceLoader;
@@ -73,7 +73,7 @@ class ClasspathPromptLoadersTest {
                 schema.slotDefinitions().get(1).allowedValues());
         assertEquals(
                 "Business priority from 1 (highest urgency) to 5 (lowest urgency)",
-                schema.slotDefinitions().get(1).description());
+                schema.slotDefinitions().get(1).valueConstraint());
     }
 
     @Test
@@ -82,13 +82,16 @@ class ClasspathPromptLoadersTest {
                 assertThrows(ResourceNotFoundException.class, () -> new ClasspathPromptTemplateLoader(resourceLoader)
                         .loadTemplate("missing_scenario", "en"));
 
-        assertEquals("prompt_resources/templates/*/v1/missing_scenario/en/template.md", exception.resourcePath());
+        assertEquals(
+                "prompt_resources/templates/*/network-layer/missing_scenario/v1/en/template.md"
+                        + " (or the layout without the network-layer segment)",
+                exception.resourcePath());
     }
 
     @Test
-    void invalidClasspathScenarioCatalogIsWrappedAsSdkException() {
-        SdkException exception = assertThrows(
-                SdkException.class, () -> new ClasspathPromptScenarioCatalogLoader(resourceLoader).load("broken"));
+    void invalidClasspathScenarioCatalogIsWrappedAsA2ATError() {
+        A2ATError exception = assertThrows(
+                A2ATError.class, () -> new ClasspathPromptScenarioCatalogLoader(resourceLoader).load("broken"));
 
         assertEquals("Failed to parse scenario catalog for language: broken", exception.getMessage());
     }

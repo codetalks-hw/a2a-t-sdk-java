@@ -14,22 +14,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.core.model.FilledParamData;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * Locks the log instrumentation contract of the negotiation content layer.
  *
  * <p>Every pipeline path is driven through the real default collaborators with a scripted LLM client and the emitted
- * events are captured with a logback {@link ListAppender}. The test asserts that exactly the twelve contract event
+ * events are captured with a logback {@link ListAppender}. The test asserts that exactly the eleven contract event
  * names appear, each at its configured level, that every message is an English snake_case event followed by
  * {@code key=value} fields, that internal step diagnostics live in the logs only, and that neither the message text,
  * the free-text input nor the raw LLM response ever leaks into an INFO-or-higher event.
@@ -48,19 +48,19 @@ class NegotiationLogEventContractTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String INFORMATION_PROPOSE_URI = "Negotiation-T/v1/information-negotiation/propose";
+    private static final TemplateUri INFORMATION_PROPOSE_URI = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
 
     private static final Map<String, Set<Level>> EXPECTED_EVENT_LEVELS = Map.ofEntries(
             Map.entry("negotiation_template_loaded", Set.of(Level.DEBUG)),
             Map.entry("negotiation_generator_dispatched", Set.of(Level.DEBUG)),
             Map.entry("negotiation_content_extraction_completed", Set.of(Level.INFO)),
+            Map.entry("negotiation_content_extraction_response_invalid", Set.of(Level.WARN)),
             Map.entry("negotiation_semantic_validation_completed", Set.of(Level.INFO)),
             Map.entry("negotiation_generation_completed", Set.of(Level.INFO)),
             Map.entry("negotiation_llm_retry", Set.of(Level.WARN)),
             Map.entry("negotiation_llm_retry_exhausted", Set.of(Level.WARN)),
             Map.entry("negotiation_generation_failed", Set.of(Level.WARN)),
             Map.entry("negotiation_param_extraction_failed", Set.of(Level.WARN)),
-            Map.entry("negotiation_template_not_found", Set.of(Level.WARN)),
             Map.entry("negotiation_rule_checks_completed", Set.of(Level.DEBUG, Level.WARN)));
 
     private Logger rootLogger;
@@ -82,7 +82,7 @@ class NegotiationLogEventContractTest {
     }
 
     @Test
-    void allTwelveEventNamesFireAtTheirConfiguredLevelsAcrossThePipelines() {
+    void allNegotiationEventNamesFireAtTheirConfiguredLevelsAcrossThePipelines() {
         driveSuccessfulGenerationFromData();
         driveSuccessfulGenerationFromText();
         driveRetryThenSuccessOnContentExtraction();
@@ -90,7 +90,6 @@ class NegotiationLogEventContractTest {
         driveSuccessfulParamExtraction();
         driveSemanticRejection();
         driveRuleViolation();
-        driveQueryBoundaries();
 
         Map<String, Set<Level>> observedLevels = negotiationEventLevels();
         assertEquals(EXPECTED_EVENT_LEVELS.keySet(), observedLevels.keySet());
@@ -103,7 +102,6 @@ class NegotiationLogEventContractTest {
         driveSuccessfulGenerationFromData();
         driveSuccessfulGenerationFromText();
         driveSuccessfulParamExtraction();
-        driveQueryBoundaries();
 
         List<ILoggingEvent> events = negotiationEvents();
         assertFalse(events.isEmpty());
@@ -137,7 +135,7 @@ class NegotiationLogEventContractTest {
         assertTrue(retryMessages.get(0).contains("step="));
         assertTrue(retryMessages.get(0).contains("attempt=1"));
         assertTrue(retryMessages.get(0).contains("max_attempts="));
-        assertTrue(retryMessages.get(0).contains("code=" + A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+        assertTrue(retryMessages.get(0).contains("code=" + ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
         assertTrue(exhaustedMessages.get(0).contains("step="));
 
         NegotiationGenerationException failure = generationFailureOfExhaustedExtraction();
@@ -163,14 +161,19 @@ class NegotiationLogEventContractTest {
 
         MetadataContent generated = orchestrator.generateProposeFromData(
                 new NegotiationProposeData(
-                        new NegotiationContext(UUID, 1, 5),
-                        new InfoProposeContent(List.of(new NegotiationItem(promptMarker, "value")), null)),
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        new InformationProposeContent(List.of(new NegotiationItem(promptMarker, "value")), null)),
                 INFORMATION_PROPOSE_URI);
         assertTrue(generated.promptText().contains(promptMarker));
         orchestrator.generateProposeFromText(
-                "free text containing " + inputMarker, new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI);
-        FilledParamData filled = orchestrator.validateAndFillingProposeData(
-                generated.promptText(), Map.of("type", "object"), INFORMATION_PROPOSE_URI);
+                "free text containing " + inputMarker,
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                INFORMATION_PROPOSE_URI);
+        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
+                generated.promptText(),
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                Map.of("type", "object"),
+                INFORMATION_PROPOSE_URI);
         assertTrue(filled.data().containsValue(paramValueMarker));
 
         List<ILoggingEvent> infoAndHigher = appender.list.stream()
@@ -194,35 +197,6 @@ class NegotiationLogEventContractTest {
     }
 
     @Test
-    void queryBoundariesEmitTemplateNotFoundWarningsWithActionableHints() {
-        NegotiationGenerationOrchestrator defaultLoaderOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .templateLoader(missingTemplateLoader())
-                .build();
-
-        defaultLoaderOrchestrator.getNegotiationPrompts();
-        defaultLoaderOrchestrator.getNegotiationPrompt(INFORMATION_PROPOSE_URI);
-
-        NegotiationGenerationOrchestrator builtinOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .build();
-        builtinOrchestrator.getNegotiationPrompt("malformed-template-uri");
-
-        List<String> warnings = messagesOf("negotiation_template_not_found");
-        assertEquals(3, warnings.size());
-        assertTrue(warnings.get(0).contains("uri=all"));
-        assertTrue(warnings.get(0).contains("language=zh-CN"));
-        assertTrue(warnings.get(1).contains("uri=" + INFORMATION_PROPOSE_URI));
-        assertTrue(warnings.get(1).contains("language=zh-CN"));
-        assertTrue(warnings.get(2).contains("reason=invalid_template_uri"));
-        for (String warning : warnings) {
-            assertTrue(warning.contains("hint="), "boundary warning must carry a hint: " + warning);
-            assertTrue(
-                    warning.contains("A2AT_LANGUAGE"), "boundary warning hint must mention A2AT_LANGUAGE: " + warning);
-        }
-    }
-
-    @Test
     void removedTypeRecognitionEventNeverAppears() {
         driveSuccessfulGenerationFromText();
         driveSuccessfulParamExtraction();
@@ -238,10 +212,10 @@ class NegotiationLogEventContractTest {
                 .build();
         MetadataContent result = orchestrator.generateProposeFromData(
                 new NegotiationProposeData(
-                        new NegotiationContext(UUID, 1, 5),
-                        new InfoProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        new InformationProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
                 INFORMATION_PROPOSE_URI);
-        assertTrue(result.promptText().contains("协商上下文"));
+        assertEquals(new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), result.negotiationContext());
     }
 
     private void driveSuccessfulGenerationFromText() {
@@ -250,7 +224,9 @@ class NegotiationLogEventContractTest {
                 .llmClient(new ScriptedClient(validExtractionPayload(), validSemanticPayload()))
                 .build();
         MetadataContent result = orchestrator.generateProposeFromText(
-                "请提供节能区域。", new NegotiationContext(UUID, 2, 5), INFORMATION_PROPOSE_URI);
+                "请提供节能区域。",
+                new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
+                INFORMATION_PROPOSE_URI);
         assertTrue(result.promptText().contains("所需信息项"));
     }
 
@@ -261,7 +237,9 @@ class NegotiationLogEventContractTest {
                 .maxAttempts(2)
                 .build();
         MetadataContent result = orchestrator.generateProposeFromText(
-                "请提供节能区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI);
+                "请提供节能区域。",
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                INFORMATION_PROPOSE_URI);
         assertTrue(result.promptText().contains("所需信息项"));
     }
 
@@ -278,9 +256,11 @@ class NegotiationLogEventContractTest {
                 .build();
         try {
             orchestrator.generateProposeFromText(
-                    "请提供节能区域。", new NegotiationContext(UUID, 1, 5), INFORMATION_PROPOSE_URI);
+                    "请提供节能区域。",
+                    new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                    INFORMATION_PROPOSE_URI);
         } catch (NegotiationGenerationException failure) {
-            assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, failure.getCode());
+            assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), failure.getCode());
             return failure;
         }
         return null;
@@ -293,11 +273,14 @@ class NegotiationLogEventContractTest {
                 .build();
         MetadataContent message = orchestrator.generateProposeFromData(
                 new NegotiationProposeData(
-                        new NegotiationContext(UUID, 1, 5),
-                        new InfoProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        new InformationProposeContent(List.of(new NegotiationItem("节能区域", "松山湖")), null)),
                 INFORMATION_PROPOSE_URI);
-        FilledParamData filled = orchestrator.validateAndFillingProposeData(
-                message.promptText(), Map.of("type", "object"), INFORMATION_PROPOSE_URI);
+        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
+                message.promptText(),
+                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                Map.of("type", "object"),
+                INFORMATION_PROPOSE_URI);
         assertEquals(UUID, filled.data().get("id"));
     }
 
@@ -306,16 +289,17 @@ class NegotiationLogEventContractTest {
                 .language("zh-CN")
                 .llmClient(new ScriptedClient(
                         "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":"
-                                + "\"section.info_static\",\"code\":\"template_type_mismatch\",\"message\":"
-                                + "\"inconsistent\"}],\"params\":{}}"))
+                                + "\"section.info_static\",\"code\":\"negotiation.type_mismatch\",\"facts\":"
+                                + "{\"implied\":\"information\",\"declared\":\"information\"}}],\"params\":{}}"))
                 .build();
         try {
-            orchestrator.validateAndFillingProposeData(
-                    "## 协商上下文\n- id: " + UUID + "\n- round: 1\n- maxRounds: 5",
+            orchestrator.validateProposePromptAndDataFilling(
+                    "## 所需信息项\n1. 区域\n",
+                    new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                     Map.of("type", "object"),
                     INFORMATION_PROPOSE_URI);
         } catch (NegotiationParamExtractionException expected) {
-            assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, expected.getCode());
+            assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), expected.getCode());
         }
     }
 
@@ -325,23 +309,14 @@ class NegotiationLogEventContractTest {
                 .llmClient(new ScriptedClient(validExtractionPayload(), validSemanticPayload()))
                 .build();
         try {
-            orchestrator.validateAndFillingProposeData(
-                    "## 协商上下文\n- id: " + UUID + "\n- round: 9\n- maxRounds: 5",
+            orchestrator.validateProposePromptAndDataFilling(
+                    "## 所需信息项\n1. 区域\n",
+                    new NegotiationContext(UUID, 9, 5, NegotiationPerformative.PROPOSE),
                     Map.of("type", "object"),
                     INFORMATION_PROPOSE_URI);
         } catch (NegotiationParamExtractionException expected) {
-            assertEquals(A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION, expected.getCode());
+            assertEquals(ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(), expected.getCode());
         }
-    }
-
-    private void driveQueryBoundaries() {
-        NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .templateLoader(missingTemplateLoader())
-                .build();
-        orchestrator.getNegotiationPrompts();
-        orchestrator.getNegotiationPrompt(INFORMATION_PROPOSE_URI);
-        assertTrue(orchestrator.getNegotiationPrompt("malformed-template-uri").isEmpty());
     }
 
     private static String validExtractionPayload() {
@@ -351,22 +326,6 @@ class NegotiationLogEventContractTest {
     private static String validSemanticPayload() {
         return "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[],"
                 + "\"params\":{\"region\":\"松山湖\"}}";
-    }
-
-    private static NegotiationTemplateLoader missingTemplateLoader() {
-        return new NegotiationTemplateLoader() {
-            @Override
-            public PromptTemplate load(NegotiationReference reference) {
-                throw new net.openan.a2at.sdk.core.exception.ResourceNotFoundException(
-                        "Negotiation template does not exist.", reference.uri());
-            }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                throw new net.openan.a2at.sdk.core.exception.ResourceNotFoundException(
-                        "No negotiation template exists for the configured language.", "templates/Negotiation-T/v1");
-            }
-        };
     }
 
     private Map<String, Set<Level>> negotiationEventLevels() {

@@ -2,11 +2,11 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
-import net.openan.a2at.sdk.negotiation.content.Vocabulary;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
+import net.openan.a2at.sdk.negotiation.content.Vocabulary;
 
 /**
  * Generator for information negotiation propose messages.
@@ -14,9 +14,9 @@ import net.openan.a2at.sdk.core.model.PromptTemplate;
  * <p>The message carries the requested information items and, when present, a free-form line describing how the missing
  * items relate to each other, appended after the item list.
  *
- * @since 2026-06
+ * @since 2026-08
  */
-public final class InformationProposeGenerator extends AbstractNegotiationGenerator {
+final class InformationProposeGenerator extends AbstractNegotiationGenerator {
 
     /**
      * Generates an information negotiation propose message.
@@ -30,15 +30,16 @@ public final class InformationProposeGenerator extends AbstractNegotiationGenera
     @Override
     public String generate(
             NegotiationContext context, NegotiationContent content, PromptTemplate template, Vocabulary vocabulary) {
-        InfoProposeContent proposeContent =
-                contentOf(content, InfoProposeContent.class, "Information propose generator");
+        InformationProposeContent proposeContent =
+                contentOf(content, InformationProposeContent.class, "Information propose generator");
+        requiredItems(
+                proposeContent.items(), "items", "Information negotiation propose message requested items", vocabulary);
         Map<String, String> slots = new LinkedHashMap<>();
-        slots.put(vocabulary.get("slot.context"), contextSlotValue(context, vocabulary));
         slots.put(vocabulary.get("slot.info_items"), itemsSlotValue(proposeContent, vocabulary));
         return render(template, slots);
     }
 
-    private String itemsSlotValue(InfoProposeContent content, Vocabulary vocabulary) {
+    private String itemsSlotValue(InformationProposeContent content, Vocabulary vocabulary) {
         String items = formatItems(content.items(), vocabulary);
         if (content.relationship() == null || content.relationship().isBlank()) {
             return items;

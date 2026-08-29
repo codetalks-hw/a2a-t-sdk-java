@@ -6,12 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationPhase;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
 import net.openan.a2at.sdk.negotiation.resources.DefaultNegotiationTemplateLoader;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
+import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -26,12 +26,14 @@ class UnsupportedLanguageBehaviorTest {
 
     @Test
     void assemblingThePipelineForAnUnsupportedLanguageFailsWithTheLanguageHint() {
-        NegotiationContentException exception =
-                assertThrows(NegotiationContentException.class, () -> NegotiationGenerationOrchestratorBuilder.builder()
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, () -> NegotiationGenerationOrchestratorBuilder.builder()
                         .language("fr-FR")
                         .build());
 
-        assertEquals("language", exception.getField());
+        assertTrue(
+                exception.getMessage().contains("fr-FR"),
+                "the failure must name the unsupported language: " + exception.getMessage());
         assertTrue(
                 exception.getMessage().contains("A2AT_LANGUAGE"),
                 "the failure must point at the language configuration: " + exception.getMessage());
@@ -39,27 +41,37 @@ class UnsupportedLanguageBehaviorTest {
 
     @Test
     void templateQueriesOfAnUnsupportedLanguageNeverFallBackToAnotherLanguage() {
-        DefaultNegotiationTemplateLoader frFrLoader = new DefaultNegotiationTemplateLoader("fr-FR", null);
+        TemplateQueryService frFrQueryService = new TemplateQueryService("fr-FR", "classpath", null);
 
-        assertEquals(List.of(), frFrLoader.loadAll(), "no template of another language may be listed for fr-FR");
+        assertEquals(
+                List.of(),
+                negotiationPrompts(frFrQueryService),
+                "no template of another language may be listed for fr-FR");
         for (String bundledLanguage : List.of("zh-CN", "en-US")) {
             assertEquals(
-                    6,
-                    new DefaultNegotiationTemplateLoader(bundledLanguage, null)
-                            .loadAll()
+                    7,
+                    negotiationPrompts(new TemplateQueryService(bundledLanguage, "classpath", null))
                             .size(),
                     "the bundled languages keep their full template set");
         }
     }
 
+    private static List<net.openan.a2at.sdk.core.model.PromptTemplate> negotiationPrompts(
+            TemplateQueryService queryService) {
+        return queryService.getPrompts().stream()
+                .filter(template -> net.openan.a2at.sdk.core.model.StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
+    }
+
     @Test
     void loadingASingleTemplateOfAnUnsupportedLanguageFailsWithTheLanguageHint() {
-        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR", null);
+        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR");
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> loader.load(
-                        new NegotiationReference(NegotiationType.INFORMATION, NegotiationPhase.PROPOSE, "fr-FR")));
+                () -> loader.load(new NegotiationReference(
+                        NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR")));
 
         assertTrue(
                 exception.getMessage().contains("A2AT_LANGUAGE"),

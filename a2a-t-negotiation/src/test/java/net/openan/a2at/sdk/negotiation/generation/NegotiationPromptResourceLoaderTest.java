@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
 import org.junit.jupiter.api.Test;
 
 class NegotiationPromptResourceLoaderTest {
@@ -41,18 +41,14 @@ class NegotiationPromptResourceLoaderTest {
 
     @Test
     void rejectsPathLikeArguments() {
-        assertEquals(
-                "promptCategory",
-                assertThrows(
-                                NegotiationContentException.class,
-                                () -> loader.loadSystem("../information_negotiation", "zh-CN"))
-                        .getField());
-        assertEquals(
-                "language",
-                assertThrows(
-                                NegotiationContentException.class,
-                                () -> loader.loadUser("information_negotiation", "../zh-CN"))
-                        .getField());
+        assertTrue(assertThrows(
+                        IllegalArgumentException.class, () -> loader.loadSystem("../information_negotiation", "zh-CN"))
+                .getMessage()
+                .contains("Prompt category must be a non-blank simple path segment"));
+        assertTrue(
+                assertThrows(IllegalArgumentException.class, () -> loader.loadUser("information_negotiation", "../zh-CN"))
+                        .getMessage()
+                        .contains("Prompt language must be a non-blank simple path segment"));
     }
 
     @Test
@@ -89,7 +85,7 @@ class NegotiationPromptResourceLoaderTest {
                         NegotiationMessageBuilder.TOKEN_NEGOTIATION_TYPE,
                         "information",
                         NegotiationMessageBuilder.TOKEN_TEMPLATE_URI,
-                        "Negotiation-T/v1/information-negotiation/propose",
+                        StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE.uri(),
                         NegotiationMessageBuilder.TOKEN_SCHEMA,
                         "{\"type\":\"object\"}",
                         NegotiationMessageBuilder.TOKEN_INPUT,
@@ -97,8 +93,8 @@ class NegotiationPromptResourceLoaderTest {
 
         String userPrompt = messages.get(1).get("content");
         assertTrue(userPrompt.contains("Declared negotiation type: information"));
-        assertTrue(
-                userPrompt.contains("Declared template identifier: Negotiation-T/v1/information-negotiation/propose"));
+        assertTrue(userPrompt.contains(
+                "Declared template identifier: " + StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE.uri()));
         assertTrue(userPrompt.contains("Parameter schema:"));
         assertTrue(userPrompt.contains("{\"type\":\"object\"}"));
         assertTrue(userPrompt.contains("Negotiation message to validate:"));
@@ -112,8 +108,8 @@ class NegotiationPromptResourceLoaderTest {
     @Test
     void messageBuilderRejectsNullResourceLoader() {
         assertEquals(
-                "resourceLoader",
-                assertThrows(NegotiationContentException.class, () -> new NegotiationMessageBuilder(null))
-                        .getField());
+                "Negotiation message builder requires a prompt resource loader.",
+                assertThrows(NullPointerException.class, () -> new NegotiationMessageBuilder(null))
+                        .getMessage());
     }
 }

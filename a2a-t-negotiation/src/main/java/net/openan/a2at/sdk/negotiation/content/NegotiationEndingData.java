@@ -1,5 +1,7 @@
 package net.openan.a2at.sdk.negotiation.content;
 
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+
 /**
  * Input bundle for generating a terminal (accept or reject) negotiation message from typed data.
  *
@@ -10,6 +12,6 @@ package net.openan.a2at.sdk.negotiation.content;
  *
  * @param context negotiation session context
  * @param content typed terminal content matching the negotiation type addressed by the template URI
- * @since 2026-06
+ * @since 2026-08
  */
 public record NegotiationEndingData(NegotiationContext context, NegotiationEndingContent content) {}

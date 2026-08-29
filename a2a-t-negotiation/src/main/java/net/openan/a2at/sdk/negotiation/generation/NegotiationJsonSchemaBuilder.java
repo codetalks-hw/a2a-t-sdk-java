@@ -4,9 +4,10 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationPhase;
+import java.util.Objects;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Builds the JSON Schemas of the negotiation LLM steps.
@@ -15,78 +16,54 @@ import net.openan.a2at.sdk.negotiation.content.NegotiationType;
  * (negotiation type, phase) pair with accept and reject sharing the terminal schema. The semantic validation schema
  * merges a caller-provided parameter schema into the fixed four-key output contract of the semantic validation step.
  *
- * @since 2026-06
+ * @since 2026-08
  */
-public class NegotiationJsonSchemaBuilder {
+final class NegotiationJsonSchemaBuilder {
 
     private static final List<String> CONCLUSION_ENUM = List.of("Accept", "Reject");
 
     private static final List<String> ACTION_ENUM =
             List.of("REQUEST_FEASIBILITY_EVALUATION", "PROPOSE_ALTERNATIVE_ON_FAILURE");
 
-    private static final List<String> NEGOTIATION_TYPE_ENUM =
-            Arrays.asList("information", "target", "feasibility", null);
-
     /**
      * Builds the content extraction schema of one (negotiation type, phase) pair.
      *
-     * @param type negotiation type whose content is extracted
+     * @param type negotiation type whose content is extracted; null only for the type-independent abort phase
      * @param phase API-level phase of the extraction; accept and reject share the terminal schema
      * @return JSON Schema describing the snake_case extraction output of the pair
-     * @throws NegotiationContentException if the type or phase is null
+     * @throws NullPointerException if the phase is null, or the type is null on a typed phase
      */
-    public Map<String, Object> buildExtractionSchema(NegotiationType type, NegotiationPhase phase) {
-        if (type == null) {
-            throw new NegotiationContentException("Negotiation type must not be null.", "type");
+    public Map<String, Object> buildExtractionSchema(
+            @Nullable NegotiationType type, NegotiationPerformative phase) {
+        Objects.requireNonNull(phase, "Negotiation phase must not be null.");
+        if (phase == NegotiationPerformative.ABORT) {
+            if (type != null) {
+                throw new IllegalArgumentException(
+                        "The ABORT phase is type-independent and must not carry a type but carried " + type + ".");
+            }
+            return abortSchema();
         }
-        if (phase == null) {
-            throw new NegotiationContentException("Negotiation phase must not be null.", "phase");
-        }
+        Objects.requireNonNull(type, "Negotiation type must not be null for the " + phase + " phase.");
         return switch (type) {
-            case INFORMATION -> phase == NegotiationPhase.PROPOSE
+            case INFORMATION -> phase == NegotiationPerformative.PROPOSE
                     ? informationProposeSchema()
                     : informationEndingSchema();
-            case TARGET -> phase == NegotiationPhase.PROPOSE ? targetProposeSchema() : targetEndingSchema();
-            case FEASIBILITY -> phase == NegotiationPhase.PROPOSE
+            case TARGET -> phase == NegotiationPerformative.PROPOSE ? targetProposeSchema() : targetEndingSchema();
+            case FEASIBILITY -> phase == NegotiationPerformative.PROPOSE
                     ? feasibilityProposeSchema()
                     : feasibilityEndingSchema();
         };
     }
 
-    /**
-     * Builds the merged schema of the semantic validation step around a caller-provided parameter schema.
-     *
-     * <p>The merged schema requires exactly the four keys {@code semantic_verdict}, {@code negotiation_type},
-     * {@code errors} and {@code params} and allows no additional properties. The caller schema is embedded as the
-     * {@code params} property; a caller schema without a {@code type} keyword is wrapped as an object schema first.
-     *
-     * @param callerSchema parameter schema provided by the caller of the validation API
-     * @return merged JSON Schema of the semantic validation LLM call
-     * @throws NegotiationContentException if the caller schema is null
-     */
-    public Map<String, Object> buildSemanticValidationSchema(Map<String, Object> callerSchema) {
-        if (callerSchema == null) {
-            throw new NegotiationContentException("Caller parameter schema must not be null.", "schema");
-        }
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
+    private static Map<String, Object> abortSchema() {
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("semantic_verdict", Map.of("type", "boolean"));
-        Map<String, Object> negotiationType = new LinkedHashMap<>();
-        negotiationType.put("type", List.of("string", "null"));
-        negotiationType.put("enum", NEGOTIATION_TYPE_ENUM);
-        properties.put("negotiation_type", negotiationType);
-        properties.put("errors", errorsSchema());
-        properties.put("params", wrapCallerSchema(callerSchema));
-        schema.put("properties", properties);
-        schema.put("required", List.of("semantic_verdict", "negotiation_type", "errors", "params"));
-        schema.put("additionalProperties", false);
-        return schema;
+        properties.put("termination_reason", Map.of("type", "string"));
+        return objectSchema(properties, List.of("termination_reason"));
     }
 
     private static Map<String, Object> informationProposeSchema() {
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("items", itemArraySchema());
+        properties.put("items", nonEmptyItemArraySchema());
         properties.put("relationship", nullableStringSchema());
         return objectSchema(properties, List.of("items"));
     }
@@ -94,7 +71,7 @@ public class NegotiationJsonSchemaBuilder {
     private static Map<String, Object> informationEndingSchema() {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("conclusion", conclusionSchema());
-        properties.put("items", itemArraySchema());
+        properties.put("items", nonEmptyItemArraySchema());
         return objectSchema(properties, List.of("conclusion", "items"));
     }
 
@@ -104,6 +81,7 @@ public class NegotiationJsonSchemaBuilder {
         properties.put("intent_understanding", nullableItemArraySchema());
         properties.put("alignment_and_clarification", nullableItemArraySchema());
         properties.put("request_for_clarification", nullableItemArraySchema());
+        properties.put("target_confirm_request", nullableStringSchema());
         return objectSchema(properties, List.of("target_negotiation_description"));
     }
 
@@ -124,6 +102,7 @@ public class NegotiationJsonSchemaBuilder {
         properties.put("action", action);
         properties.put("contents_to_evaluate", nullableItemArraySchema());
         properties.put("infeasibility_details_and_proposal", nullableItemArraySchema());
+        properties.put("feasibility_confirm_request", nullableStringSchema());
         return objectSchema(properties, List.of("feasibility_negotiation_description", "action"));
     }
 
@@ -134,35 +113,16 @@ public class NegotiationJsonSchemaBuilder {
         return objectSchema(properties, List.of("conclusion", "feasibility_summary"));
     }
 
-    private static Map<String, Object> errorsSchema() {
-        Map<String, Object> errorProperties = new LinkedHashMap<>();
-        errorProperties.put("slot_name", Map.of("type", "string"));
-        errorProperties.put("code", Map.of("type", "string"));
-        errorProperties.put("message", Map.of("type", "string"));
-        Map<String, Object> errorItem = new LinkedHashMap<>();
-        errorItem.put("type", "object");
-        errorItem.put("properties", errorProperties);
-        errorItem.put("required", List.of("slot_name", "code", "message"));
-        Map<String, Object> errors = new LinkedHashMap<>();
-        errors.put("type", "array");
-        errors.put("items", errorItem);
-        return errors;
-    }
-
-    private static Map<String, Object> wrapCallerSchema(Map<String, Object> callerSchema) {
-        if (callerSchema.containsKey("type")) {
-            return callerSchema;
-        }
-        Map<String, Object> wrapped = new LinkedHashMap<>();
-        wrapped.put("type", "object");
-        wrapped.putAll(callerSchema);
-        return wrapped;
-    }
-
     private static Map<String, Object> itemArraySchema() {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "array");
         schema.put("items", itemSchema());
+        return schema;
+    }
+
+    private static Map<String, Object> nonEmptyItemArraySchema() {
+        Map<String, Object> schema = new LinkedHashMap<>(itemArraySchema());
+        schema.put("minItems", 1);
         return schema;
     }
 

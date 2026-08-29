@@ -3,35 +3,29 @@ package net.openan.a2at.sdk.negotiation.resources;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.exception.SdkException;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.resources.ClasspathResourceStreams;
 import net.openan.a2at.sdk.core.resources.PathSegments;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
-import net.openan.a2at.sdk.negotiation.content.NegotiationPhase;
-import net.openan.a2at.sdk.negotiation.content.NegotiationType;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.prompt.resources.catalog.TemplateDescriptions;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default negotiation template loader with dual-root fallback.
+ * Default negotiation template loader, classpath-fixed.
  *
- * <p>Templates are resolved by trying a configurable local resource root first and falling back to the built-in
- * classpath resources bundled with the SDK: a template file that exists under the local root wins, otherwise the
- * built-in template of the same URI is used. This fallback is deliberately independent of the prompt source-type
- * configuration so that the built-in templates always remain available as a safety net.
+ * <p>Templates are resolved from the built-in classpath resources bundled with the SDK — negotiation templates are
+ * classpath-fixed and never configurable. Local template copies are not consulted.
  *
- * <p>The local root directory follows the prompt resource root layout: it is the directory that contains the
- * {@code templates/} tree. Only templates are taken from the local root; LLM prompt resources always come from the
- * classpath.
+ * <p>Classpath resources are frozen at assembly time: each template is resolved once and cached at the JVM level, so
+ * every subsequent load returns the cached snapshot. Missing templates throw on every call and are never cached. The
+ * loader is thread-safe.
  *
- * @since 2026-06
+ * @since 2026-08
  */
 public final class DefaultNegotiationTemplateLoader implements NegotiationTemplateLoader {
 
@@ -41,72 +35,44 @@ public final class DefaultNegotiationTemplateLoader implements NegotiationTempla
 
     private static final String TEMPLATE_FILE_NAME = "template.md";
 
-    private static final List<NegotiationType> LOAD_ALL_TYPE_ORDER =
-            List.of(NegotiationType.INFORMATION, NegotiationType.TARGET, NegotiationType.FEASIBILITY);
-
-    private static final List<NegotiationPhase> LOAD_ALL_PHASE_ORDER =
-            List.of(NegotiationPhase.PROPOSE, NegotiationPhase.ACCEPT);
-
-    private final String language;
-
-    private final Path localRootDir;
+    private static final ConcurrentHashMap<CacheKey, String> CACHE = new ConcurrentHashMap<>();
 
     /**
-     * Creates a loader for one language with an optional local template root.
+     * Creates a classpath-fixed loader for one language.
+     *
+     * <p>The language is validated here for assembly-time fail-fast only; {@link #load} resolves the language from the
+     * reference, not from this constructor argument.
      *
      * @param language locale identifier such as {@code zh-CN} or {@code en-US}
-     * @param localRootDir local prompt resource root containing the {@code templates/} tree; null or blank disables
-     *     local template overrides
-     * @throws NegotiationContentException if the language is not a simple path segment
+     * @throws IllegalArgumentException if the language is not a simple path segment
      */
-    public DefaultNegotiationTemplateLoader(String language, String localRootDir) {
+    public DefaultNegotiationTemplateLoader(String language) {
         if (!PathSegments.isSimpleSegment(language)) {
-            throw new NegotiationContentException(
+            throw new IllegalArgumentException(
                     "Negotiation template loader language must be a non-blank simple path segment but was " + language
-                            + ".",
-                    "language");
+                            + ".");
         }
-        this.language = language;
-        this.localRootDir = localRootDir == null || localRootDir.isBlank() ? null : Path.of(localRootDir);
     }
 
     /**
-     * Loads one negotiation template, preferring a local override over the built-in classpath template.
+     * Loads one negotiation template from the built-in classpath resources.
      *
      * @param reference template addressing key, including the language to load
      * @return loaded template with its URI, description and full content
-     * @throws ResourceNotFoundException if the template exists neither under the local root nor on the classpath
+     * @throws ResourceNotFoundException if the template does not exist on the classpath
      */
     @Override
     public PromptTemplate load(NegotiationReference reference) {
-        String relativePath = templateRelativePath(reference);
-        String content = readTemplate(relativePath);
-        PromptTemplate template = new PromptTemplate(reference.uri(), TemplateDescriptions.extract(content), content);
+        String classpathPath = CLASSPATH_ROOT + templateRelativePath(reference);
+        CacheKey cacheKey = new CacheKey(classpathPath, Thread.currentThread().getContextClassLoader());
+        String content = CACHE.computeIfAbsent(cacheKey, ignored -> readTemplate(classpathPath));
+        PromptTemplate template = new PromptTemplate(
+                reference.templateUri(),
+                TemplateDescriptions.extract(content),
+                content,
+                PromptTemplate.SOURCE_CLASSPATH);
         LOGGER.atDebug().log("negotiation_template_loaded uri={} language={}", reference.uri(), reference.language());
         return template;
-    }
-
-    /**
-     * Loads every loadable negotiation template of the loader's language.
-     *
-     * <p>The fixed iteration order is the negotiation type order information, target, feasibility crossed with the
-     * phase order propose, accept-reject. Templates that exist nowhere are skipped.
-     *
-     * @return templates of the loader's language that could be loaded, in a fixed order
-     */
-    @Override
-    public List<PromptTemplate> loadAll() {
-        List<PromptTemplate> templates = new ArrayList<>();
-        for (NegotiationType type : LOAD_ALL_TYPE_ORDER) {
-            for (NegotiationPhase phase : LOAD_ALL_PHASE_ORDER) {
-                try {
-                    templates.add(load(new NegotiationReference(type, phase, language)));
-                } catch (ResourceNotFoundException exception) {
-                    // A template that exists nowhere for this language is simply not listed.
-                }
-            }
-        }
-        return List.copyOf(templates);
     }
 
     private static String templateRelativePath(NegotiationReference reference) {
@@ -114,40 +80,27 @@ public final class DefaultNegotiationTemplateLoader implements NegotiationTempla
                 "/",
                 "templates",
                 "Negotiation-T",
-                "v1",
                 reference.typeSegment(),
-                reference.phase().uriSegment(),
+                NegotiationReference.uriSegmentOf(reference.performative()),
+                TemplateUri.DEFAULT_TEMPLATE_VERSION,
                 reference.language(),
                 TEMPLATE_FILE_NAME);
     }
 
-    private String readTemplate(String relativePath) {
-        if (localRootDir != null) {
-            Path localPath = localRootDir.resolve(relativePath);
-            if (Files.exists(localPath)) {
-                try {
-                    return Files.readString(localPath, StandardCharsets.UTF_8);
-                } catch (IOException exception) {
-                    throw new SdkException("Failed to read negotiation template: " + localPath, exception);
-                }
-            }
-        }
-        String classpathPath = CLASSPATH_ROOT + relativePath;
+    private static String readTemplate(String classpathPath) {
         InputStream stream = ClasspathResourceStreams.open(classpathPath);
         if (stream == null) {
             throw new ResourceNotFoundException(
                     "Negotiation template does not exist for the configured language; set A2AT_LANGUAGE to a"
-                            + " language with bundled templates (zh-CN or en-US) or provide the template under the"
-                            + " local resource root.",
+                            + " language with bundled templates (zh-CN or en-US).",
                     classpathPath);
         }
         try (stream) {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException exception) {
-            throw new SdkException("Failed to read negotiation template: " + classpathPath, exception);
+            throw new A2ATError("Failed to read negotiation template: " + classpathPath, exception);
         }
     }
 
+    private record CacheKey(String classpathPath, @Nullable ClassLoader contextClassLoader) {}
 }
-
-

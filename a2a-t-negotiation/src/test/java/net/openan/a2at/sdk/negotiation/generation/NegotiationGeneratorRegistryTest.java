@@ -6,16 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityEndingContent;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityProposeContent;
-import net.openan.a2at.sdk.negotiation.content.InfoEndingContent;
-import net.openan.a2at.sdk.negotiation.content.InfoProposeContent;
+import net.openan.a2at.sdk.negotiation.content.InformationEndingContent;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAction;
 import net.openan.a2at.sdk.negotiation.content.NegotiationConclusion;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContentException;
+import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
-import net.openan.a2at.sdk.negotiation.content.NegotiationPhase;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import net.openan.a2at.sdk.negotiation.content.TargetEndingContent;
 import net.openan.a2at.sdk.negotiation.content.TargetProposeContent;
@@ -25,169 +26,171 @@ class NegotiationGeneratorRegistryTest {
 
     private final NegotiationGeneratorRegistry registry = new NegotiationGeneratorRegistry();
 
+    private NegotiationGenerator resolve(
+            NegotiationType type, NegotiationPerformative phase, NegotiationContent content) {
+        return registry.resolve(type, phase, content, "zh-CN");
+    }
+
     @Test
     void dispatchesEveryTypeAndPhaseCombination() {
         assertInstanceOf(
                 InformationProposeGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.INFORMATION,
-                        NegotiationPhase.PROPOSE,
-                        new InfoProposeContent(List.of(), null)));
+                        NegotiationPerformative.PROPOSE,
+                        new InformationProposeContent(List.of(), null)));
         assertInstanceOf(
                 TargetProposeGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.TARGET,
-                        NegotiationPhase.PROPOSE,
-                        new TargetProposeContent("描述", null, null, null)));
+                        NegotiationPerformative.PROPOSE,
+                        new TargetProposeContent("描述", null, null, null, null)));
         assertInstanceOf(
                 FeasibilityProposeGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.FEASIBILITY,
-                        NegotiationPhase.PROPOSE,
+                        NegotiationPerformative.PROPOSE,
                         new FeasibilityProposeContent(
                                 "描述",
                                 NegotiationAction.REQUEST_FEASIBILITY_EVALUATION,
                                 List.of(new NegotiationItem("名称", "值")),
+                                null,
                                 null)));
         assertInstanceOf(
                 InformationEndingGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.INFORMATION,
-                        NegotiationPhase.ACCEPT,
-                        new InfoEndingContent(NegotiationConclusion.ACCEPT, List.of())));
+                        NegotiationPerformative.ACCEPT,
+                        new InformationEndingContent(NegotiationConclusion.ACCEPT, List.of())));
         assertInstanceOf(
                 InformationEndingGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.INFORMATION,
-                        NegotiationPhase.REJECT,
-                        new InfoEndingContent(NegotiationConclusion.REJECT, List.of())));
+                        NegotiationPerformative.REJECT,
+                        new InformationEndingContent(NegotiationConclusion.REJECT, List.of())));
         assertInstanceOf(
                 TargetEndingGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.TARGET,
-                        NegotiationPhase.ACCEPT,
+                        NegotiationPerformative.ACCEPT,
                         new TargetEndingContent(NegotiationConclusion.ACCEPT, "确认的意图", null)));
         assertInstanceOf(
                 TargetEndingGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.TARGET,
-                        NegotiationPhase.REJECT,
+                        NegotiationPerformative.REJECT,
                         new TargetEndingContent(NegotiationConclusion.REJECT, null, "失败原因")));
         assertInstanceOf(
                 FeasibilityEndingGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.FEASIBILITY,
-                        NegotiationPhase.ACCEPT,
+                        NegotiationPerformative.ACCEPT,
                         new FeasibilityEndingContent(NegotiationConclusion.ACCEPT, "评估结论")));
         assertInstanceOf(
                 FeasibilityEndingGenerator.class,
-                registry.resolve(
+                resolve(
                         NegotiationType.FEASIBILITY,
-                        NegotiationPhase.REJECT,
+                        NegotiationPerformative.REJECT,
                         new FeasibilityEndingContent(NegotiationConclusion.REJECT, "评估结论")));
     }
 
     @Test
     void rejectsProposeContentInTerminalPhaseAndEndingContentInProposePhase() {
-        NegotiationContentException proposeInEnding = assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
-                        NegotiationType.INFORMATION, NegotiationPhase.ACCEPT, new InfoProposeContent(List.of(), null)));
-        assertEquals("content", proposeInEnding.getField());
+        IllegalArgumentException proposeInEnding = assertThrows(
+                IllegalArgumentException.class,
+                () -> resolve(
+                        NegotiationType.INFORMATION,
+                        NegotiationPerformative.ACCEPT,
+                        new InformationProposeContent(List.of(), null)));
         assertTrue(proposeInEnding
                 .getMessage()
                 .contains("ACCEPT phase requires ending content but received propose content of type"
-                        + " InfoProposeContent"));
+                        + " InformationProposeContent"));
 
-        NegotiationContentException endingInPropose = assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
+        IllegalArgumentException endingInPropose = assertThrows(
+                IllegalArgumentException.class,
+                () -> resolve(
                         NegotiationType.INFORMATION,
-                        NegotiationPhase.PROPOSE,
-                        new InfoEndingContent(NegotiationConclusion.ACCEPT, List.of())));
-        assertEquals("content", endingInPropose.getField());
+                        NegotiationPerformative.PROPOSE,
+                        new InformationEndingContent(NegotiationConclusion.ACCEPT, List.of())));
         assertTrue(endingInPropose
                 .getMessage()
                 .contains("PROPOSE phase requires propose content but received ending content of type"
-                        + " InfoEndingContent"));
+                        + " InformationEndingContent"));
     }
 
     @Test
     void rejectsContentRuntimeTypeNotMatchingTheNegotiationType() {
-        NegotiationContentException exception = assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> resolve(
                         NegotiationType.INFORMATION,
-                        NegotiationPhase.PROPOSE,
-                        new TargetProposeContent("描述", null, null, null)));
+                        NegotiationPerformative.PROPOSE,
+                        new TargetProposeContent("描述", null, null, null, null)));
 
-        assertEquals("content", exception.getField());
         assertTrue(exception
                 .getMessage()
-                .contains("Negotiation type INFORMATION requires content of type InfoProposeContent but received"
+                .contains("Negotiation type INFORMATION requires content of type InformationProposeContent but received"
                         + " TargetProposeContent"));
 
         assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
+                IllegalArgumentException.class,
+                () -> resolve(
                         NegotiationType.TARGET,
-                        NegotiationPhase.ACCEPT,
-                        new InfoEndingContent(NegotiationConclusion.ACCEPT, List.of())));
+                        NegotiationPerformative.ACCEPT,
+                        new InformationEndingContent(NegotiationConclusion.ACCEPT, List.of())));
     }
 
     @Test
     void rejectsEndingConclusionNotMatchingThePhase() {
-        NegotiationContentException exception = assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
+        NegotiationGenerationException exception = assertThrows(
+                NegotiationGenerationException.class,
+                () -> resolve(
                         NegotiationType.INFORMATION,
-                        NegotiationPhase.ACCEPT,
-                        new InfoEndingContent(NegotiationConclusion.REJECT, List.of())));
+                        NegotiationPerformative.ACCEPT,
+                        new InformationEndingContent(NegotiationConclusion.REJECT, List.of())));
 
-        assertEquals("content.conclusion", exception.getField());
-        assertTrue(exception
-                .getMessage()
-                .contains("ACCEPT phase requires conclusion Accept but the content carries Reject"));
+        assertEquals(ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode(), exception.getCode());
+        assertEquals("Accept", exception.getFacts().get("expected"));
+        assertEquals("Reject", exception.getFacts().get("actual"));
 
         assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
+                NegotiationGenerationException.class,
+                () -> resolve(
                         NegotiationType.TARGET,
-                        NegotiationPhase.REJECT,
+                        NegotiationPerformative.REJECT,
                         new TargetEndingContent(NegotiationConclusion.ACCEPT, "确认的意图", null)));
     }
 
     @Test
     void rejectsEndingContentWithoutConclusion() {
-        NegotiationContentException exception = assertThrows(
-                NegotiationContentException.class,
-                () -> registry.resolve(
-                        NegotiationType.INFORMATION, NegotiationPhase.ACCEPT, new InfoEndingContent(null, List.of())));
+        NullPointerException exception = assertThrows(
+                NullPointerException.class,
+                () -> resolve(
+                        NegotiationType.INFORMATION,
+                        NegotiationPerformative.ACCEPT,
+                        new InformationEndingContent(null, List.of())));
 
-        assertEquals("content.conclusion", exception.getField());
+        assertTrue(exception.getMessage().contains("conclusion must not be null"));
     }
 
     @Test
     void rejectsNullArguments() {
-        NegotiationContent content = new InfoProposeContent(List.of(), null);
+        NegotiationContent content = new InformationProposeContent(List.of(), null);
 
         assertEquals(
-                "type",
-                assertThrows(
-                                NegotiationContentException.class,
-                                () -> registry.resolve(null, NegotiationPhase.PROPOSE, content))
-                        .getField());
+                "Negotiation type must not be null for the PROPOSE phase.",
+                assertThrows(NullPointerException.class, () -> resolve(null, NegotiationPerformative.PROPOSE, content))
+                        .getMessage());
         assertEquals(
-                "phase",
-                assertThrows(
-                                NegotiationContentException.class,
-                                () -> registry.resolve(NegotiationType.INFORMATION, null, content))
-                        .getField());
+                "Negotiation phase must not be null.",
+                assertThrows(NullPointerException.class, () -> resolve(NegotiationType.INFORMATION, null, content))
+                        .getMessage());
         assertEquals(
-                "content",
+                "Negotiation content must not be null.",
                 assertThrows(
-                                NegotiationContentException.class,
-                                () -> registry.resolve(NegotiationType.INFORMATION, NegotiationPhase.PROPOSE, null))
-                        .getField());
+                                NullPointerException.class,
+                                () -> resolve(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, null))
+                        .getMessage());
     }
 }

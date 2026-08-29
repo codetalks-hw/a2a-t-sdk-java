@@ -1,5 +1,6 @@
 package net.openan.a2at.sdk.server.validation;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,21 +8,38 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.PromptMessage;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.prompt.resources.loader.PromptSlotSchemaLoader;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotSchema;
 import net.openan.a2at.sdk.server.exception.PromptComplianceCheckException;
 import net.openan.a2at.sdk.server.model.ProcessedPromptMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LLM-backed semantic validator aligned with the Python server-side compliance flow.
+ *
+ * <p>The LLM reports semantic failures as {@code {slot_name, code, facts}} entries; the human-readable message is
+ * rendered from the code's message template, never taken from the LLM response. An error code outside the catalog is
+ * mapped to the slot-domain fallback {@code slot.rule_violation} and logged as a warning.
  *
  * @since 2026-06
  */
 public final class LlmBackedPromptSemanticValidator implements ServerPromptSemanticValidator {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Logger LOGGER = LoggerFactory.getLogger(LlmBackedPromptSemanticValidator.class);
+
+    /** Step name reported in {@code llm.response_invalid} when the LLM response violates the response contract. */
+    private static final String SEMANTIC_VALIDATION_STEP = "semantic_validation";
+
+    private static final String SLOT_VALIDATION_STAGE = "slot_validation";
+
+    private static final String SLOT_CODE_DOMAIN = "slot.";
+
+    private static final ObjectMapper OBJECT_MAPPER =
+            new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private final LLMClient llmClient;
 
@@ -59,7 +77,7 @@ public final class LlmBackedPromptSemanticValidator implements ServerPromptSeman
                         null,
                         null)
                 .content();
-        validateResponse(payload);
+        validateResponse(payload, metadata.language());
     }
 
     private String buildUserPrompt(PromptSlotSchema slotSchema, Map<String, String> extractedSlots) {
@@ -73,22 +91,25 @@ public final class LlmBackedPromptSemanticValidator implements ServerPromptSeman
                     + OBJECT_MAPPER.writeValueAsString(extractedSlots)
                     + "\n}";
         } catch (JsonProcessingException error) {
-            throw new PromptComplianceCheckException(
-                    "slot_validation_error", "Failed to serialize slot schema", "slot_validation");
+            throw internalError(error);
         }
     }
 
     private static Map<String, Object> schema() {
+        Map<String, Object> factsSchema = new LinkedHashMap<>();
+        factsSchema.put("type", "object");
+        factsSchema.put("additionalProperties", Map.of("type", "string"));
+
         Map<String, Object> itemSchema = new LinkedHashMap<>();
         itemSchema.put("type", "object");
         itemSchema.put("additionalProperties", false);
-        itemSchema.put("required", List.of("slot_name", "code", "message"));
+        itemSchema.put("required", List.of("slot_name", "code", "facts"));
         itemSchema.put(
                 "properties",
                 Map.of(
                         "slot_name", Map.of("type", "string"),
                         "code", Map.of("type", "string"),
-                        "message", Map.of("type", "string")));
+                        "facts", factsSchema));
 
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
@@ -108,41 +129,82 @@ public final class LlmBackedPromptSemanticValidator implements ServerPromptSeman
                 .toList();
     }
 
-    private void validateResponse(String payload) {
-        Map<String, Object> response = parseResponse(payload);
-        Object passedValue = response.get("passed");
-        Object errorsValue = response.get("errors");
-        if (Boolean.TRUE.equals(passedValue) && errorsValue instanceof List<?>) {
+    private void validateResponse(String payload, String language) {
+        Map<String, Object> response = parseResponse(payload, language);
+        boolean passed = Boolean.TRUE.equals(response.get("passed"));
+        List<?> errors = response.get("errors") instanceof List<?> list ? list : List.of();
+        if (passed && errors.isEmpty()) {
             return;
         }
 
-        Optional<String> message = extractFirstMessage(errorsValue);
+        SemanticError firstError = firstError(errors);
+        if (firstError == null) {
+            throw responseInvalid(language);
+        }
         throw new PromptComplianceCheckException(
-                "slot_validation_error",
-                message.filter(text -> !text.isBlank()).orElse("Slot semantic validation failed."),
-                "slot_validation");
+                resolveErrorCode(firstError.code()), language, firstError.facts(), SLOT_VALIDATION_STAGE);
     }
 
-    private static Map<String, Object> parseResponse(String payload) {
+    private static Map<String, Object> parseResponse(String payload, String language) {
         try {
             Map<String, Object> response =
                     OBJECT_MAPPER.readValue(payload, new TypeReference<Map<String, Object>>() {});
             return Optional.ofNullable(response).orElseGet(Map::of);
         } catch (JsonProcessingException error) {
-            throw new PromptComplianceCheckException(
-                    "slot_validation_error", "semantic validation returned invalid JSON", "slot_validation");
+            throw responseInvalid(language);
         }
     }
 
-    private static Optional<String> extractFirstMessage(Object errorsValue) {
-        if (!(errorsValue instanceof List<?> errors) || errors.isEmpty()) {
-            return Optional.empty();
+    private static SemanticError firstError(List<?> errors) {
+        for (Object item : errors) {
+            if (!(item instanceof Map<?, ?> errorMap)
+                    || !(errorMap.get("slot_name") instanceof String slotName)
+                    || !(errorMap.get("code") instanceof String code)) {
+                continue;
+            }
+            return new SemanticError(slotName, code, stringFacts(errorMap.get("facts")));
         }
-        Object firstError = errors.get(0);
-        if (!(firstError instanceof Map<?, ?> errorMap)) {
-            return Optional.empty();
-        }
-        Object message = errorMap.get("message");
-        return message instanceof String text ? Optional.of(text) : Optional.empty();
+        return null;
     }
+
+    private static Map<String, String> stringFacts(Object factsValue) {
+        if (!(factsValue instanceof Map<?, ?> facts)) {
+            return Map.of();
+        }
+        Map<String, String> rendered = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : facts.entrySet()) {
+            if (entry.getKey() instanceof String key && entry.getValue() instanceof String value) {
+                rendered.put(key, value);
+            }
+        }
+        return rendered;
+    }
+
+    private static ErrorCatalog resolveErrorCode(String code) {
+        Optional<ErrorCatalog> entry = ErrorCatalog.byCode(code);
+        if (entry.isPresent() && entry.get().getCode().startsWith(SLOT_CODE_DOMAIN)) {
+            return entry.get();
+        }
+        LOGGER.warn(
+                "Unknown semantic validation error code '{}'; falling back to '{}'.",
+                code,
+                ErrorCatalog.SLOT_RULE_VIOLATION.getCode());
+        return ErrorCatalog.SLOT_RULE_VIOLATION;
+    }
+
+    private static PromptComplianceCheckException responseInvalid(String language) {
+        return new PromptComplianceCheckException(
+                ErrorCatalog.LLM_RESPONSE_INVALID,
+                language,
+                Map.of("step", SEMANTIC_VALIDATION_STEP),
+                SLOT_VALIDATION_STAGE);
+    }
+
+    private static PromptComplianceCheckException internalError(JsonProcessingException cause) {
+        LOGGER.warn("Failed to serialize slot schema for the semantic validation prompt.", cause);
+        return new PromptComplianceCheckException(ErrorCatalog.INFRA_INTERNAL_ERROR, null, null, SLOT_VALIDATION_STAGE);
+    }
+
+    /** One error entry reported by the semantic validation LLM step. */
+    private record SemanticError(String slotName, String code, Map<String, String> facts) {}
 }

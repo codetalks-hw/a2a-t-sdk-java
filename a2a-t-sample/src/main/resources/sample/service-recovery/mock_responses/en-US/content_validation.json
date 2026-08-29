@@ -1,0 +1,9 @@
+{
+  "semantic_verdict": true,
+  "errors": [],
+  "params": {
+    "topic": "Service Recovery Event",
+    "subscriptionCondition": "",
+    "notificationDataFormat": "The service recovery event data contains: service recovery plan execution status (not started, ended), complaint diagnosis task sequence number, OSS-side event sequence number, access port name, whether OMC automatic recovery is authorized (yes, no), service recovery plan name, service recovery plan details."
+  }
+}

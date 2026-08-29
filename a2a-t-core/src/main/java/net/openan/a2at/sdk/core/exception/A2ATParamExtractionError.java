@@ -2,19 +2,18 @@ package net.openan.a2at.sdk.core.exception;
 
 import java.util.List;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Shared failure type raised when validating a prompt and extracting parameters from it fails.
  *
- * <p>This base type is shared across prompt families so that a caller can handle extraction failures uniformly.
- * Subclasses carry a more specific error code when one is available.
+ * <p>This base type is shared across prompt families so that a caller can handle extraction failures uniformly. The
+ * machine-readable error code is carried by the root {@link A2ATError} and is never null; subclasses pass a more
+ * specific code when one is available.
  *
- * @since 2026-06
+ * @since 2026-08
  */
-public class A2ATParamExtractionError extends A2ATError {
-
-    /** Error code carried by this failure. */
-    private final String code;
+public class A2ATParamExtractionError extends A2ATBusinessException {
 
     /** Structured per-slot validation error details. */
     private final List<SlotValidationError> errors;
@@ -25,7 +24,7 @@ public class A2ATParamExtractionError extends A2ATError {
      * @param message failure message
      */
     public A2ATParamExtractionError(String message) {
-        this(A2ATErrorCodes.PARAM_EXTRACTION_FAILED, message, List.of());
+        this(ErrorCatalog.SLOT_NOT_PROVIDED.getCode(), message, List.of());
     }
 
     /**
@@ -35,19 +34,23 @@ public class A2ATParamExtractionError extends A2ATError {
      * @param message failure message
      * @param errors structured per-slot validation error details
      */
-    public A2ATParamExtractionError(String code, String message, List<SlotValidationError> errors) {
-        super(message);
-        this.code = code;
+    public A2ATParamExtractionError(@NonNull String code, String message, @NonNull List<SlotValidationError> errors) {
+        super(code, message);
         this.errors = List.copyOf(errors);
     }
 
     /**
-     * Returns the machine-readable error code for this failure.
+     * Creates a parameter-extraction failure with one specific error code, slot details and a root cause.
      *
-     * @return error code
+     * @param code machine-readable error code for the failure
+     * @param message failure message
+     * @param errors structured per-slot validation error details
+     * @param cause root cause of the failure
      */
-    public String getCode() {
-        return code;
+    public A2ATParamExtractionError(
+            @NonNull String code, String message, @NonNull List<SlotValidationError> errors, Throwable cause) {
+        super(code, message, null, cause);
+        this.errors = List.copyOf(errors);
     }
 
     /**
@@ -55,7 +58,7 @@ public class A2ATParamExtractionError extends A2ATError {
      *
      * @return immutable list of slot validation errors, never null
      */
-    public List<SlotValidationError> getErrors() {
+    public @NonNull List<SlotValidationError> getErrors() {
         return errors;
     }
 }

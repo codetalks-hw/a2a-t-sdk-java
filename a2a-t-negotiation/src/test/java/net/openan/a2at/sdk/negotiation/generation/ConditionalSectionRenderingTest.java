@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.Stream;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAction;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.content.TargetProposeContent;
@@ -27,9 +30,9 @@ class ConditionalSectionRenderingTest {
 
     private static final String UUID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String FEASIBILITY_PROPOSE_URI = "Negotiation-T/v1/feasibility-negotiation/propose";
+    private static final TemplateUri FEASIBILITY_PROPOSE_URI = StandardTemplates.FEASIBILITY_NEGOTIATION_PROPOSE;
 
-    private static final String TARGET_PROPOSE_URI = "Negotiation-T/v1/target-negotiation/propose";
+    private static final TemplateUri TARGET_PROPOSE_URI = StandardTemplates.TARGET_NEGOTIATION_PROPOSE;
 
     static Stream<Arguments> languages() {
         return Stream.of(Arguments.of("zh-CN"), Arguments.of("en-US"));
@@ -43,11 +46,12 @@ class ConditionalSectionRenderingTest {
         String promptText = orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 1, 5),
+                                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                 new FeasibilityProposeContent(
                                         "Please assess the adjusted rate target.",
                                         NegotiationAction.REQUEST_FEASIBILITY_EVALUATION,
                                         List.of(new NegotiationItem("adjusted target", "rate lowered to 2Mbps")),
+                                        null,
                                         null)),
                         FEASIBILITY_PROPOSE_URI)
                 .promptText();
@@ -64,13 +68,14 @@ class ConditionalSectionRenderingTest {
         String promptText = orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 2, 5),
+                                new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
                                 new FeasibilityProposeContent(
                                         "The rate target is infeasible; a proposal follows.",
                                         NegotiationAction.PROPOSE_ALTERNATIVE_ON_FAILURE,
                                         null,
                                         List.of(new NegotiationItem(
-                                                "proposal", "lower the rate guarantee target to 2Mbps")))),
+                                                "proposal", "lower the rate guarantee target to 2Mbps")),
+                                        null)),
                         FEASIBILITY_PROPOSE_URI)
                 .promptText();
 
@@ -86,10 +91,11 @@ class ConditionalSectionRenderingTest {
         String promptText = orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 1, 5),
+                                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                 new TargetProposeContent(
-                                        "Clarify the intent of the energy-saving task.",
-                                        List.of(new NegotiationItem("task intent", "energy-saving optimization")),
+                                        "Clarify the intent of the ran-energy-saving task.",
+                                        List.of(new NegotiationItem("task intent", "ran-energy-saving optimization")),
+                                        null,
                                         null,
                                         null)),
                         TARGET_PROPOSE_URI)
@@ -107,17 +113,70 @@ class ConditionalSectionRenderingTest {
         String promptText = orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 3, 5),
+                                new NegotiationContext(UUID, 3, 5, NegotiationPerformative.PROPOSE),
                                 new TargetProposeContent(
-                                        "Clarify the intent of the energy-saving task.",
+                                        "Clarify the intent of the ran-energy-saving task.",
                                         null,
                                         List.of(new NegotiationItem("task intent", "confirmed as correct")),
+                                        null,
                                         null)),
                         TARGET_PROPOSE_URI)
                 .promptText();
 
         assertTrue(promptText.contains(alignmentTitle(language)));
         assertFalse(promptText.contains(intentTitle(language)));
+    }
+
+    @ParameterizedTest(name = "target confirm request renders only the confirm section [{0}]")
+    @MethodSource("languages")
+    void targetConfirmRequestRendersOnlyTheConfirmSection(String language) {
+        NegotiationGenerationOrchestrator orchestrator = orchestrator(language);
+
+        String promptText = orchestrator
+                .generateProposeFromData(
+                        new NegotiationProposeData(
+                                new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
+                                new TargetProposeContent(
+                                        "The clarification of the task target has been completed. Please reply to"
+                                                + " <Target Clarification Confirmation Request>.",
+                                        null,
+                                        null,
+                                        null,
+                                        targetConfirmWording(language))),
+                        TARGET_PROPOSE_URI)
+                .promptText();
+
+        assertTrue(promptText.contains(targetConfirmTitle(language)));
+        assertTrue(promptText.contains(targetConfirmWording(language)));
+        assertFalse(promptText.contains(intentTitle(language)));
+        assertFalse(promptText.contains(alignmentTitle(language)));
+        assertFalse(promptText.contains(clarificationTitle(language)));
+    }
+
+    @ParameterizedTest(name = "feasibility confirm request renders only the confirm section [{0}]")
+    @MethodSource("languages")
+    void feasibilityConfirmRequestRendersOnlyTheConfirmSection(String language) {
+        NegotiationGenerationOrchestrator orchestrator = orchestrator(language);
+
+        String promptText = orchestrator
+                .generateProposeFromData(
+                        new NegotiationProposeData(
+                                new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
+                                new FeasibilityProposeContent(
+                                        "Regarding the adjusted rate guarantee target, the feasibility assessment has"
+                                                + " been completed and the conclusion is feasible. Please reply to"
+                                                + " <Feasible Evaluation Confirmation Request>.",
+                                        NegotiationAction.REQUEST_FEASIBILITY_EVALUATION,
+                                        null,
+                                        null,
+                                        feasibilityConfirmWording(language))),
+                        FEASIBILITY_PROPOSE_URI)
+                .promptText();
+
+        assertTrue(promptText.contains(feasibilityConfirmTitle(language)));
+        assertTrue(promptText.contains(feasibilityConfirmWording(language)));
+        assertFalse(promptText.contains(evaluateTitle(language)));
+        assertFalse(promptText.contains(infeasibleTitle(language)));
     }
 
     @ParameterizedTest(name = "empty clarification list drops the clarification section [{0}]")
@@ -128,10 +187,11 @@ class ConditionalSectionRenderingTest {
         String withoutClarification = orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 1, 5),
+                                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                 new TargetProposeContent(
-                                        "Confirm the understood intent of the energy-saving task.",
-                                        List.of(new NegotiationItem("task intent", "energy-saving optimization")),
+                                        "Confirm the understood intent of the ran-energy-saving task.",
+                                        List.of(new NegotiationItem("task intent", "ran-energy-saving optimization")),
+                                        null,
                                         null,
                                         null)),
                         TARGET_PROPOSE_URI)
@@ -141,12 +201,13 @@ class ConditionalSectionRenderingTest {
         String withClarification = orchestrator
                 .generateProposeFromData(
                         new NegotiationProposeData(
-                                new NegotiationContext(UUID, 1, 5),
+                                new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                 new TargetProposeContent(
-                                        "Confirm the understood intent of the energy-saving task.",
-                                        List.of(new NegotiationItem("task intent", "energy-saving optimization")),
+                                        "Confirm the understood intent of the ran-energy-saving task.",
+                                        List.of(new NegotiationItem("task intent", "ran-energy-saving optimization")),
                                         null,
-                                        List.of(new NegotiationItem("area", "which site is covered")))),
+                                        List.of(new NegotiationItem("area", "which site is covered")),
+                                        null)),
                         TARGET_PROPOSE_URI)
                 .promptText();
         assertTrue(withClarification.contains(clarificationTitle(language)));
@@ -176,5 +237,25 @@ class ConditionalSectionRenderingTest {
 
     private static String clarificationTitle(String language) {
         return "zh-CN".equals(language) ? "## 待澄清内容" : "## Content to Clarify";
+    }
+
+    private static String targetConfirmTitle(String language) {
+        return "zh-CN".equals(language) ? "## 目标澄清后的确认请求" : "## Target Clarification Confirmation Request";
+    }
+
+    private static String targetConfirmWording(String language) {
+        return "zh-CN".equals(language)
+                ? "目标已经澄清，是否同意按照此目标继续执行？"
+                : "The target has been clarified. Do you agree to proceed with this target?";
+    }
+
+    private static String feasibilityConfirmTitle(String language) {
+        return "zh-CN".equals(language) ? "## 评估可行时的确认请求" : "## Feasible Evaluation Confirmation Request";
+    }
+
+    private static String feasibilityConfirmWording(String language) {
+        return "zh-CN".equals(language)
+                ? "评估目标可行，是否同意按照此目标继续执行？"
+                : "The target is assessed as feasible. Do you agree to proceed with this target?";
     }
 }
