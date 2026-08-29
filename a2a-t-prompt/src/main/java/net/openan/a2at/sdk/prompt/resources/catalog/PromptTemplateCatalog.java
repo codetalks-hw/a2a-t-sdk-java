@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * URI formed from the segments before the language, for example
  * {@code Negotiation-T/information-negotiation/propose/v1} or {@code Task-T/network-layer/ran-energy-saving/v1}.
  *
- * <p>The catalog builds the effective set at assembly time according to the configured {@code sourceType} (ADR 0004):
+ * <p>The catalog builds the effective set at assembly time according to the configured {@code sourceType}:
  * the {@code classpath} mode enumerates the full built-in template tree; the {@code local_file} mode enumerates only
  * the local business content (Task-T, Notification-T and Authorization-T) plus the classpath-fixed Negotiation-T
  * templates, without unioning the built-in business content. Every template record carries its effective origin
@@ -84,7 +84,7 @@ final class PromptTemplateCatalog {
      * Creates a catalog for one language, two source types and an optional local template root.
      *
      * <p>The constructor captures the classpath template tree and, in {@code local_file} mode, the local
-     * {@code templates/} tree once as immutable snapshots (ADR 0004): the catalog never re-reads the classpath or the
+     * {@code templates/} tree once as immutable snapshots: the catalog never re-reads the classpath or the
      * local filesystem after construction, so a template that is added or removed after assembly is not visible to
      * {@link #loadAll()} or {@link #load(TemplateUri)}.
      *
@@ -93,7 +93,7 @@ final class PromptTemplateCatalog {
      * @param localRootDir local prompt resource root containing the {@code templates/} tree; required in
      *     {@code local_file} mode and ignored otherwise
      * @throws IllegalArgumentException if the language is not a simple path segment, the source type is unsupported, or
-     *     {@code local_file} mode is selected without a local root directory
+     *     {@code local_file} mode is selected without a local root directory or with one that does not exist
      */
     PromptTemplateCatalog(@NonNull String language, @NonNull String sourceType, @Nullable String localRootDir) {
         if (!PathSegments.isSimpleSegment(language)) {
@@ -118,6 +118,13 @@ final class PromptTemplateCatalog {
                             + " to the local prompt resource root.");
         }
         this.localRootDir = localRootDir == null || localRootDir.isBlank() ? null : Path.of(localRootDir);
+        if (this.localRootDir != null && !Files.isDirectory(this.localRootDir)) {
+            throw new IllegalArgumentException(
+                    "Prompt resource local root directory configured via "
+                            + A2ATConfigKeys.PromptRuntime.LOCAL_ROOT_DIR
+                            + " does not exist or is not a directory: "
+                            + this.localRootDir);
+        }
         this.classpathSnapshot = captureClasspathTemplates();
         this.localSnapshot = PromptRuntimeConfig.SOURCE_TYPE_LOCAL_FILE.equals(this.sourceType) && this.localRootDir != null
                 ? Map.copyOf(localTemplates())

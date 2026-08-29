@@ -19,9 +19,9 @@ import org.slf4j.LoggerFactory;
  * Default negotiation template loader, classpath-fixed.
  *
  * <p>Templates are resolved from the built-in classpath resources bundled with the SDK — negotiation templates are
- * classpath-fixed and never configurable (ADR 0004). Local template copies are not consulted.
+ * classpath-fixed and never configurable. Local template copies are not consulted.
  *
- * <p>Classpath resources are frozen at assembly time (ADR 0004): each template is resolved once and cached at the JVM
+ * <p>Classpath resources are frozen at assembly time: each template is resolved once and cached at the JVM
  * level, so every subsequent load returns the cached snapshot. Missing templates throw on every call and are never
  * cached. The loader is thread-safe.
  *

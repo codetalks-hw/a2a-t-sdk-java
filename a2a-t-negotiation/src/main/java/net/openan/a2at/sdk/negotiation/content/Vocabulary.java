@@ -28,7 +28,7 @@ import org.jspecify.annotations.Nullable;
  * template bytes of that language verbatim.
  *
  * <p>The values are file-driven: each language resolves {@code negotiation-vocabulary/{language}/vocabulary.json} from
- * the built-in classpath resources — negotiation vocabularies are classpath-fixed and never configurable (ADR 0004).
+ * the built-in classpath resources — negotiation vocabularies are classpath-fixed and never configurable.
  * The bundled bytes are validated against the pinned {@link #CANONICAL_KEYS} set, and a vocabulary that does not exist,
  * cannot be read, is malformed (including duplicate JSON keys or blank values) or drifts from the canonical key set
  * fails fast instead of silently degrading.

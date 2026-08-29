@@ -189,6 +189,17 @@ class TemplateQueryServiceTest {
     }
 
     @Test
+    void localFileSourceTypeWithNonexistentRootFailsFast() {
+        Path missing = localRootDir.resolve("missing");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> new TemplateQueryService(LANGUAGE, "local_file", missing.toString()));
+
+        assertTrue(exception.getMessage().contains("A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR"));
+    }
+
+    @Test
     void singleQueryMissLogsPromptTemplateNotFoundWarning() {
         new TemplateQueryService(LANGUAGE, "classpath", null)
                 .getPrompt(TemplateUri.of("Task-T", "network-layer", "does-not-exist"));

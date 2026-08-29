@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Shared access point for prompt resources backed either by local files or classpath resources.
  *
- * <p>The factory routes resources by the three-way ADR 0004 classification: the business content (tasks' templates,
+ * <p>The factory routes resources by origin: the business content (tasks' templates,
  * slot schemas and scenario catalog) follows the configured source type; the LLM instruction prompts, negotiation
  * templates and negotiation vocabulary are always loaded from the classpath.
  *

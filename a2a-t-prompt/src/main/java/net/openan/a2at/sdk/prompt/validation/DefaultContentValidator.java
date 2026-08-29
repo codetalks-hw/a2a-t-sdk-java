@@ -22,8 +22,8 @@ import org.jspecify.annotations.Nullable;
  * {@code TEMPLATE_NOT_FOUND} error, distinct from the {@code VALIDATION_PROMPT_RESOURCE_NOT_FOUND} code that signals
  * missing content_validation prompt resources. The loaded template text flows into the pipeline for prompt injection.
  *
- * <p>The validation pipeline and the content_validation prompt resources are assembled eagerly in the constructor (ADR
- * 0004 snapshot semantics): the constructor resolves and freezes the prompt resources once, and a missing resource
+ * <p>The validation pipeline and the content_validation prompt resources are assembled eagerly in the constructor: the
+ * constructor resolves and freezes the prompt resources once, and a missing resource
  * fails fast at assembly time instead of on the first {@link #validate} call. The content_validation prompt resources
  * are internal LLM instructions loaded from the classpath regardless of the configured prompt source type.
  *

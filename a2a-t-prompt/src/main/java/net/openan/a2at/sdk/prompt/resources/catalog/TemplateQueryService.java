@@ -25,8 +25,7 @@ public final class TemplateQueryService {
     private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(TemplateQueryService.class);
 
     private static final String LANGUAGE_HINT =
-            "set A2AT_LANGUAGE to a language with bundled templates (zh-CN or en-US) or provide the template under"
-                    + " the local resource root";
+            "set A2AT_LANGUAGE to a language with bundled templates (zh-CN or en-US)";
 
     private final PromptTemplateCatalog templateCatalog;
 

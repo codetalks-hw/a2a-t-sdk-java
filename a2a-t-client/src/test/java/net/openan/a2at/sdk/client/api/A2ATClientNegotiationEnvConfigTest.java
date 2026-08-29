@@ -42,7 +42,7 @@ import org.junit.jupiter.api.io.TempDir;
  * Drives the env-configured negotiation behavior of the client facade end to end.
  *
  * <p>The negotiation-relevant env keys must become observable in the facade behavior: the language selects the Chinese
- * templates, and the LLM attempt limit bounds the retry loop of the from-text generation. Under ADR 0004 the negotiation
+ * templates, and the LLM attempt limit bounds the retry loop of the from-text generation. The negotiation
  * templates are classpath-fixed, so a configured local resource root is ignored in {@code classpath} mode: the built-in
  * template wins over any local override. A second test proves the zero-configuration defaults (English templates, three
  * attempts, built-in resources) work out of the box.

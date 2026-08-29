@@ -9,7 +9,7 @@ import net.openan.a2at.sdk.core.resources.PathSegments;
 /**
  * Loads shared prompt templates from one local prompt resource root.
  *
- * <p>Resources are resolved against an assembly-time snapshot of the local root (ADR 0004): runtime reads never touch
+ * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch
  * the filesystem, so changes to the local files only take effect after the SDK is restarted.
  *
  * @since 2026-06
