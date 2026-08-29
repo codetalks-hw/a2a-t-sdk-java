@@ -69,13 +69,13 @@ java @a2a-t-sample/target/negotiation.javaargs.txt --no-stream /path/to/.env
 
 如果不传参数，`NegotiationDemoApp` 会回退到包内的 `sample/negotiation/negotiation.env`（该模板 key 为空，仅用于占位）。Windows 控制台如遇中文乱码，先执行 `chcp 65001`。
 
-## 服务恢复（Service Recovery）样例
+## 业务抢通（Service Recovery）样例
 
 验证 `generateNotificationPromptFromText` / `generateNotificationPromptFromDataWithSchema` / `validateAndFillingNotificationData` 三个 API。客户端在一个进程内跑两轮订阅：轮① 自然语言输入，轮② 结构化输入 + 数据 schema，经服务端校验并建立真实订阅。每个订阅任务上报 5 个 notification 后自动完结。
 
 支持 mock LLM 降级：未填 `A2AT_LLM_API_KEY` 时自动使用确定性 mock 响应，无需外部依赖即可完整跑通。
 
-### 服务恢复样例启动
+### 业务抢通样例启动
 
 1. 修改仓库根目录下的 `client.env`，补充可用的 `A2AT_LLM_API_KEY`（可选，缺省时自动使用 mock LLM）
 2. 启动服务端：

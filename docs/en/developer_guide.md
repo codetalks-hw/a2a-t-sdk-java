@@ -318,25 +318,37 @@ Client agent dependencies:
 Copy the content of the `env.example` file in the repository root into `client.env` (`server.env` on the server side) and configure it as follows:
 
 ```properties
+# Controls the language used by prompt runtime components.
 A2AT_LANGUAGE=en-US
+
+# Selects the prompt source backend (classpath | local_file).
 A2AT_PROMPT_SOURCE_TYPE=classpath
+
+# Required when A2AT_PROMPT_SOURCE_TYPE=local_file
 A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=
-A2AT_PROMPT_COMPLIANCE_ENABLED=true
+
+# Selects the LLM provider used by the shared client.
 A2AT_LLM_PROVIDER=openai
+
+# Selects the default model name for the configured provider.
 A2AT_LLM_MODEL=deepseek-chat
+
+# API key for the configured LLM provider.
 A2AT_LLM_API_KEY={your_llm_api_key}
+
+# Base URL for the configured LLM provider.
 A2AT_LLM_BASE_URL=https://api.deepseek.com
+
+# Selects the negotiation state store implementation.
 A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
+
+# Input limits
 A2AT_INPUT_TEXT_MAX_CHARS=16384
 ```
 
 > `A2AT_LLM_API_KEY` is the key used to **call the external large model**. Keep it safe.
 >
 > The SDK connects to external large models through OpenAI-compatible interfaces. `A2AT_LLM_PROVIDER` currently supports only `openai`; when connecting to OpenAI-compatible services such as DeepSeek, specify the service address with `A2AT_LLM_BASE_URL` and the model name with `A2AT_LLM_MODEL`.
->
-> The prompt resource source is controlled by `A2AT_PROMPT_SOURCE_TYPE`: the default `classpath` loads the resources bundled in the `a2a-t-resources` jar; when set to `local_file`, specify the local resource root directory with `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` (relative paths are resolved against the directory of the `.env` file).
->
-> Free-text inputs are length-guarded before any LLM call: every facade entry point that accepts a natural-language `String` (the `FromText` generation methods, `generateTaskPrompt` with a text input, and the prompt-validation entry points such as `checkTaskPrompt` and `validate*PromptAndDataFilling`) rejects an input longer than `A2AT_INPUT_TEXT_MAX_CHARS` characters (`String.length()`) with the error code `input.text_too_long`, so oversized inputs fail fast instead of overflowing the LLM context. The key defaults to `16384` (16×1024); invalid or non-positive values fall back to the default with a warning log. The guard never truncates: the caller keeps full control over how to shorten the input. Structured (`Map`) inputs are not checked.
 
 #### Step3 Initialize the AgentCard
 
@@ -1425,6 +1437,169 @@ After startup, the server will:
 > This example completes the task within a single `execute()` call (the task enters a terminal state after `complete()`): in `message:send` synchronous mode, the client gets the aggregated final Task in one HTTP response (intermediate states are persisted only on the server); in `message:stream` streaming mode, the client receives WORKING, artifact, and COMPLETED events frame by frame. For a long-running subscription-reporting task (looping `addArtifact` without calling `complete`), refer to the `subscribe_incident` use case in `a2a-t-sample`.
 >
 > This sample is hosted by the official a2a-java REST reference server (Quarkus). The `a2a-t-sample` module of this repository also provides a Quarkus-free embedded end-to-end sample (a real HTTP+JSON/REST streaming pipeline, plus negotiation and authorization scenarios); see [a2a-t-sample/README.zh-CN.md](../../a2a-t-sample/README.zh-CN.md).
+
+## 1.5 Loading Custom Templates
+
+### 1.5.1 Background
+
+When generating and validating A2A-T prompts, the SDK relies on three kinds of prompt resources: the scenario catalog (scenarios), slot definitions (slots), and template bodies (templates). The built-in resources are packaged in the `a2a-t-resources` jar and loaded from the classpath by default. When a business needs its own scenario templates (for example, adding business scenarios, or adjusting template wording or slot constraints), it can switch the resource source to `local_file` and load custom templates from a local directory — no SDK repackaging required.
+
+**The capability boundary of custom templates is as follows**:
+
+| Resource | `local_file` mode | `classpath` mode |
+| --- | --- | --- |
+| Business templates/slots/scenarios (templates/slots/scenarios of Task-T, Notification-T, Authorization-T) | Read from the local root directory | Built-in resources |
+| Negotiation templates (fixed Negotiation-T set) and the negotiation vocabulary (negotiation-vocabulary) | Loaded from the classpath; not customizable | Built-in resources |
+| LLM instruction prompts (prompts directory) | Loaded from the classpath; not customizable | Built-in resources |
+
+**Key constraints**:
+
+1. **Construction-time validation**: `A2ATClient` and `A2ATServer` validate the prompt-resource configuration at construction time. In `local_file` mode, construction fails immediately with a clear error message when `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` is unset, the path does not exist, or the path is not a directory.
+2. **Initialization loading**: at construction time, the SDK reads all content under `templates/`, `slots/`, and `scenarios/` of the local root directory once into a read-only snapshot and no longer accesses the file system at runtime; after modifying local files, the SDK process must be restarted for the changes to take effect.
+
+### 1.5.2 Implementation Steps
+
+#### Step1 Prepare the local resource root directory
+
+Following the directory structure of `a2a-t-resources/src/main/resources/prompt_resources`, place resource files under the local root directory as needed:
+
+```text
+<local resource root>/
+├── templates/
+│   └── <Extension-T>/<scenario path>/v1/<language>/template.md
+│       e.g. templates/Task-T/network-layer/ran-energy-saving/v1/en-US/template.md
+├── slots/
+│   └── <Extension-T>/<scenario path>/v1/<language>/slot.json
+└── scenarios/
+    └── <language>/scenarios.json
+```
+
+Notes:
+
+1. `<Extension-T>` supports `Task-T`, `Notification-T`, and `Authorization-T`; the template version segment is fixed at `v1`; the built-in languages are `zh-CN` and `en-US`.
+2. `<scenario path>` supports two forms:
+   - With a domain prefix (recommended, consistent with the built-in resources): `network-layer/<scenario code>`, e.g. `network-layer/ran-energy-saving`;
+   - Without a domain prefix: `<scenario code>`, e.g. `authorization-policy-management`.
+
+   When business code looks up a template by the bare scenario code (e.g. `ran-energy-saving`), the SDK first searches under `<Extension-T>/network-layer/<code>/v1/<language>/` and then falls back to `<Extension-T>/<code>/v1/<language>/`; you can also look up directly with the full scenario path containing `/` (e.g. `network-layer/ran-energy-saving`).
+3. If the local root directory contains `prompts/`, `templates/Negotiation-T/`, or `negotiation-vocabulary/` directories, they are ignored at construction time with a warning log (these resources are always loaded from the classpath).
+
+#### Step2 Write the resource files
+
+**Template body template.md**: a Markdown file that references slots with `{{slot name}}` placeholders, for example:
+
+```markdown
+## Operation Type
+
+{{Operation Type}} (required)
+```
+
+**Slot definition slot.json**: in JSON Schema (draft 2020-12) format; declare the type, `description`, and `examples` of each slot via `properties`, and optionally use the extension field `x-a2at-value-constraint` to add value constraints (used by LLM extraction and semantic validation), for example:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "Operation Type": {
+      "type": "string",
+      "description": "Provide the operation type. Allowed values: create, modify",
+      "examples": ["create"],
+      "x-a2at-value-constraint": "Allowed values: create, modify"
+    }
+  }
+}
+```
+
+**Scenario catalog scenarios.json**: the top level is a `scenarios` array; each entry contains `scenario_code`, `scenario_name`, `description`, and `example` fields, for example:
+
+```json
+{
+  "scenarios": [
+    {
+      "scenario_code": "ran-energy-saving",
+      "scenario_name": "Energy-efficiency optimization task dispatch",
+      "description": "Used to generate A2A-T task requests for energy-efficiency optimization tasks in telecom network management systems.",
+      "example": "Reduce the energy consumption of the Songshan Lake campus by 30% while ensuring a rate guarantee of no less than 10Mbps."
+    }
+  ]
+}
+```
+
+#### Step3 Configure the resource source
+
+Edit `client.env` (`server.env` on the server side) to switch the resource source to local files and specify the root directory:
+
+```properties
+A2AT_LANGUAGE=en-US
+A2AT_PROMPT_SOURCE_TYPE=local_file
+A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=/opt/a2at/prompt_resources
+```
+
+Notes:
+
+1. `A2AT_PROMPT_SOURCE_TYPE` takes `classpath` (default) or `local_file`; any other value reports `Unsupported prompt source type` at construction time.
+2. In `local_file` mode, `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` is required: when unset, an error is reported prompting you to set `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR`; assembly also fails when the path does not exist or is not a directory.
+3. Relative paths of the local root directory are resolved against the directory of the `.env` file; absolute paths are recommended.
+4. In `classpath` mode, a configured local root directory is ignored with a warning log.
+
+**templateUri mapping**
+
+The `generateTaskPromptFromText` API skips scenario recognition; the template is explicitly specified by the caller via `templateUri`. `templateUri` maps one-to-one to the local directory, with the following mapping rule:
+
+```text
+Local file: <local resource root>/templates/<extensionName>/<pathSegments>/<templateVersion>/<language>/template.md
+templateUri: <extensionName>/<pathSegments>/<templateVersion>
+```
+
+For example, when the local file is `<local resource root>/templates/Task-T/network-layer/site-inspection/v1/en-US/template.md`, the corresponding `templateUri` is `Task-T/network-layer/site-inspection/v1`.
+
+```java
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+
+// Construction: parse the raw URI string
+TemplateUri templateUri = TemplateUri.parse("Task-T/network-layer/site-inspection/v1").orElseThrow();
+
+MetadataContent metadata = client.generateTaskPromptFromText(
+        "Please perform an on-site inspection of station xx, focusing on alarms and performance metrics", templateUri);
+```
+
+To override a built-in template (e.g. `StandardTemplates.PRIVATE_LINE_COMPLAINT`), place `template.md` and `slot.json` at the same relative path under the local root directory and keep using the original constant in the code. Note that in `local_file` mode business templates are read only from the local root directory without classpath fallback; when the file for a `templateUri` is missing, the API throws `PromptGenerationException` with the error code `template_not_found`.
+
+#### Step4 Verification and troubleshooting
+
+After starting the client or server, confirm and troubleshoot as follows:
+
+1. **Missing resources**: when a template is not found, a `ResourceNotFoundException` is thrown (error code `validation_prompt_resource_not_found` on the validation path); the exception message contains the expected file path — complete the directory structure as prompted.
+2. **Content not updated**: changes to local files do not take effect without restarting the process; restart the SDK process and construct again.
+3. **Negotiation and LLM resources are not customizable**: `Negotiation-T` templates support only the built-in fixed set; negotiation template URIs outside the set are skipped with a warning.
+
+## 1.6 Configuration Item List
+
+The sample configuration file provided by the SDK is `env.example`. When constructing the A2A-T Client and the A2A-T Server, copy the file to the corresponding `client.env` / `server.env`. The configuration items are described below:
+
+| Configuration Item | Description |
+| --- | --- |
+| `A2AT_LANGUAGE` | Prompt resource language; built-in `zh-CN` and `en-US`, default `en-US` |
+| `A2AT_PROMPT_SOURCE_TYPE` | Prompt resource source; supports `classpath` and `local_file`, default `classpath` |
+| `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` | Local prompt resource root directory; required in `local_file` mode — unset or non-existent paths fail fast at assembly time; only business content (templates/slots/scenarios of Task-T/Notification-T/Authorization-T) is read from this root, while negotiation resources and LLM prompts are always loaded from the classpath |
+| `A2AT_INPUT_TEXT_MAX_CHARS` | Maximum number of characters for free-text inputs (FromText generation and message validation entry points); exceeding the limit fails fast with error code `input_text_too_long`, default `16384`; structured data that involves no LLM calls is not subject to this limit |
+| `A2AT_LLM_PROVIDER` | LLM protocol type; currently only `openai` is supported |
+| `A2AT_LLM_MODEL` | Model name |
+| `A2AT_LLM_API_KEY` | LLM API key |
+| `A2AT_LLM_BASE_URL` | LLM service address (OpenAI-compatible) |
+| `A2AT_LLM_MAX_TOKENS` | Maximum number of generated tokens for completion calls; sample value `2000`, provider default when left empty |
+| `A2AT_LLM_TEMPERATURE` | Sampling temperature; sample value `0`, provider default when left empty |
+| `A2AT_LLM_TIMEOUT_SECONDS` | LLM request timeout in seconds; sample value `60`, provider default when left empty |
+| `A2AT_LLM_HISTORY_WINDOW` | Number of session history messages to keep, default `10` |
+| `A2AT_LLM_REASONING_EFFORT` | Reasoning effort level; one of `none`/`minimal`/`low`/`medium`/`high`/`xhigh`, not set when left empty |
+| `A2AT_LLM_DISABLE_SYSTEM_PROXY` | Whether to bypass the system HTTP proxy when accessing the LLM, default `false` |
+| `A2AT_LLM_SESSION_MAX_TOTAL` | Maximum total number of tracked sessions, default `300` |
+| `A2AT_LLM_SESSION_MAX_PER_PROVIDER` | Maximum number of tracked sessions per provider, default `100` |
+| `A2AT_LLM_MAX_ATTEMPTS` | Maximum number of attempts for retryable LLM steps; range 1-10 (out-of-range values are clamped), default `3` |
+| `A2AT_NEGOTIATION_STATE_STORE_TYPE` | Negotiation state storage; currently supports `in_memory` |
 
 
 

@@ -2,151 +2,62 @@
 
 ## 1.1 Introduction
 
-The public APIs of the A2A-T SDK converge on two facades: the client facade `A2ATClient` (prompt generation, negotiation message generation and validation) and the server facade `A2ATServer` (prompt validation, negotiation message generation and validation). The Negotiation-T APIs have exactly the same signature and semantics on both facades; the generation APIs of Task-T / Notification-T / Authorization-T live on `A2ATClient`, and the validation APIs live on `A2ATServer`.
+The A2A-T SDK exposes exactly two public entry points: the client entry `A2ATClient` (prompt generation, negotiation message generation and validation) and the server entry `A2ATServer` (prompt validation, negotiation message generation and validation). See the API category overview below.
 
 - **API Overview**:
 
 | Category | API | Client/Server | Description | LLM Involved |
 | ---- | ------- | -------- | ------- |---------|
-| Negotiation-T | `generateNegotiationProposePromptFromText` | A2A-T Client / A2A-T Server | Generates a negotiation propose message from natural-language text | Yes (1 LLM content-extraction call) |
-| Negotiation-T | `generateNegotiationAcceptPromptFromText` | A2A-T Client / A2A-T Server | Generates a negotiation accept message from natural-language text | Yes (1 LLM content-extraction call) |
-| Negotiation-T | `generateNegotiationRejectPromptFromText` | A2A-T Client / A2A-T Server | Generates a negotiation reject message from natural-language text | Yes (1 LLM content-extraction call) |
-| Negotiation-T | `generateNegotiationProposePromptFromData` | A2A-T Client / A2A-T Server | Deterministically generates a negotiation propose message from structured data (no LLM call) | No |
-| Negotiation-T | `generateNegotiationAcceptPromptFromData` | A2A-T Client / A2A-T Server | Deterministically generates a negotiation accept message from structured data (no LLM call) | No |
-| Negotiation-T | `generateNegotiationRejectPromptFromData` | A2A-T Client / A2A-T Server | Deterministically generates a negotiation reject message from structured data (no LLM call) | No |
-| Negotiation-T | `validateProposePromptAndDataFilling` | A2A-T Client / A2A-T Server | Validates a negotiation propose message and extracts parameters per a schema | Yes (1 LLM semantic-validation call) |
-| Negotiation-T | `validateAcceptPromptAndDataFilling` | A2A-T Client / A2A-T Server | Validates a negotiation accept message and extracts parameters per a schema | Yes (1 LLM semantic-validation call) |
-| Negotiation-T | `validateRejectPromptAndDataFilling` | A2A-T Client / A2A-T Server | Validates a negotiation reject message and extracts parameters per a schema | Yes (1 LLM semantic-validation call) |
-| Task-T | `generateTaskPromptFromText` | A2A-T Client | Generates a task prompt from natural-language text with the specified Task-T template (skips scenario recognition) | Yes (1 LLM slot-extraction call) |
-| Task-T | `generateTaskPromptFromDataWithSchema` | A2A-T Client | Generates a task prompt from structured data plus a semantic schema with the specified Task-T template | Yes (1 LLM slot-extraction call) |
-| Task-T | `validateTaskPromptAndDataFilling` | A2A-T Server | Validates a Task-T task prompt and extracts parameters per a schema | Yes (1 LLM semantic-validation and extraction call) |
-| Notification-T | `generateNotificationPromptFromText` | A2A-T Client | Generates a notification subscription prompt from natural-language text with the specified Notification-T template | Yes (1 LLM slot-extraction call) |
-| Notification-T | `generateNotificationPromptFromDataWithSchema` | A2A-T Client | Generates a notification subscription prompt from structured data plus a semantic schema with the specified Notification-T template | Yes (1 LLM slot-extraction call) |
-| Notification-T | `validateNotificationPromptAndDataFilling` | A2A-T Server | Validates a Notification-T prompt and extracts parameters per a schema | Yes (1 LLM semantic-validation and extraction call) |
-| Authorization-T | `generateAuthPromptFromText` | A2A-T Client | Generates an authorization prompt from natural-language text with the specified Authorization-T template | Yes (1 LLM slot-extraction call) |
-| Authorization-T | `generateAuthPromptFromDataWithSchema` | A2A-T Client | Generates an authorization prompt from structured data plus a semantic schema with the specified Authorization-T template | Yes (1 LLM slot-extraction call) |
-| Authorization-T | `validateAuthPromptAndDataFilling` | A2A-T Server | Validates an Authorization-T prompt and extracts parameters per a schema | Yes (1 LLM semantic-validation and extraction call) |
-| General | `generateTaskPrompt` | A2A-T Client | Generates a task prompt from natural-language or structured input via scenario recognition | Yes (2 LLM calls: scenario recognition + slot extraction) |
-| General | `checkTaskPrompt` | A2A-T Server | Validates the scenario, template, and slot compliance of a task prompt | Yes (3 LLM calls: scenario recognition + slot extraction + semantic validation) |
+| Negotiation-T | `generateNegotiationProposePromptFromText` | A2A-T Client / A2A-T Server | Generates a negotiation propose message from natural-language text | Yes |
+| Negotiation-T | `generateNegotiationAcceptPromptFromText` | A2A-T Client / A2A-T Server | Generates a negotiation accept message from natural-language text | Yes |
+| Negotiation-T | `generateNegotiationRejectPromptFromText` | A2A-T Client / A2A-T Server | Generates a negotiation reject message from natural-language text | Yes |
+| Negotiation-T | `generateNegotiationProposePromptFromData` | A2A-T Client / A2A-T Server | Deterministically generates a negotiation propose message from structured data | No |
+| Negotiation-T | `generateNegotiationAcceptPromptFromData` | A2A-T Client / A2A-T Server | Deterministically generates a negotiation accept message from structured data | No |
+| Negotiation-T | `generateNegotiationRejectPromptFromData` | A2A-T Client / A2A-T Server | Deterministically generates a negotiation reject message from structured data | No |
+| Negotiation-T | `validateProposePromptAndDataFilling` | A2A-T Client / A2A-T Server | Validates a negotiation propose message and extracts parameters per a schema | Yes |
+| Negotiation-T | `validateAcceptPromptAndDataFilling` | A2A-T Client / A2A-T Server | Validates a negotiation accept message and extracts parameters per a schema | Yes |
+| Negotiation-T | `validateRejectPromptAndDataFilling` | A2A-T Client / A2A-T Server | Validates a negotiation reject message and extracts parameters per a schema | Yes |
+| Task-T | `generateTaskPromptFromText` | A2A-T Client | Generates a task prompt from natural-language text with the specified Task-T template (skips scenario recognition) | Yes |
+| Task-T | `generateTaskPromptFromDataWithSchema` | A2A-T Client | Generates a task prompt from structured data plus a semantic schema with the specified Task-T template | Yes |
+| Task-T | `validateTaskPromptAndDataFilling` | A2A-T Server | Validates a Task-T task prompt and extracts parameters per a schema | Yes |
+| Notification-T | `generateNotificationPromptFromText` | A2A-T Client | Generates a notification subscription prompt from natural-language text with the specified Notification-T template | Yes |
+| Notification-T | `generateNotificationPromptFromDataWithSchema` | A2A-T Client | Generates a notification subscription prompt from structured data plus a semantic schema with the specified Notification-T template | Yes |
+| Notification-T | `validateNotificationPromptAndDataFilling` | A2A-T Server | Validates a Notification-T prompt and extracts parameters per a schema | Yes |
+| Authorization-T | `generateAuthPromptFromText` | A2A-T Client | Generates an authorization prompt from natural-language text with the specified Authorization-T template | Yes |
+| Authorization-T | `generateAuthPromptFromDataWithSchema` | A2A-T Client | Generates an authorization prompt from structured data plus a semantic schema with the specified Authorization-T template | Yes |
+| Authorization-T | `validateAuthPromptAndDataFilling` | A2A-T Server | Validates an Authorization-T prompt and extracts parameters per a schema | Yes |
+| General | `generateTaskPrompt` | A2A-T Client | Generates a task prompt from natural-language or structured input via scenario recognition | Yes |
+| General | `checkTaskPrompt` | A2A-T Server | Validates the scenario, template, and slot compliance of a task prompt | Yes |
 
 **Common Data Types and Conventions**
 
-- **TemplateUri:** the template URI value type. Prefer building it with the `net.openan.a2at.sdk.core.model.StandardTemplates` constants, e.g. `StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE` (URI `Negotiation-T/information-negotiation/propose/v1`); for strings coming from outside the code, parse them with `TemplateUri.parse(String)`, which returns an `Optional<TemplateUri>` and never throws.
 - **Negotiation session context:** `NegotiationContext(id, round, maxRounds)` (id in UUID form, round starting at 1, default round budget `DEFAULT_MAX_ROUNDS = 5`); it travels with the message metadata and never goes through the LLM. `NegotiationContext.of(id, round)` uses the default budget, and `nextRound()` advances the round.
-- **Exception hierarchy:** every SDK processing failure is a subclass of `A2ATError` — generation failures throw `PromptGenerationException` (Task-T / Notification-T / Authorization-T) or `NegotiationGenerationException` (Negotiation-T); validation-plus-extraction failures throw `ContentValidationException` (Task-T / Notification-T / Authorization-T, carrying the `errors()` slot error details and the `params()` partial extraction parameters) or `NegotiationParamExtractionException` (Negotiation-T). Catching `A2ATError` covers all processing failures, and `getCode()` returns the machine-readable error code from the error-code catalog below. Expected business failures extend `A2ATBusinessException` and additionally expose `getFacts()` carrying the structured fact values behind the rendered message; all messages are rendered by the SDK from the code's template and follow `A2AT_LANGUAGE`.
-- **SlotValidationError:** per-slot validation error details, returned with validation-failure exceptions or failure payloads; the failure structures in the "Output" sections of each API all reference this definition:
+- **Exception hierarchy:** every SDK processing failure is a subclass of `A2ATError`; catching `A2ATError` covers all processing failures, and `getCode()` returns the machine-readable error code. All messages are rendered by the SDK from per-code message templates and follow `A2AT_LANGUAGE`. The following business exceptions extend `A2ATBusinessException` and additionally expose `getFacts()` carrying the structured fact values behind the rendered message:
+  - Generation failures throw `PromptGenerationException` (Task-T / Notification-T / Authorization-T) or `NegotiationGenerationException` (Negotiation-T);
+  - Validation-plus-extraction failures throw `ContentValidationException` (Task-T / Notification-T / Authorization-T) or `NegotiationParamExtractionException` (Negotiation-T).
+- **TemplateUri:** the template URI value type. Prefer building it with the `net.openan.a2at.sdk.core.model.StandardTemplates` constants; for strings coming from outside the code, parse them with `TemplateUri.parse(String)`, which returns an `Optional<TemplateUri>` and never throws. The currently supported TemplateUri constants are listed below:
 
-| Field | Type | Description |
+| Constant | Description | Template URI |
 | ---- | ---- | ---- |
-| slotName | String | Name of the slot the error refers to |
-| code | String | Slot-level error code from the error-code catalog below, e.g. `content.param_missing` (a parameter section carries no value), `content.entry_field_missing` (a list entry is missing a required field), `content.format_error` (value format error) |
-| message | String | Human-readable error description rendered by the SDK from the code's message template; the language follows `A2AT_LANGUAGE` (default `en-US`) |
-| facts | Map&lt;String, String&gt; | Structured fact values that produced the message, keyed by fact parameter name (e.g. `section_label`, `index`, `field_label`); may be null |
+| StandardTemplates.ENERGY_SAVING | Task-T energy-saving task template | Task-T/network-layer/ran-energy-saving/v1 |
+| StandardTemplates.PRIVATE_LINE_COMPLAINT | Task-T private-line complaint task template | Task-T/network-layer/private-line-complaint/v1 |
+| StandardTemplates.SUBSCRIBE_INCIDENT | Notification-T incident subscription notification template | Notification-T/network-layer/subscribe-incident/v1 |
+| StandardTemplates.SERVICE_RECOVERY | Notification-T service recovery notification template | Notification-T/network-layer/service-recovery/v1 |
+| StandardTemplates.AUTHORIZATION_POLICY_MANAGEMENT | Authorization-T authorization policy management template | Authorization-T/authorization-policy-management/v1 |
+| StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE | Negotiation-T information negotiation propose template | Negotiation-T/information-negotiation/propose/v1 |
+| StandardTemplates.INFORMATION_NEGOTIATION_ACCEPT_REJECT | Negotiation-T information negotiation accept/reject template | Negotiation-T/information-negotiation/accept-reject/v1 |
+| StandardTemplates.TARGET_NEGOTIATION_PROPOSE | Negotiation-T target negotiation propose template | Negotiation-T/target-negotiation/propose/v1 |
+| StandardTemplates.TARGET_NEGOTIATION_ACCEPT_REJECT | Negotiation-T target negotiation accept/reject template | Negotiation-T/target-negotiation/accept-reject/v1 |
+| StandardTemplates.FEASIBILITY_NEGOTIATION_PROPOSE | Negotiation-T feasibility negotiation propose template | Negotiation-T/feasibility-negotiation/propose/v1 |
+| StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT | Negotiation-T feasibility negotiation accept/reject template | Negotiation-T/feasibility-negotiation/accept-reject/v1 |
+| StandardTemplates.NEGOTIATION_ABORT | Negotiation-T common negotiation abort template | Negotiation-T/common/abort/v1 |
 
-**Error-code catalog**
-
-The SDK exposes a closed catalog of layered `domain.semantic` error codes; one code always carries one message. Message texts are rendered by the SDK from the per-language templates bundled in `prompt_resources/errors/{language}/errors.json` - they are never free text produced by the LLM. The message language follows the `A2AT_LANGUAGE` setting (default `en-US`); `{x}` tokens in a template are filled from the `facts` of the error. Internally, LLM steps only report `{slot_name, code, facts}` entries; a code returned by an LLM outside the catalog is mapped to the per-domain `*.rule_violation` fallback code and the original code is logged.
-
-Category legend: BUSINESS = expected business failure carried by an `A2ATBusinessException` subclass the caller can act on; INFRA = infrastructure failure carried by a plain `A2ATError`.
-
-| Code | Category | Message (en-US) | Message (zh-CN) |
-| ---- | -------- | ---------------- | --------------- |
-| `template.not_found` | BUSINESS | Template '{template_uri}' does not support language '{language}'; check the template URI and language setting | 模板「{template_uri}」不支持语言「{language}」,请检查模板标识与语言配置 |
-| `template.render_failed` | BUSINESS | Failed to render template '{template_uri}': {reason} | 模板「{template_uri}」渲染失败:{reason} |
-| `template.load_failed` | INFRA | Failed to read template resource '{resource_path}' | 模板资源「{resource_path}」读取失败 |
-| `slot.schema_not_found` | BUSINESS | Template '{template_uri}' is missing its slot schema (language '{language}') | 模板「{template_uri}」缺少参数定义文件(语言「{language}」) |
-| `slot.not_provided` | BUSINESS | '{slot_label}' is not provided in the input. | 输入中未提供「{slot_label}」。 |
-| `slot.constraint_violated` | BUSINESS | The value of '{slot_label}' ({actual}) is not within the allowed range | 「{slot_label}」的取值「{actual}」不在允许范围内 |
-| `slot.semantic_conflict` | BUSINESS | The value of '{slot_label}' conflicts with the slot definition: {reason} | 「{slot_label}」的取值与参数定义冲突:{reason} |
-| `slot.fabricated_value` | BUSINESS | The value of '{slot_label}' ({actual}) is placeholder content, not a valid value | 「{slot_label}」的取值「{actual}」是占位内容,不是有效值 |
-| `slot.cross_scenario_pollution` | BUSINESS | The value of '{slot_label}' contains content from a different scenario | 「{slot_label}」的取值混入了其他场景的内容 |
-| `slot.insufficient_grounding` | BUSINESS | The value of '{slot_label}' lacks sufficient grounding | 「{slot_label}」的取值缺少充分依据 |
-| `slot.rule_violation` | BUSINESS | The value of '{slot_label}' violates the validation rules. | 「{slot_label}」的取值不符合校验规则。 |
-| `input.text_too_long` | BUSINESS | Input text length {actual_length} exceeds the maximum of {max_chars} (A2AT_INPUT_TEXT_MAX_CHARS) | 输入文本长度 {actual_length} 超过上限 {max_chars}(A2AT_INPUT_TEXT_MAX_CHARS) |
-| `content.param_missing` | BUSINESS | '{section_label}' is empty; please provide a value | 「{section_label}」未填写,请补充该参数的取值 |
-| `content.entry_field_missing` | BUSINESS | Entry {index} of '{section_label}' is missing required field '{field_label}' | 「{section_label}」第 {index} 条缺少必填字段「{field_label}」 |
-| `content.format_error` | BUSINESS | The format of '{section_label}' is invalid: {reason} | 「{section_label}」的取值格式不符合要求:{reason} |
-| `content.value_not_allowed` | BUSINESS | The value of '{section_label}' ({actual}) is not allowed | 「{section_label}」的取值「{actual}」不在允许范围内 |
-| `content.semantic_conflict` | BUSINESS | '{section_label}' has a semantic conflict: {reason} | 「{section_label}」存在语义冲突:{reason} |
-| `content.rule_violation` | BUSINESS | The value of '{section_label}' violates the validation rules. | 「{section_label}」的取值不符合校验规则。 |
-| `scenario.not_matched` | BUSINESS | The input does not match any known scenario: {reason} | 输入内容无法匹配任何已知场景:{reason} |
-| `llm.not_configured` | BUSINESS | No LLM client is configured; check the A2AT_LLM_* settings | 未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置) |
-| `llm.invocation_failed` | BUSINESS | LLM invocation failed (provider {provider}): {reason} | LLM 调用失败(提供方 {provider}):{reason} |
-| `llm.response_invalid` | BUSINESS | The LLM response is invalid (step: {step}); please retry | LLM 返回内容不符合要求({step} 步骤),请重试 |
-| `negotiation.invalid_input` | BUSINESS | The negotiation input is invalid: {reason} | 输入的协商内容无效:{reason} |
-| `negotiation.invalid_context_id` | BUSINESS | The negotiation context id '{actual}' is not a valid UUID | 协商上下文标识「{actual}」不是合法的 UUID |
-| `negotiation.round_exceeded` | BUSINESS | Negotiation round {round} exceeds the maximum of {max_rounds} | 协商轮次 {round} 已超过上限 {max_rounds} |
-| `negotiation.type_mismatch` | BUSINESS | The message implies '{implied}' negotiation but the declared template type is '{declared}' | 报文内容属于「{implied}」协商,与声明的模板类型「{declared}」不符 |
-| `negotiation.phase_mismatch` | BUSINESS | The message phase does not match the declared template phase ({implied} vs {declared}) | 报文阶段与声明的模板阶段不符({implied} vs {declared}) |
-| `negotiation.conclusion_mismatch` | BUSINESS | The message conclusion is '{actual}' but '{expected}' is expected for this method | 报文结论为「{actual}」,与该方法的预期「{expected}」不符 |
-| `negotiation.content_invalid` | BUSINESS | The negotiation content field '{field}' is invalid: {reason} | 协商内容字段「{field}」无效:{reason} |
-| `negotiation.field_missing` | BUSINESS | The negotiation message is missing required field '{field}' | 协商报文缺少必填字段「{field}」 |
-| `negotiation.content_extract_failed` | BUSINESS | Failed to extract negotiation content from text ({field}): {reason} | 无法从文本提取协商内容({field}):{reason} |
-| `negotiation.conclusion_content_mismatch` | BUSINESS | The conclusion is '{conclusion}' but '{section_label}' does not state the content the conclusion requires | 结论为「{conclusion}」,但「{section_label}」未表达该结论应携带的内容 |
-| `negotiation.missing_result_content` | BUSINESS | The '{section_label}' section is missing the content required by its conclusion | 「{section_label}」板块缺少结论应携带的内容 |
-| `negotiation.mutually_exclusive_sections` | BUSINESS | Mutually exclusive sections appear together: {sections} | 互斥板块同时出现:{sections} |
-| `negotiation.constraint_conflict` | BUSINESS | '{section_label}' conflicts with existing constraints: {reason} | 「{section_label}」与既有约束冲突:{reason} |
-| `negotiation.field_inconsistency` | BUSINESS | Fields within '{section_label}' are inconsistent: {reason} | 「{section_label}」内字段取值前后不一致:{reason} |
-| `negotiation.invalid_time_interval` | BUSINESS | The time interval of '{section_label}' is invalid (start must not be later than end) | 「{section_label}」的时间区间不合法(开始时间不得晚于结束时间) |
-| `negotiation.semantic_rejected` | BUSINESS | The negotiation message failed semantic validation | 协商报文语义校验未通过 |
-| `negotiation.rule_violation` | BUSINESS | '{section_label}' violates the negotiation message validation rules. | 「{section_label}」不符合协商报文的校验规则。 |
-| `infra.config_invalid` | INFRA | Invalid configuration '{key}': {reason} | 配置项「{key}」无效:{reason} |
-| `infra.resource_read_failed` | INFRA | Failed to read resource '{resource_path}' | 资源「{resource_path}」读取失败 |
-| `infra.internal_error` | INFRA | SDK internal error; contact the maintainer with context | SDK 内部错误,请联系维护方并提供上下文 |
-
-**Old-to-new code mapping**
-
-The layered codes above replace the previous flat error codes. Use this mapping when migrating callers that branch on `getCode()` values:
-
-| Old code | New code |
-| -------- | -------- |
-| `template_not_found` | `template.not_found` |
-| `render_failed` | `template.render_failed` |
-| `prompt_resource_load_error` | `template.load_failed` |
-| `slot_schema_not_found` | `slot.schema_not_found` |
-| `missing_input` / `param_extraction_failed` (slot extraction) | `slot.not_provided` |
-| `invalid_value` (slot extraction) | `slot.constraint_violated` |
-| `semantic_mismatch` (semantic validation) | `slot.semantic_conflict` |
-| `fabricated_value` | `slot.fabricated_value` |
-| `cross_scenario_pollution` | `slot.cross_scenario_pollution` |
-| `insufficient_grounding` | `slot.insufficient_grounding` |
-| `input_text_too_long` | `input.text_too_long` |
-| `missing_required` (parameter level, content validation) | `content.param_missing` |
-| `missing_required` (list-entry level, content validation) | `content.entry_field_missing` |
-| `format_error` | `content.format_error` |
-| `invalid_value` (content validation) | `content.value_not_allowed` |
-| `semantic_mismatch` (content validation) | `content.semantic_conflict` |
-| `scenario_not_matched` / `processed_prompt_parse_error` | `scenario.not_matched` |
-| `llm_invocation_failed` (transport failures) | `llm.invocation_failed` |
-| `llm_invocation_failed` (response-contract failures) | `llm.response_invalid` |
-| "LLM client is not configured" family | `llm.not_configured` |
-| `negotiation_invalid_input` / `validation_invalid_input` | `negotiation.invalid_input` |
-| `invalid_uuid` | `negotiation.invalid_context_id` |
-| `out_of_range` (round) | `negotiation.round_exceeded` |
-| `template_type_mismatch` | `negotiation.type_mismatch` |
-| `template_phase_mismatch` | `negotiation.phase_mismatch` |
-| `invalid_conclusion` / registry conclusion gate | `negotiation.conclusion_mismatch` |
-| fromData required-items/required-text `IllegalArgumentException` | `negotiation.content_invalid` |
-| `negotiation_slot_missing` | `negotiation.field_missing` |
-| `negotiation_content_extract_failed` | `negotiation.content_extract_failed` |
-| `conclusion_content_mismatch` | `negotiation.conclusion_content_mismatch` |
-| `missing_result_content` | `negotiation.missing_result_content` |
-| `mutually_exclusive_sections` | `negotiation.mutually_exclusive_sections` |
-| `constraint_conflict` | `negotiation.constraint_conflict` |
-| `field_inconsistency` | `negotiation.field_inconsistency` |
-| `invalid_time_interval` | `negotiation.invalid_time_interval` |
-| `negotiation_semantic_rejected` / `validation_semantic_rejected` | `negotiation.semantic_rejected` |
-| `negotiation_rule_violation` / `validation_rule_violation` | `negotiation.rule_violation` |
-| `negotiation_llm_infrastructure_error` / `validation_llm_infrastructure_error` | `llm.invocation_failed` / `llm.response_invalid` |
-| `validation_prompt_resource_not_found` | `template.not_found` |
-| `sdk_internal_error` | `infra.internal_error` |
-| `LLMConfigError` | `infra.config_invalid` |
-| bare `A2ATError` resource-read failures | `infra.resource_read_failed` |
 
 
 ## 1.2 Constraints and Limitations
 
-Some APIs involve LLM calls. Control the call rate and concurrency according to the concurrency capacity of the connected model service.
+- Some APIs involve LLM calls. Control the call rate and concurrency of these APIs according to the concurrency capacity of the connected model service and your business time-limit requirements.
+- APIs that involve LLM calls guard the length of text `text` inputs: when the input exceeds the `A2AT_INPUT_TEXT_MAX_CHARS` characters configured in `client.env` or `server.env`, the error code `input_text_too_long` is reported; the default value of this configuration item is 16384 (16×1024). Structured data that involves no LLM calls is not subject to this limit.
 
 ## 1.3 API Description
 
@@ -161,13 +72,13 @@ public MetadataContent generateNegotiationProposePromptFromText(
 
 **Typical scenarios**: after receiving a Task-T task message with missing parameters, the server agent uses natural language to send a "supplement the missing information" negotiation request to the client agent; also applicable when the client agent initiates a target-clarification or feasibility-evaluation request to the server.
 
-**Function Description**: generates a structured negotiation propose-phase message from natural-language text. Execution flow: the template is loaded first (a missing template fails fast without consuming an LLM request), then one LLM content-extraction step runs (extracting typed content from the free text under the template-URI constraint, retried up to the `A2AT_LLM_MAX_ATTEMPTS` limit on retryable error codes), and finally the template is rendered deterministically. Applicable to the initiator of information/target/feasibility negotiations. The `templateUri` phase segment must be `propose`.
+**Function Description**: generates a structured negotiation propose-phase message from natural-language text. Execution flow: the template is loaded first, then one LLM content-extraction step runs, and finally the template is rendered deterministically. Applicable to the initiator of information/target/feasibility negotiations.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| text | String | Yes | Natural-language text describing the negotiation proposal (e.g. the list of missing information items to request) |
+| text | String | Yes | Natural-language text describing the negotiation proposal (e.g. the list of missing information items to request); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | context | NegotiationContext | Yes | Negotiation session context, injected directly into the `negotiationContext` metadata of the generated message without going through the LLM |
 | templateUri | TemplateUri | Yes | Propose template, e.g. `StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE` |
 
@@ -260,13 +171,13 @@ public MetadataContent generateNegotiationAcceptPromptFromText(
 
 **Typical scenarios**: after receiving the peer's information-negotiation request, the negotiation responder (usually the client agent) supplements/delivers the requested information in natural language and generates an accept message to return, e.g. confirming that diagnosis can start after supplementing the access port name and complaint category.
 
-**Function Description**: generates a negotiation accept message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `ACCEPT`, otherwise it is rejected with `negotiation.invalid_input`) plus deterministic rendering. Applicable to the negotiation responder supplementing/delivering information. The `templateUri` phase segment must be `accept-reject`.
+**Function Description**: generates a negotiation accept message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `ACCEPT`, otherwise it is rejected with `negotiation.invalid_input`) plus deterministic rendering. Applicable to the negotiation responder supplementing/delivering information.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| text | String | Yes | Natural-language text describing the acceptance (e.g. the list of supplemented/delivered information items) |
+| text | String | Yes | Natural-language text describing the acceptance (e.g. the list of supplemented/delivered information items); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | context | NegotiationContext | Yes | Negotiation session context |
 | templateUri | TemplateUri | Yes | Accept-reject template, e.g. `StandardTemplates.INFORMATION_NEGOTIATION_ACCEPT_REJECT` |
 
@@ -324,7 +235,7 @@ public MetadataContent generateNegotiationRejectPromptFromText(
 
 **Typical scenarios**: when the negotiation responder (usually the client agent) cannot satisfy the peer's negotiation request, it generates a reject message in natural language to return and end the current negotiation round, e.g. the access port name cannot be provided because the site inventory is unavailable.
 
-**Function Description**: generates a negotiation reject message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `REJECT`, otherwise it is rejected with `negotiation.invalid_input`) plus deterministic rendering. The `templateUri` phase segment must be `accept-reject`.
+**Function Description**: generates a negotiation reject message from natural-language text. One LLM content-extraction step (the extracted conclusion must be `REJECT`, otherwise it is rejected with `negotiation.invalid_input`) plus deterministic rendering.
 
 **Input**: same as [generateNegotiationAcceptPromptFromText](#132-generatenegotiationacceptpromptfromtext), where text is natural language describing the rejection reason.
 
@@ -379,7 +290,7 @@ public MetadataContent generateNegotiationProposePromptFromData(
 
 **Typical scenarios**: the same initiation scenarios as the fromText variant, but the input is structured data constructed by the business system (e.g. the server agent automatically generates the negotiation-request items from the missing-slot list detected by `validateTaskPromptAndDataFilling`), suitable for scenarios that require deterministic message content and want to avoid the nondeterminism of LLM extraction.
 
-**Function Description**: deterministically generates a negotiation propose message from typed data, **without calling the LLM**: the typed content is validated first, then dispatched to the generator of the negotiation type addressed by the template URI for rendering. The `content` must match the negotiation type of `templateUri` (information / target / feasibility), and the phase segment must be `propose`.
+**Function Description**: deterministically generates a negotiation propose message from structured-data input, **without calling the LLM**.
 
 **Input**
 
@@ -462,7 +373,7 @@ public MetadataContent generateNegotiationAcceptPromptFromData(
 
 **Typical scenarios**: the negotiation responder (usually the client agent) programmatically fills in the parameters per the peer's requested slot list and generates an accept message from structured items to return.
 
-**Function Description**: deterministically generates a negotiation accept message from typed data, **without calling the LLM**. `content.conclusion()` must be `ACCEPT`; any other conclusion (including `ABORT`) is rejected with `IllegalArgumentException`.
+**Function Description**: deterministically generates a negotiation accept message from structured-data input, **without calling the LLM**. `content.conclusion()` must be `ACCEPT`; any other conclusion (including `ABORT`) is rejected with `IllegalArgumentException`.
 
 **Input**
 
@@ -530,7 +441,7 @@ public MetadataContent generateNegotiationRejectPromptFromData(
 
 **Typical scenarios**: the negotiation responder, after programmatically determining that the peer's request cannot be satisfied, generates a reject message from structured items (the items that cannot be provided and the reasons) to return.
 
-**Function Description**: deterministically generates a negotiation reject message from typed data, **without calling the LLM**. `content.conclusion()` must be `REJECT`; any other conclusion is rejected with `IllegalArgumentException`.
+**Function Description**: deterministically generates a negotiation reject message from structured-data input, **without calling the LLM**. `content.conclusion()` must be `REJECT`; any other conclusion is rejected with `IllegalArgumentException`.
 
 **Input**: same as [generateNegotiationAcceptPromptFromData](#135-generatenegotiationacceptpromptfromdata), but with the conclusion `REJECT`. Reject content: `InformationEndingContent(REJECT, items)` (items that cannot be provided and the reasons), `TargetEndingContent(REJECT, null, failureReason)` (rejection reason), `FeasibilityEndingContent(REJECT, feasibilitySummary)` (infeasibility conclusion summary).
 
@@ -584,13 +495,13 @@ public FilledParamData validateProposePromptAndDataFilling(
 
 **Typical scenarios**: an outbound self-check by the initiator (server agent) before sending a negotiation request; or the receiver (client agent) validating an inbound negotiation request and extracting the list of slots to supplement, driving the subsequent parameter filling.
 
-**Function Description**: validates whether a negotiation propose message is a properly formatted negotiation message, and extracts parameters from it per the caller-provided JSON Schema. Pipeline: template-URI phase-segment check → deterministic rule gate (a null context is reported as `negotiation.invalid_input`, a non-UUID context id as `negotiation.invalid_context_id`, and a round beyond the budget as `negotiation.round_exceeded`) → one LLM semantic-validation call (which also performs the parameter extraction, retried up to the configured limit on retryable error codes) → parameter merge (the negotiation-context parameters `id` / `round` / `maxRounds` are merged with the extracted parameters; on key conflicts, **the context parameters win**).
+**Function Description**: validates whether a negotiation propose message is a properly formatted negotiation message, and extracts parameters from it per the caller-provided JSON Schema.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| prompt | String | Yes | Negotiation propose message text to validate (`MetadataContent.promptText()`) |
+| prompt | String | Yes | Negotiation propose message text to validate (`MetadataContent.promptText()`); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | context | NegotiationContext | No | Negotiation context traveling with the message; null is reported as `negotiation.invalid_input` |
 | schema | Map&lt;String, Object&gt; | Yes | Caller-provided parameter JSON Schema declaring the parameters to extract |
 | templateUri | TemplateUri | Yes | Propose template |
@@ -679,7 +590,7 @@ public FilledParamData validateAcceptPromptAndDataFilling(
 
 **Typical scenarios**: the initiator (server agent) validates the accept message returned by the peer, extracts the delivered parameter values, and cross-checks them against the expected fill values before continuing task execution.
 
-**Function Description**: validates a negotiation accept message and extracts parameters per the schema. The pipeline is the same as [validateProposePromptAndDataFilling](#137-validateproposepromptanddatafilling), except that the `templateUri` phase segment must be `accept-reject`, and the message must satisfy the accept-phase semantic constraints (the conclusion is Accept and delivered content is carried).
+**Function Description**: validates a negotiation accept message and extracts parameters per the schema.
 
 **Input**: same as 1.3.7, where prompt is the accept message text and templateUri is the accept-reject template.
 
@@ -738,7 +649,7 @@ public FilledParamData validateRejectPromptAndDataFilling(
 
 **Typical scenarios**: the initiator (server agent) validates the reject message returned by the peer, extracts the rejection reason, and terminates the task or escalates to manual handling accordingly.
 
-**Function Description**: validates a negotiation reject message and extracts parameters per the schema. The pipeline is the same as 1.3.7, except that the message must satisfy the reject-phase semantic constraints (the conclusion is Reject and a rejection reason is carried).
+**Function Description**: validates a negotiation reject message and extracts parameters per the schema.
 
 **Input**: same as 1.3.7, where prompt is the reject message text and templateUri is the accept-reject template.
 
@@ -789,13 +700,13 @@ public MetadataContent generateTaskPromptFromText(String text, TemplateUri templ
 
 **Typical scenarios**: the client agent converts the user's natural-language task description (e.g. a private-line complaint diagnosis request) into a Task-T protocol message for a specified scenario; suitable when the target template is already known and scenario recognition should be skipped.
 
-**Function Description**: generates a task prompt message from natural-language text with the specified Task-T template, **skipping scenario recognition** (the template is explicitly specified by the caller). One LLM slot-extraction step runs, then the template is rendered deterministically. The built-in slot schema is validated during generation (a missing or invalid required slot fails fast with a `slot.*` error code such as `slot.not_provided`).
+**Function Description**: generates a task prompt message from natural-language text with the specified Task-T template, **skipping scenario recognition** (the template is explicitly specified by the caller). One LLM slot-extraction step runs, then the template is rendered deterministically.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| text | String | Yes | Natural-language task description |
+| text | String | Yes | Natural-language task description; the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | templateUri | TemplateUri | Yes | Task-T template, e.g. `StandardTemplates.PRIVATE_LINE_COMPLAINT` (`Task-T/network-layer/private-line-complaint/v1`) |
 
 **Request Example**
@@ -901,7 +812,7 @@ public MetadataContent generateTaskPromptFromDataWithSchema(
 
 **Typical scenarios**: the client agent converts structured task parameters from an upstream system (field names may differ from the template slots; the schema describes the field semantics) into a Task-T protocol message; suitable when the task parameters are already available in structured form.
 
-**Function Description**: generates a task prompt from structured data plus a semantic schema with the specified Task-T template, **skipping scenario recognition**. The `schema` describes the business meaning of each input field (description / examples / enum, etc.), guiding slot filling and value constraints; each key of data corresponds to one slot value. The built-in slot schema is validated during generation as well (a missing or invalid required slot fails fast with a `slot.*` error code such as `slot.not_provided`).
+**Function Description**: generates a task prompt from structured data plus a semantic schema with the specified Task-T template, **skipping scenario recognition**. The `schema` describes the business meaning of each input field (description / examples / enum, etc.), guiding slot filling and value constraints; each key of data corresponds to one slot value.
 
 **Input**
 
@@ -991,13 +902,13 @@ public FilledParamData validateTaskPromptAndDataFilling(
 
 **Typical scenarios**: the parameter validation and extraction entry point for the server agent after receiving a Task-T message and before business execution; also the decision point for "missing-slot detection" in the negotiation flow — when a required parameter is missing, the caller decides whether to initiate a negotiation to supplement it.
 
-**Function Description**: validates whether a Task-T task prompt message matches the template and slot constraints, and extracts parameters per the caller-provided JSON Schema. Pipeline: deterministic rule gate (built-in slot validation of the template) → one LLM semantic-validation call (which also performs the parameter extraction, retried up to the configured limit on retryable error codes).
+**Function Description**: validates whether a Task-T task prompt message matches the template and slot constraints, and extracts parameters per the caller-provided JSON Schema.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| prompt | String | Yes (non-blank) | Task prompt message text to validate (`MetadataContent.promptText()`) |
+| prompt | String | Yes (non-blank) | Task prompt message text to validate (`MetadataContent.promptText()`); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | schema | Map&lt;String, Object&gt; | Yes | Caller-provided parameter JSON Schema declaring the parameters to extract/validate and the required constraints |
 | templateUri | TemplateUri | Yes | Task-T template (the prefix segment must be `Task-T`) |
 
@@ -1090,13 +1001,13 @@ public MetadataContent generateNotificationPromptFromText(String text, TemplateU
 
 **Typical scenarios**: the client agent converts a natural-language subscription requirement (e.g. a service recovery event subscription) into a Notification-T subscription message for a specified scenario.
 
-**Function Description**: generates a notification subscription prompt message from natural-language text with the specified Notification-T template, skipping scenario recognition. One LLM slot-extraction step runs, then the template is rendered deterministically, and the built-in slot schema is validated during generation.
+**Function Description**: generates a notification subscription prompt message from natural-language text with the specified Notification-T template. One LLM slot-extraction step runs, then the template is rendered deterministically, and the built-in slot schema is validated during generation.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| text | String | Yes | Natural-language subscription description (notification topic, subscribe condition, notification data format, etc.) |
+| text | String | Yes | Natural-language subscription description (notification topic, subscribe condition, notification data format, etc.); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | templateUri | TemplateUri | Yes | Notification-T template, e.g. `StandardTemplates.SUBSCRIBE_INCIDENT`, `StandardTemplates.SERVICE_RECOVERY` |
 
 **Request Example**
@@ -1168,7 +1079,7 @@ public MetadataContent generateNotificationPromptFromDataWithSchema(
 
 **Typical scenarios**: the client agent converts structured subscription parameters submitted by an upstream system or UI into a Notification-T subscription message; suitable when the subscription parameters are already available in structured form.
 
-**Function Description**: generates a notification subscription prompt from structured data plus a semantic schema with the specified Notification-T template, skipping scenario recognition. The semantic constraints are the same as 1.3.11.
+**Function Description**: generates a notification subscription prompt from structured data plus a semantic schema with the specified Notification-T template.
 
 **Input**
 
@@ -1262,13 +1173,13 @@ public FilledParamData validateNotificationPromptAndDataFilling(
 
 **Typical scenarios**: the server agent validates a received Notification-T subscription message, extracts the subscription parameters (topic/condition/report format), and establishes the subscription accordingly.
 
-**Function Description**: validates whether a Notification-T notification subscription prompt message matches the template and slot constraints, and extracts parameters per the caller's schema (subscription topic, subscribe condition, notification data format, etc.). The pipeline and exception semantics are the same as [validateTaskPromptAndDataFilling](#1312-validatetaskpromptanddatafilling).
+**Function Description**: validates whether a Notification-T notification subscription prompt message matches the template and slot constraints, and extracts parameters per the caller's schema (subscription topic, subscribe condition, notification data format, etc.).
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| prompt | String | Yes (non-blank) | Notification subscription prompt message text to validate |
+| prompt | String | Yes (non-blank) | Notification subscription prompt message text to validate; the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | schema | Map&lt;String, Object&gt; | Yes | Caller-provided parameter JSON Schema |
 | templateUri | TemplateUri | Yes | Notification-T template (the prefix segment must be `Notification-T`) |
 
@@ -1331,13 +1242,13 @@ public MetadataContent generateAuthPromptFromText(String text, TemplateUri templ
 
 **Typical scenarios**: the client agent converts a natural-language authorization request (add/modify/delete/query network operation authorization policies) into an Authorization-T message.
 
-**Function Description**: generates an authorization policy operation prompt message from natural-language text with the specified Authorization-T template, skipping scenario recognition. One LLM slot-extraction step runs, then the template is rendered deterministically. The Authorization-T slot schema is bundled with `a2a-t-resources` and works out of the box under the classpath resource source.
+**Function Description**: generates an authorization policy operation prompt message from natural-language text with the specified Authorization-T template. One LLM slot-extraction step runs, then the template is rendered deterministically.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| text | String | Yes | Natural-language authorization description (operation type + network operation authorization policy content) |
+| text | String | Yes | Natural-language authorization description (operation type + network operation authorization policy content); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | templateUri | TemplateUri | Yes | Authorization-T template: `StandardTemplates.AUTHORIZATION_POLICY_MANAGEMENT` (`Authorization-T/authorization-policy-management/v1`) |
 
 **Request Example**
@@ -1478,13 +1389,13 @@ public FilledParamData validateAuthPromptAndDataFilling(
 
 **Typical scenarios**: the server agent validates a received Authorization-T message, extracts the operation type and policy list, and performs the authorization policy management action accordingly.
 
-**Function Description**: validates whether an Authorization-T authorization prompt message matches the template and slot constraints, and extracts parameters per the caller's schema (operation type, policy list, etc.). The pipeline and exception semantics are the same as 1.3.12. Field requirements are validated differently per operation type: an add entry must carry business scenario / handling type / operation name / validity period; a modify entry must carry the policy identifier and the new validity period; a delete entry may be a policy identifier or condition fields.
+**Function Description**: validates whether an Authorization-T authorization prompt message matches the template and slot constraints, and extracts parameters per the caller's schema (operation type, policy list, etc.). Field requirements are validated differently per operation type: an add entry must carry business scenario / handling type / operation name / validity period; a modify entry must carry the policy identifier and the new validity period; a delete entry may be a policy identifier or condition fields.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| prompt | String | Yes (non-blank) | Authorization prompt message text to validate |
+| prompt | String | Yes (non-blank) | Authorization prompt message text to validate; the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 | schema | Map&lt;String, Object&gt; | Yes | Caller-provided parameter JSON Schema (containing `operationType`, `policyList`, etc.) |
 | templateUri | TemplateUri | Yes | Authorization-T template (the prefix segment must be `Authorization-T`) |
 
@@ -1543,13 +1454,13 @@ public PromptGenerationResult generateTaskPrompt(Object userInput)
 
 **Typical scenarios**: the scenario-auto-routing entry point of the client agent: without specifying a template, the SDK recognizes the business scenario of the user input and generates the corresponding message; suitable when the scenario set is known and a simplified integration is desired.
 
-**Function Description**: the general task prompt generation entry point, which locates the template **via scenario recognition**: the natural-language or structured input first goes through LLM scenario recognition, then slot extraction and rendering are completed with the built-in template of the recognized scenario. To specify a template explicitly, use the FromText / FromDataWithSchema API families in 1.3.1x.
+**Function Description**: the general task prompt generation entry point, which locates the template via scenario recognition: the natural-language or structured input first goes through LLM scenario recognition, then slot extraction and rendering are completed with the built-in template of the recognized scenario.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| userInput | Object | Yes | Task description: a `String` (natural language) or a `Map<String, Object>` (structured input); both go through LLM extraction — there is no zero-LLM shortcut |
+| userInput | Object | Yes | Task description: a `String` (natural language) or a `Map<String, Object>` (structured input); both go through LLM extraction. When the input is a `String`, its length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 
 **Request Example**
 
@@ -1634,15 +1545,15 @@ result.failure() =
 public PromptComplianceResult checkTaskPrompt(String processedPromptText)
 ```
 
-**Typical scenarios**: the server agent performs a protocol-completeness gate check (scenario/template/slot compliance) on a received task message, in scenarios where only a pass/fail conclusion is needed and no parameters must be extracted.
+**Typical scenarios**: the server agent performs a protocol-completeness validation (scenario/template/slot compliance) on a received task message, in scenarios where only a pass/fail conclusion is needed and no parameters must be extracted.
 
-**Function Description**: the general task prompt compliance-check entry point (server side): it performs scenario matching, template compliance validation, and slot validation on the processed task prompt sent by the client (whether it is enabled is controlled by `A2AT_PROMPT_COMPLIANCE_ENABLED`). Difference from `validateTaskPromptAndDataFilling`: this API extracts no parameters and takes no caller-provided schema; it returns only the standardized pass/fail conclusion, suitable for scenarios that only need a protocol-completeness gate.
+**Function Description**: the general task prompt compliance-check entry point (server side): it performs scenario matching, template compliance validation, and slot validation on the processed task prompt sent by the client. Difference from `validateTaskPromptAndDataFilling`: this API extracts no parameters and takes no caller-provided schema; it returns only the standardized pass/fail conclusion.
 
 **Input**
 
 | Parameter | Type | Required | Description |
 | ---- | ---- | ---- | ---- |
-| processedPromptText | String | Yes | A2A-T protocol message text sent by the client (the value keyed by the extension URI in `Message.metadata`) |
+| processedPromptText | String | Yes | A2A-T protocol message text sent by the client (the value keyed by the extension URI in `Message.metadata`); the input length is limited by the `A2AT_INPUT_TEXT_MAX_CHARS` configuration item, default 16384 |
 
 **Request Example**
 
@@ -1690,16 +1601,65 @@ On failure (`success()` is `false`; no exception is thrown, the failure payload 
 On success:
 
 ```text
-prompt check passed
+result.success() = true
 ```
 
-On failure (the message is missing a required slot; the error code and stage come from the server-side compliance pipeline):
+On failure:
 
 ```text
 result.success() = false
 result.failure() =
 { code=slot.not_provided, message='Task Object' is not provided in the input., stage=slot_validation }
 ```
+
+## 1.4 Error Code Catalog
+
+**Error code categories**: BUSINESS = expected business failures the caller can act on, carried by `A2ATBusinessException` subclasses; INFRA = infrastructure failures, carried by a plain `A2ATError`.
+
+| Code | Category | Message (en-US) | Message (zh-CN) |
+| ---- | -------- | ---------------- | --------------- |
+| `template.not_found` | BUSINESS | Template '{template_uri}' does not support language '{language}'; check the template URI and language setting | 模板「{template_uri}」不支持语言「{language}」,请检查模板标识与语言配置 |
+| `template.render_failed` | BUSINESS | Failed to render template '{template_uri}': {reason} | 模板「{template_uri}」渲染失败:{reason} |
+| `template.load_failed` | INFRA | Failed to read template resource '{resource_path}' | 模板资源「{resource_path}」读取失败 |
+| `slot.schema_not_found` | BUSINESS | Template '{template_uri}' is missing its slot schema (language '{language}') | 模板「{template_uri}」缺少参数定义文件(语言「{language}」) |
+| `slot.not_provided` | BUSINESS | '{slot_label}' is not provided in the input. | 输入中未提供「{slot_label}」。 |
+| `slot.constraint_violated` | BUSINESS | The value of '{slot_label}' ({actual}) is not within the allowed range | 「{slot_label}」的取值「{actual}」不在允许范围内 |
+| `slot.semantic_conflict` | BUSINESS | The value of '{slot_label}' conflicts with the slot definition: {reason} | 「{slot_label}」的取值与参数定义冲突:{reason} |
+| `slot.fabricated_value` | BUSINESS | The value of '{slot_label}' ({actual}) is placeholder content, not a valid value | 「{slot_label}」的取值「{actual}」是占位内容,不是有效值 |
+| `slot.cross_scenario_pollution` | BUSINESS | The value of '{slot_label}' contains content from a different scenario | 「{slot_label}」的取值混入了其他场景的内容 |
+| `slot.insufficient_grounding` | BUSINESS | The value of '{slot_label}' lacks sufficient grounding | 「{slot_label}」的取值缺少充分依据 |
+| `slot.rule_violation` | BUSINESS | The value of '{slot_label}' violates the validation rules. | 「{slot_label}」的取值不符合校验规则。 |
+| `input.text_too_long` | BUSINESS | Input text length {actual_length} exceeds the maximum of {max_chars} (A2AT_INPUT_TEXT_MAX_CHARS) | 输入文本长度 {actual_length} 超过上限 {max_chars}(A2AT_INPUT_TEXT_MAX_CHARS) |
+| `content.param_missing` | BUSINESS | '{section_label}' is empty; please provide a value | 「{section_label}」未填写,请补充该参数的取值 |
+| `content.entry_field_missing` | BUSINESS | Entry {index} of '{section_label}' is missing required field '{field_label}' | 「{section_label}」第 {index} 条缺少必填字段「{field_label}」 |
+| `content.format_error` | BUSINESS | The format of '{section_label}' is invalid: {reason} | 「{section_label}」的取值格式不符合要求:{reason} |
+| `content.value_not_allowed` | BUSINESS | The value of '{section_label}' ({actual}) is not allowed | 「{section_label}」的取值「{actual}」不在允许范围内 |
+| `content.semantic_conflict` | BUSINESS | '{section_label}' has a semantic conflict: {reason} | 「{section_label}」存在语义冲突:{reason} |
+| `content.rule_violation` | BUSINESS | The value of '{section_label}' violates the validation rules. | 「{section_label}」的取值不符合校验规则。 |
+| `scenario.not_matched` | BUSINESS | The input does not match any known scenario: {reason} | 输入内容无法匹配任何已知场景:{reason} |
+| `llm.not_configured` | BUSINESS | No LLM client is configured; check the A2AT_LLM_* settings | 未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置) |
+| `llm.invocation_failed` | BUSINESS | LLM invocation failed (provider {provider}): {reason} | LLM 调用失败(提供方 {provider}):{reason} |
+| `llm.response_invalid` | BUSINESS | The LLM response is invalid (step: {step}); please retry | LLM 返回内容不符合要求({step} 步骤),请重试 |
+| `negotiation.invalid_input` | BUSINESS | The negotiation input is invalid: {reason} | 输入的协商内容无效:{reason} |
+| `negotiation.invalid_context_id` | BUSINESS | The negotiation context id '{actual}' is not a valid UUID | 协商上下文标识「{actual}」不是合法的 UUID |
+| `negotiation.round_exceeded` | BUSINESS | Negotiation round {round} exceeds the maximum of {max_rounds} | 协商轮次 {round} 已超过上限 {max_rounds} |
+| `negotiation.type_mismatch` | BUSINESS | The message implies '{implied}' negotiation but the declared template type is '{declared}' | 报文内容属于「{implied}」协商,与声明的模板类型「{declared}」不符 |
+| `negotiation.phase_mismatch` | BUSINESS | The message phase does not match the declared template phase ({implied} vs {declared}) | 报文阶段与声明的模板阶段不符({implied} vs {declared}) |
+| `negotiation.conclusion_mismatch` | BUSINESS | The message conclusion is '{actual}' but '{expected}' is expected for this method | 报文结论为「{actual}」,与该方法的预期「{expected}」不符 |
+| `negotiation.content_invalid` | BUSINESS | The negotiation content field '{field}' is invalid: {reason} | 协商内容字段「{field}」无效:{reason} |
+| `negotiation.field_missing` | BUSINESS | The negotiation message is missing required field '{field}' | 协商报文缺少必填字段「{field}」 |
+| `negotiation.content_extract_failed` | BUSINESS | Failed to extract negotiation content from text ({field}): {reason} | 无法从文本提取协商内容({field}):{reason} |
+| `negotiation.conclusion_content_mismatch` | BUSINESS | The conclusion is '{conclusion}' but '{section_label}' does not state the content the conclusion requires | 结论为「{conclusion}」,但「{section_label}」未表达该结论应携带的内容 |
+| `negotiation.missing_result_content` | BUSINESS | The '{section_label}' section is missing the content required by its conclusion | 「{section_label}」板块缺少结论应携带的内容 |
+| `negotiation.mutually_exclusive_sections` | BUSINESS | Mutually exclusive sections appear together: {sections} | 互斥板块同时出现:{sections} |
+| `negotiation.constraint_conflict` | BUSINESS | '{section_label}' conflicts with existing constraints: {reason} | 「{section_label}」与既有约束冲突:{reason} |
+| `negotiation.field_inconsistency` | BUSINESS | Fields within '{section_label}' are inconsistent: {reason} | 「{section_label}」内字段取值前后不一致:{reason} |
+| `negotiation.invalid_time_interval` | BUSINESS | The time interval of '{section_label}' is invalid (start must not be later than end) | 「{section_label}」的时间区间不合法(开始时间不得晚于结束时间) |
+| `negotiation.semantic_rejected` | BUSINESS | The negotiation message failed semantic validation | 协商报文语义校验未通过 |
+| `negotiation.rule_violation` | BUSINESS | '{section_label}' violates the negotiation message validation rules. | 「{section_label}」不符合协商报文的校验规则。 |
+| `infra.config_invalid` | INFRA | Invalid configuration '{key}': {reason} | 配置项「{key}」无效:{reason} |
+| `infra.resource_read_failed` | INFRA | Failed to read resource '{resource_path}' | 资源「{resource_path}」读取失败 |
+| `infra.internal_error` | INFRA | SDK internal error; contact the maintainer with context | SDK 内部错误,请联系维护方并提供上下文 |
 
 
 

@@ -2,151 +2,61 @@
 
 ## 1.1 简介
 
-A2A-T SDK 的对外 API 收敛在两个门面上：客户端门面 `A2ATClient`（提示词生成、协商消息生成与校验）与服务端门面 `A2ATServer`（提示词校验、协商消息生成与校验）。Negotiation-T 接口在两个门面上签名与语义完全对称；Task-T / Notification-T / Authorization-T 的生成接口位于 `A2ATClient`，校验接口位于 `A2ATServer`。
+A2A-T SDK 的对外 仅提供两个入口：客户端入口 `A2ATClient`（提示词生成、协商消息生成与校验）与服务端入口 `A2ATServer`（提示词校验、协商消息生成与校验），API分类总览见下
 
-- **API 总览**：
+- **API 总览**
 
 | 分类 | API定义 | Client/Server | API含义 | 是否涉及LLM |
 | ---- | ------- | -------- | ------- |---------|
-| Negotiation-T | `generateNegotiationProposePromptFromText` | A2A-T Client / A2A-T Server | 从自然语言文本生成协商发起（propose）报文 | 是（1次LLM内容抽取） |
-| Negotiation-T | `generateNegotiationAcceptPromptFromText` | A2A-T Client / A2A-T Server | 从自然语言文本生成协商接受（accept）报文 | 是（1次LLM内容抽取） |
-| Negotiation-T | `generateNegotiationRejectPromptFromText` | A2A-T Client / A2A-T Server | 从自然语言文本生成协商拒绝（reject）报文 | 是（1次LLM内容抽取） |
-| Negotiation-T | `generateNegotiationProposePromptFromData` | A2A-T Client / A2A-T Server | 从结构化数据确定性生成协商发起报文（不调用LLM） | 否 |
-| Negotiation-T | `generateNegotiationAcceptPromptFromData` | A2A-T Client / A2A-T Server | 从结构化数据确定性生成协商接受报文（不调用LLM） | 否 |
-| Negotiation-T | `generateNegotiationRejectPromptFromData` | A2A-T Client / A2A-T Server | 从结构化数据确定性生成协商拒绝报文（不调用LLM） | 否 |
-| Negotiation-T | `validateProposePromptAndDataFilling` | A2A-T Client / A2A-T Server | 校验协商发起报文合规性并按Schema提取参数 | 是（1次LLM语义校验） |
-| Negotiation-T | `validateAcceptPromptAndDataFilling` | A2A-T Client / A2A-T Server | 校验协商接受报文合规性并按Schema提取参数 | 是（1次LLM语义校验） |
-| Negotiation-T | `validateRejectPromptAndDataFilling` | A2A-T Client / A2A-T Server | 校验协商拒绝报文合规性并按Schema提取参数 | 是（1次LLM语义校验） |
-| Task-T | `generateTaskPromptFromText` | A2A-T Client | 从自然语言文本按指定Task-T模板生成任务提示词（跳过场景识别） | 是（1次LLM槽位提取） |
-| Task-T | `generateTaskPromptFromDataWithSchema` | A2A-T Client | 从结构化数据+语义Schema按指定Task-T模板生成任务提示词 | 是（1次LLM槽位提取） |
-| Task-T | `validateTaskPromptAndDataFilling` | A2A-T Server | 校验Task-T任务提示词合规性并按Schema提取参数 | 是（1次LLM语义校验与提参） |
-| Notification-T | `generateNotificationPromptFromText` | A2A-T Client | 从自然语言文本按指定Notification-T模板生成通知订阅提示词 | 是（1次LLM槽位提取） |
-| Notification-T | `generateNotificationPromptFromDataWithSchema` | A2A-T Client | 从结构化数据+语义Schema按指定Notification-T模板生成通知订阅提示词 | 是（1次LLM槽位提取） |
-| Notification-T | `validateNotificationPromptAndDataFilling` | A2A-T Server | 校验Notification-T提示词合规性并按Schema提取参数 | 是（1次LLM语义校验与提参） |
-| Authorization-T | `generateAuthPromptFromText` | A2A-T Client | 从自然语言文本按指定Authorization-T模板生成授权提示词 | 是（1次LLM槽位提取） |
-| Authorization-T | `generateAuthPromptFromDataWithSchema` | A2A-T Client | 从结构化数据+语义Schema按指定Authorization-T模板生成授权提示词 | 是（1次LLM槽位提取） |
-| Authorization-T | `validateAuthPromptAndDataFilling` | A2A-T Server | 校验Authorization-T提示词合规性并按Schema提取参数 | 是（1次LLM语义校验与提参） |
-| 通用接口 | `generateTaskPrompt` | A2A-T Client | 从自然语言或结构化输入经场景识别生成任务提示词 | 是（2次LLM调用：场景识别+槽位提取） |
-| 通用接口 | `checkTaskPrompt` | A2A-T Server | 校验任务提示词的场景、模板与槽位合规性 | 是（3次LLM调用：场景识别+槽位提取+语义校验） |
+| Negotiation-T | `generateNegotiationProposePromptFromText` | A2A-T Client / A2A-T Server | 从自然语言文本生成协商发起（propose）报文 | 是 |
+| Negotiation-T | `generateNegotiationAcceptPromptFromText` | A2A-T Client / A2A-T Server | 从自然语言文本生成协商接受（accept）报文 | 是 |
+| Negotiation-T | `generateNegotiationRejectPromptFromText` | A2A-T Client / A2A-T Server | 从自然语言文本生成协商拒绝（reject）报文 | 是 |
+| Negotiation-T | `generateNegotiationProposePromptFromData` | A2A-T Client / A2A-T Server | 从结构化数据确定性生成协商发起报文 | 否 |
+| Negotiation-T | `generateNegotiationAcceptPromptFromData` | A2A-T Client / A2A-T Server | 从结构化数据确定性生成协商接受报文 | 否 |
+| Negotiation-T | `generateNegotiationRejectPromptFromData` | A2A-T Client / A2A-T Server | 从结构化数据确定性生成协商拒绝报文 | 否 |
+| Negotiation-T | `validateProposePromptAndDataFilling` | A2A-T Client / A2A-T Server | 校验协商发起报文合规性并按Schema提取参数 | 是 |
+| Negotiation-T | `validateAcceptPromptAndDataFilling` | A2A-T Client / A2A-T Server | 校验协商接受报文合规性并按Schema提取参数 | 是 |
+| Negotiation-T | `validateRejectPromptAndDataFilling` | A2A-T Client / A2A-T Server | 校验协商拒绝报文合规性并按Schema提取参数 | 是 |
+| Task-T | `generateTaskPromptFromText` | A2A-T Client | 从自然语言文本按指定Task-T模板生成任务提示词（跳过场景识别） | 是 |
+| Task-T | `generateTaskPromptFromDataWithSchema` | A2A-T Client | 从结构化数据+语义Schema按指定Task-T模板生成任务提示词 | 是 |
+| Task-T | `validateTaskPromptAndDataFilling` | A2A-T Server | 校验Task-T任务提示词合规性并按Schema提取参数 | 是 |
+| Notification-T | `generateNotificationPromptFromText` | A2A-T Client | 从自然语言文本按指定Notification-T模板生成通知订阅提示词 | 是 |
+| Notification-T | `generateNotificationPromptFromDataWithSchema` | A2A-T Client | 从结构化数据+语义Schema按指定Notification-T模板生成通知订阅提示词 | 是 |
+| Notification-T | `validateNotificationPromptAndDataFilling` | A2A-T Server | 校验Notification-T提示词合规性并按Schema提取参数 | 是 |
+| Authorization-T | `generateAuthPromptFromText` | A2A-T Client | 从自然语言文本按指定Authorization-T模板生成授权提示词 | 是 |
+| Authorization-T | `generateAuthPromptFromDataWithSchema` | A2A-T Client | 从结构化数据+语义Schema按指定Authorization-T模板生成授权提示词 | 是 |
+| Authorization-T | `validateAuthPromptAndDataFilling` | A2A-T Server | 校验Authorization-T提示词合规性并按Schema提取参数 | 是 |
+| 通用接口 | `generateTaskPrompt` | A2A-T Client | 从自然语言或结构化输入经场景识别生成任务提示词 | 是 |
+| 通用接口 | `checkTaskPrompt` | A2A-T Server | 校验任务提示词的场景、模板与槽位合规性 | 是 |
 
 **公共数据类型与约定**
 
-- **TemplateUri：**模板 URI 值类型，推荐用 `net.openan.a2at.sdk.core.model.StandardTemplates` 常量构造，如 `StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE`（URI 为 `Negotiation-T/information-negotiation/propose/v1`）；来自外部的字符串用 `TemplateUri.parse(String)` 解析，返回 `Optional<TemplateUri>` 且不抛异常。
-- **协商会话上下文：**`NegotiationContext(id, round, maxRounds)`（id 为 UUID 形态、round 从 1 起、默认轮次预算 `DEFAULT_MAX_ROUNDS = 5`），随消息 metadata 传输、不经 LLM；`NegotiationContext.of(id, round)` 使用默认预算，`nextRound()` 推进轮次。
-- **异常体系：**所有 SDK 处理失败均为 `A2ATError` 子类——生成失败抛 `PromptGenerationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationGenerationException`（Negotiation-T），校验+提参失败抛 `ContentValidationException`（Task-T / Notification-T / Authorization-T，携带 `errors()` 槽位错误明细与 `params()` 部分提取参数）或 `NegotiationParamExtractionException`（Negotiation-T）。捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取下方错误码目录中的机器可读错误码。预期业务失败均继承 `A2ATBusinessException`，额外提供 `getFacts()` 返回渲染消息所依据的结构化事实值；所有消息均由 SDK 按错误码模板渲染，语言跟随 `A2AT_LANGUAGE`。
-- **SlotValidationError：**逐槽位校验错误明细，随校验失败异常或失败负载返回，各节“输出说明”中的失败结构均引用此定义：
+- **协商会话上下文：**`NegotiationContext(id, round, maxRounds)`（id 为 UUID 形态、round 从 1 起、默认轮次 `DEFAULT_MAX_ROUNDS = 5`），随消息 metadata 传输、不经 LLM；`NegotiationContext.of(id, round)` 使用默认轮次，`nextRound()` 推进轮次。
+- **异常体系：**所有 SDK 处理失败均为 `A2ATError` 子类，捕获 `A2ATError` 即可覆盖全部处理失败，`getCode()` 获取机器可读错误码。所有消息均由 SDK 按错误码模板渲染，语言跟随 `A2AT_LANGUAGE`。如下业务异常均继承 `A2ATBusinessException`，额外提供 `getFacts()` 返回渲染消息所依据的结构化事实值；
+  - 模板生成失败抛 `PromptGenerationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationGenerationException`（Negotiation-T）。
+  - 模板校验+提参失败抛 `ContentValidationException`（Task-T / Notification-T / Authorization-T）或 `NegotiationParamExtractionException`（Negotiation-T）。
+- **TemplateUri：**模板 URI 值类型，推荐用 `net.openan.a2at.sdk.core.model.StandardTemplates` 常量构造；来自外部的字符串用 `TemplateUri.parse(String)` 解析，返回 `Optional<TemplateUri>` 且不抛异常，当前支持的TemplateUri常量如下：
 
-| 字段 | 类型 | 说明 |
+| 常量名称 | 含义 | TemplateURI |
 | ---- | ---- | ---- |
-| slotName | String | 出错槽位名 |
-| code | String | 槽位级错误码，取值来自下方错误码目录，如 `content.param_missing`（参数章节未填写）、`content.entry_field_missing`（条目缺少必填字段）、`content.format_error`（取值格式错误） |
-| message | String | 人类可读的错误说明，由 SDK 按错误码的消息模板渲染；语言跟随 `A2AT_LANGUAGE`（默认 `en-US`） |
-| facts | Map&lt;String, String&gt; | 渲染消息所依据的结构化事实值，按事实参数名（如 `section_label`、`index`、`field_label`）为键；可为 null |
-
-**错误码目录**
-
-SDK 对外暴露封闭的分层式 `domain.semantic` 错误码目录，同一错误码始终对应同一消息。消息文本由 SDK 从 `prompt_resources/errors/{language}/errors.json` 中的分语言模板渲染生成，不采用 LLM 生成的自由文本。消息语言跟随 `A2AT_LANGUAGE` 配置（默认 `en-US`）；模板中的 `{x}` 占位符由错误携带的 `facts` 填充。SDK 内部 LLM 步骤只输出 `{slot_name, code, facts}` 条目；LLM 返回目录外的错误码时映射到所在域的 `*.rule_violation` 兜底码，并记录原始码日志。
-
-类别图例：BUSINESS = 调用方可行动的预期业务失败，由 `A2ATBusinessException` 子类携带；INFRA = 基础设施失败，由普通 `A2ATError` 携带。
-
-| 错误码 | 类别 | 消息（zh-CN） | 消息（en-US） |
-| ---- | -------- | ---------------- | --------------- |
-| `template.not_found` | BUSINESS | 模板「{template_uri}」不支持语言「{language}」,请检查模板标识与语言配置 | Template '{template_uri}' does not support language '{language}'; check the template URI and language setting |
-| `template.render_failed` | BUSINESS | 模板「{template_uri}」渲染失败:{reason} | Failed to render template '{template_uri}': {reason} |
-| `template.load_failed` | INFRA | 模板资源「{resource_path}」读取失败 | Failed to read template resource '{resource_path}' |
-| `slot.schema_not_found` | BUSINESS | 模板「{template_uri}」缺少参数定义文件(语言「{language}」) | Template '{template_uri}' is missing its slot schema (language '{language}') |
-| `slot.not_provided` | BUSINESS | 输入中未提供「{slot_label}」。 | '{slot_label}' is not provided in the input. |
-| `slot.constraint_violated` | BUSINESS | 「{slot_label}」的取值「{actual}」不在允许范围内 | The value of '{slot_label}' ({actual}) is not within the allowed range |
-| `slot.semantic_conflict` | BUSINESS | 「{slot_label}」的取值与参数定义冲突:{reason} | The value of '{slot_label}' conflicts with the slot definition: {reason} |
-| `slot.fabricated_value` | BUSINESS | 「{slot_label}」的取值「{actual}」是占位内容,不是有效值 | The value of '{slot_label}' ({actual}) is placeholder content, not a valid value |
-| `slot.cross_scenario_pollution` | BUSINESS | 「{slot_label}」的取值混入了其他场景的内容 | The value of '{slot_label}' contains content from a different scenario |
-| `slot.insufficient_grounding` | BUSINESS | 「{slot_label}」的取值缺少充分依据 | The value of '{slot_label}' lacks sufficient grounding |
-| `slot.rule_violation` | BUSINESS | 「{slot_label}」的取值不符合校验规则。 | The value of '{slot_label}' violates the validation rules. |
-| `input.text_too_long` | BUSINESS | 输入文本长度 {actual_length} 超过上限 {max_chars}(A2AT_INPUT_TEXT_MAX_CHARS) | Input text length {actual_length} exceeds the maximum of {max_chars} (A2AT_INPUT_TEXT_MAX_CHARS) |
-| `content.param_missing` | BUSINESS | 「{section_label}」未填写,请补充该参数的取值 | '{section_label}' is empty; please provide a value |
-| `content.entry_field_missing` | BUSINESS | 「{section_label}」第 {index} 条缺少必填字段「{field_label}」 | Entry {index} of '{section_label}' is missing required field '{field_label}' |
-| `content.format_error` | BUSINESS | 「{section_label}」的取值格式不符合要求:{reason} | The format of '{section_label}' is invalid: {reason} |
-| `content.value_not_allowed` | BUSINESS | 「{section_label}」的取值「{actual}」不在允许范围内 | The value of '{section_label}' ({actual}) is not allowed |
-| `content.semantic_conflict` | BUSINESS | 「{section_label}」存在语义冲突:{reason} | '{section_label}' has a semantic conflict: {reason} |
-| `content.rule_violation` | BUSINESS | 「{section_label}」的取值不符合校验规则。 | The value of '{section_label}' violates the validation rules. |
-| `scenario.not_matched` | BUSINESS | 输入内容无法匹配任何已知场景:{reason} | The input does not match any known scenario: {reason} |
-| `llm.not_configured` | BUSINESS | 未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置) | No LLM client is configured; check the A2AT_LLM_* settings |
-| `llm.invocation_failed` | BUSINESS | LLM 调用失败(提供方 {provider}):{reason} | LLM invocation failed (provider {provider}): {reason} |
-| `llm.response_invalid` | BUSINESS | LLM 返回内容不符合要求({step} 步骤),请重试 | The LLM response is invalid (step: {step}); please retry |
-| `negotiation.invalid_input` | BUSINESS | 输入的协商内容无效:{reason} | The negotiation input is invalid: {reason} |
-| `negotiation.invalid_context_id` | BUSINESS | 协商上下文标识「{actual}」不是合法的 UUID | The negotiation context id '{actual}' is not a valid UUID |
-| `negotiation.round_exceeded` | BUSINESS | 协商轮次 {round} 已超过上限 {max_rounds} | Negotiation round {round} exceeds the maximum of {max_rounds} |
-| `negotiation.type_mismatch` | BUSINESS | 报文内容属于「{implied}」协商,与声明的模板类型「{declared}」不符 | The message implies '{implied}' negotiation but the declared template type is '{declared}' |
-| `negotiation.phase_mismatch` | BUSINESS | 报文阶段与声明的模板阶段不符({implied} vs {declared}) | The message phase does not match the declared template phase ({implied} vs {declared}) |
-| `negotiation.conclusion_mismatch` | BUSINESS | 报文结论为「{actual}」,与该方法的预期「{expected}」不符 | The message conclusion is '{actual}' but '{expected}' is expected for this method |
-| `negotiation.content_invalid` | BUSINESS | 协商内容字段「{field}」无效:{reason} | The negotiation content field '{field}' is invalid: {reason} |
-| `negotiation.field_missing` | BUSINESS | 协商报文缺少必填字段「{field}」 | The negotiation message is missing required field '{field}' |
-| `negotiation.content_extract_failed` | BUSINESS | 无法从文本提取协商内容({field}):{reason} | Failed to extract negotiation content from text ({field}): {reason} |
-| `negotiation.conclusion_content_mismatch` | BUSINESS | 结论为「{conclusion}」,但「{section_label}」未表达该结论应携带的内容 | The conclusion is '{conclusion}' but '{section_label}' does not state the content the conclusion requires |
-| `negotiation.missing_result_content` | BUSINESS | 「{section_label}」板块缺少结论应携带的内容 | The '{section_label}' section is missing the content required by its conclusion |
-| `negotiation.mutually_exclusive_sections` | BUSINESS | 互斥板块同时出现:{sections} | Mutually exclusive sections appear together: {sections} |
-| `negotiation.constraint_conflict` | BUSINESS | 「{section_label}」与既有约束冲突:{reason} | '{section_label}' conflicts with existing constraints: {reason} |
-| `negotiation.field_inconsistency` | BUSINESS | 「{section_label}」内字段取值前后不一致:{reason} | Fields within '{section_label}' are inconsistent: {reason} |
-| `negotiation.invalid_time_interval` | BUSINESS | 「{section_label}」的时间区间不合法(开始时间不得晚于结束时间) | The time interval of '{section_label}' is invalid (start must not be later than end) |
-| `negotiation.semantic_rejected` | BUSINESS | 协商报文语义校验未通过 | The negotiation message failed semantic validation |
-| `negotiation.rule_violation` | BUSINESS | 「{section_label}」不符合协商报文的校验规则。 | '{section_label}' violates the negotiation message validation rules. |
-| `infra.config_invalid` | INFRA | 配置项「{key}」无效:{reason} | Invalid configuration '{key}': {reason} |
-| `infra.resource_read_failed` | INFRA | 资源「{resource_path}」读取失败 | Failed to read resource '{resource_path}' |
-| `infra.internal_error` | INFRA | SDK 内部错误,请联系维护方并提供上下文 | SDK internal error; contact the maintainer with context |
-
-**旧码到新码映射**
-
-上述分层错误码取代了先前的扁平错误码。迁移按 `getCode()` 值做分支的调用方代码时，请使用下表映射：
-
-| 旧错误码 | 新错误码 |
-| -------- | -------- |
-| `template_not_found` | `template.not_found` |
-| `render_failed` | `template.render_failed` |
-| `prompt_resource_load_error` | `template.load_failed` |
-| `slot_schema_not_found` | `slot.schema_not_found` |
-| `missing_input` / `param_extraction_failed`（槽位提取） | `slot.not_provided` |
-| `invalid_value`（槽位提取） | `slot.constraint_violated` |
-| `semantic_mismatch`（语义校验） | `slot.semantic_conflict` |
-| `fabricated_value` | `slot.fabricated_value` |
-| `cross_scenario_pollution` | `slot.cross_scenario_pollution` |
-| `insufficient_grounding` | `slot.insufficient_grounding` |
-| `input_text_too_long` | `input.text_too_long` |
-| `missing_required`（参数级，内容校验） | `content.param_missing` |
-| `missing_required`（条目级，内容校验） | `content.entry_field_missing` |
-| `format_error` | `content.format_error` |
-| `invalid_value`（内容校验） | `content.value_not_allowed` |
-| `semantic_mismatch`（内容校验） | `content.semantic_conflict` |
-| `scenario_not_matched` / `processed_prompt_parse_error` | `scenario.not_matched` |
-| `llm_invocation_failed`（传输类失败） | `llm.invocation_failed` |
-| `llm_invocation_failed`（响应契约类失败） | `llm.response_invalid` |
-| "LLM client is not configured" 系列 | `llm.not_configured` |
-| `negotiation_invalid_input` / `validation_invalid_input` | `negotiation.invalid_input` |
-| `invalid_uuid` | `negotiation.invalid_context_id` |
-| `out_of_range`（轮次） | `negotiation.round_exceeded` |
-| `template_type_mismatch` | `negotiation.type_mismatch` |
-| `template_phase_mismatch` | `negotiation.phase_mismatch` |
-| `invalid_conclusion` / Registry 结论门禁 | `negotiation.conclusion_mismatch` |
-| fromData 必填 items/text 的 `IllegalArgumentException` | `negotiation.content_invalid` |
-| `negotiation_slot_missing` | `negotiation.field_missing` |
-| `negotiation_content_extract_failed` | `negotiation.content_extract_failed` |
-| `conclusion_content_mismatch` | `negotiation.conclusion_content_mismatch` |
-| `missing_result_content` | `negotiation.missing_result_content` |
-| `mutually_exclusive_sections` | `negotiation.mutually_exclusive_sections` |
-| `constraint_conflict` | `negotiation.constraint_conflict` |
-| `field_inconsistency` | `negotiation.field_inconsistency` |
-| `invalid_time_interval` | `negotiation.invalid_time_interval` |
-| `negotiation_semantic_rejected` / `validation_semantic_rejected` | `negotiation.semantic_rejected` |
-| `negotiation_rule_violation` / `validation_rule_violation` | `negotiation.rule_violation` |
-| `negotiation_llm_infrastructure_error` / `validation_llm_infrastructure_error` | `llm.invocation_failed` / `llm.response_invalid` |
-| `validation_prompt_resource_not_found` | `template.not_found` |
-| `sdk_internal_error` | `infra.internal_error` |
-| `LLMConfigError` | `infra.config_invalid` |
-| 裸 `A2ATError` 资源读取失败 | `infra.resource_read_failed` |
+| StandardTemplates.ENERGY_SAVING | Task-T 节能任务模板 | Task-T/network-layer/ran-energy-saving/v1 |
+| StandardTemplates.PRIVATE_LINE_COMPLAINT | Task-T 专线投诉任务模板 | Task-T/network-layer/private-line-complaint/v1 |
+| StandardTemplates.SUBSCRIBE_INCIDENT | Notification-T 事件订阅通知模板 | Notification-T/network-layer/subscribe-incident/v1 |
+| StandardTemplates.SERVICE_RECOVERY | Notification-T 业务抢通通知模板 | Notification-T/network-layer/service-recovery/v1 |
+| StandardTemplates.AUTHORIZATION_POLICY_MANAGEMENT | Authorization-T 授权策略管理模板 | Authorization-T/authorization-policy-management/v1 |
+| StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE | Negotiation-T 信息协商意图发起模板 | Negotiation-T/information-negotiation/propose/v1 |
+| StandardTemplates.INFORMATION_NEGOTIATION_ACCEPT_REJECT | Negotiation-T 信息协商接受/拒绝模板 | Negotiation-T/information-negotiation/accept-reject/v1 |
+| StandardTemplates.TARGET_NEGOTIATION_PROPOSE | Negotiation-T 目标协商意图发起模板 | Negotiation-T/target-negotiation/propose/v1 |
+| StandardTemplates.TARGET_NEGOTIATION_ACCEPT_REJECT | Negotiation-T 目标协商接受/拒绝模板 | Negotiation-T/target-negotiation/accept-reject/v1 |
+| StandardTemplates.FEASIBILITY_NEGOTIATION_PROPOSE | Negotiation-T 可行性协商意图发起模板 | Negotiation-T/feasibility-negotiation/propose/v1 |
+| StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT | Negotiation-T 可行性协商接受/拒绝模板 | Negotiation-T/feasibility-negotiation/accept-reject/v1 |
+| StandardTemplates.NEGOTIATION_ABORT | Negotiation-T 协商中止通用模板 | Negotiation-T/common/abort/v1 |
 
 
 ## 1.2 约束和限制
 
-部分接口涉及到LLM调用，使用时需根据对接模型服务可提供的并发能力控制使用时的调用频率和并发
+- 部分接口涉及到LLM调用，使用时需根据对所接模型服务可提供的并发能力，结合业务时限要求，控制使用API时的调用频率和并发。
+- 涉及到LLM调用的API针对文本`text`输入会做长度防护，在输入超过`client.env`或`server.env`中配置的 `A2AT_INPUT_TEXT_MAX_CHARS` 字符时，会报错误码 `input_text_too_long` ，该配置项默认配置为 16384（16×1024）；不涉及LLM调用的结构化数据不受此限制。
 
 ## 1.3 API说明
 
@@ -161,13 +71,13 @@ public MetadataContent generateNegotiationProposePromptFromText(
 
 **典型场景**：服务端Agent收到参数不全的Task-T任务报文后，用自然语言向客户端Agent发起"补充缺失信息"的协商请求；也适用于客户端Agent向服务端发起目标澄清或可行性评估请求。
 
-**功能说明**：从自然语言文本生成协商发起（propose）阶段的结构化协商报文。执行流程：先加载模板（缺失快速失败，不消耗 LLM 请求），再执行一次 LLM 内容抽取（在模板 URI 约束下将自由文本抽取为类型化内容，可重试错误码上最多重试至 `A2AT_LLM_MAX_ATTEMPTS` 配置的上限），最后确定性渲染模板。适用于信息/目标/可行性协商的发起方。`templateUri` 的 phase 段必须为 `propose`。
+**功能说明**：从自然语言文本生成协商发起（propose）阶段的结构化协商报文。执行流程：先加载模板，再执行一次 LLM 内容抽取，最后确定性渲染模板。适用于信息/目标/可行性协商的发起方。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| text | String | 是 | 描述协商发起内容的自然语言文本（如请求补充的缺失信息清单） |
+| text | String | 是 | 描述协商发起内容的自然语言文本（如请求补充的缺失信息清单）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | context | NegotiationContext | 是 | 协商会话上下文，不经 LLM 直接注入生成消息的 `negotiationContext` metadata |
 | templateUri | TemplateUri | 是 | propose 模板，如 `StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE` |
 
@@ -259,13 +169,13 @@ public MetadataContent generateNegotiationAcceptPromptFromText(
 
 **典型场景**：协商响应方（通常是客户端Agent）收到对端的信息协商请求后，用自然语言补充/交付所请求的信息并生成接受报文回传，如补齐接入端口名称与投诉分类后确认启动诊断。
 
-**功能说明**：从自然语言文本生成协商接受（accept）报文。一次 LLM 内容抽取（抽取出的结论必须为 `ACCEPT`，否则以 `negotiation.invalid_input` 拒绝）+ 确定性渲染。适用于协商响应方补充/交付信息。`templateUri` 的 phase 段必须为 `accept-reject`。
+**功能说明**：从自然语言文本生成协商接受（accept）报文。一次 LLM 内容抽取（抽取出的结论必须为 `ACCEPT`，否则以 `negotiation.invalid_input` 拒绝）+ 确定性渲染。适用于协商响应方补充/交付信息。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| text | String | 是 | 描述接受内容的自然语言文本（如补充交付的信息清单） |
+| text | String | 是 | 描述接受内容的自然语言文本（如补充交付的信息清单）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | context | NegotiationContext | 是 | 协商会话上下文 |
 | templateUri | TemplateUri | 是 | accept-reject 模板，如 `StandardTemplates.INFORMATION_NEGOTIATION_ACCEPT_REJECT` |
 
@@ -322,7 +232,7 @@ public MetadataContent generateNegotiationRejectPromptFromText(
 
 **典型场景**：协商响应方（通常是客户端Agent）无法满足对端的协商请求时，用自然语言生成拒绝报文回传并结束本轮协商，如因站点清单不可用无法提供接入端口名称。
 
-**功能说明**：从自然语言文本生成协商拒绝（reject）报文。一次 LLM 内容抽取（抽取出的结论必须为 `REJECT`，否则以 `negotiation.invalid_input` 拒绝）+ 确定性渲染。`templateUri` 的 phase 段必须为 `accept-reject`。
+**功能说明**：从自然语言文本生成协商拒绝（reject）报文。一次 LLM 内容抽取（抽取出的结论必须为 `REJECT`，否则以 `negotiation.invalid_input` 拒绝）+ 确定性渲染。
 
 **输入说明**：同 [generateNegotiationAcceptPromptFromText](#132-generatenegotiationacceptpromptfromtext)，text 为描述拒绝原因的自然语言文本。
 
@@ -377,7 +287,7 @@ public MetadataContent generateNegotiationProposePromptFromData(
 
 **典型场景**：与 fromText 相同的发起场景，但输入为业务系统构造的结构化数据（如服务端Agent根据 `validateTaskPromptAndDataFilling` 检出的缺失槽位清单自动生成协商请求条目），适合对报文内容有确定性要求、不希望引入 LLM 抽取不确定性的场景。
 
-**功能说明**：从类型化数据确定性生成协商发起报文，**不调用 LLM**：类型化内容先经校验，再分发给模板 URI 所指协商类型的生成器渲染。`content` 必须与 `templateUri` 的协商类型匹配（information / target / feasibility），phase 段必须为 `propose`。
+**功能说明**：从结构化数据输入确定性生成协商发起报文，**不调用 LLM**。
 
 **输入说明**
 
@@ -460,7 +370,7 @@ public MetadataContent generateNegotiationAcceptPromptFromData(
 
 **典型场景**：协商响应方（通常是客户端Agent）按对端请求的槽位清单程序化补参后，以结构化条目生成接受报文回传。
 
-**功能说明**：从类型化数据确定性生成协商接受报文，**不调用 LLM**。`content.conclusion()` 必须为 `ACCEPT`，其他结论（含 `ABORT`）以 `IllegalArgumentException` 拒绝。
+**功能说明**：从结构化数据输入确定性生成协商接受报文，**不调用 LLM**。`content.conclusion()` 必须为 `ACCEPT`，其他结论（含 `ABORT`）以 `IllegalArgumentException` 拒绝。
 
 **输入说明**
 
@@ -528,7 +438,7 @@ public MetadataContent generateNegotiationRejectPromptFromData(
 
 **典型场景**：协商响应方程序化判定无法满足对端请求后，以结构化条目（无法提供的项及原因）生成拒绝报文回传。
 
-**功能说明**：从类型化数据确定性生成协商拒绝报文，**不调用 LLM**。`content.conclusion()` 必须为 `REJECT`，其他结论以 `IllegalArgumentException` 拒绝。
+**功能说明**：从结构化数据输入确定性生成协商拒绝报文，**不调用 LLM**。`content.conclusion()` 必须为 `REJECT`，其他结论以 `IllegalArgumentException` 拒绝。
 
 **输入说明**：同 [generateNegotiationAcceptPromptFromData](#135-generatenegotiationacceptpromptfromdata)，但结论为 `REJECT`。拒绝内容：`InformationEndingContent(REJECT, items)`（无法提供的项及原因）、`TargetEndingContent(REJECT, null, failureReason)`（拒绝原因）、`FeasibilityEndingContent(REJECT, feasibilitySummary)`（不可行结论摘要）。
 
@@ -582,13 +492,13 @@ public FilledParamData validateProposePromptAndDataFilling(
 
 **典型场景**：发起方（服务端Agent）发送协商请求前的出站自检；或接收方（客户端Agent）校验收到的协商请求并提取需补充的槽位清单，驱动后续补参。
 
-**功能说明**：校验一条协商发起（propose）报文是否为格式正确的协商消息，并按调用方提供的 JSON Schema 从中提取参数。流水线：模板 URI phase 段检查 → 确定性规则门禁（context 为 null 报 `negotiation.invalid_input`，id 非 UUID 形态报 `negotiation.invalid_context_id`，轮次超预算报 `negotiation.round_exceeded`）→ 一次 LLM 语义校验调用（同时完成参数提取，可重试错误码上最多重试至配置上限）→ 参数合并（协商上下文参数 `id` / `round` / `maxRounds` 与提取参数合并，键冲突时**上下文参数优先**）。
+**功能说明**：校验一条协商发起（propose）报文是否为格式正确的协商消息，并按调用方提供的 JSON Schema 从中提取参数。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| prompt | String | 是 | 待校验的协商发起报文文本（`MetadataContent.promptText()`） |
+| prompt | String | 是 | 待校验的协商发起报文文本（`MetadataContent.promptText()`）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | context | NegotiationContext | 否 | 随报文传输的协商上下文；null 报 `negotiation.invalid_input` |
 | schema | Map&lt;String, Object&gt; | 是 | 调用方提供的参数 JSON Schema，声明要提取的参数 |
 | templateUri | TemplateUri | 是 | propose 模板 |
@@ -676,7 +586,7 @@ public FilledParamData validateAcceptPromptAndDataFilling(
 
 **典型场景**：发起方（服务端Agent）校验对端回传的接受报文，提取交付的参数值并与期望补齐值核对，确认无误后继续任务执行。
 
-**功能说明**：校验一条协商接受（accept）报文并按 Schema 提取参数。流水线同 [validateProposePromptAndDataFilling](#137-validateproposepromptanddatafilling)，区别仅在于：`templateUri` 的 phase 段必须为 `accept-reject`，且报文须满足 accept 阶段的语义约束（结论为 Accept、携带交付内容）。
+**功能说明**：校验一条协商接受（accept）报文并按 Schema 提取参数。
 
 **输入说明**：同 1.3.7，prompt 为 accept 报文文本，templateUri 为 accept-reject 模板。
 
@@ -734,7 +644,7 @@ public FilledParamData validateRejectPromptAndDataFilling(
 
 **典型场景**：发起方（服务端Agent）校验对端回传的拒绝报文，提取拒绝原因，据此终止任务或转入人工处理。
 
-**功能说明**：校验一条协商拒绝（reject）报文并按 Schema 提取参数。流水线同 1.3.7，区别仅在于：报文须满足 reject 阶段的语义约束（结论为 Reject、携带拒绝原因）。
+**功能说明**：校验一条协商拒绝（reject）报文并按 Schema 提取参数。
 
 **输入说明**：同 1.3.7，prompt 为 reject 报文文本，templateUri 为 accept-reject 模板。
 
@@ -785,13 +695,13 @@ public MetadataContent generateTaskPromptFromText(String text, TemplateUri templ
 
 **典型场景**：客户端Agent将用户的自然语言任务描述（如专线投诉诊断诉求）转换为指定场景的Task-T协议报文，适合已确定目标模板、需跳过场景识别的场景。
 
-**功能说明**：从自然语言文本按指定 Task-T 模板生成任务提示词报文，**跳过场景识别**（模板由调用方显式指定）。执行一次 LLM 槽位提取后确定性渲染模板。生成阶段即校验内置槽位 Schema（必填槽缺失或取值非法时以 `slot.*` 错误码（如 `slot.not_provided`）快速失败）。
+**功能说明**：从自然语言文本按指定 Task-T 模板生成任务提示词报文，**跳过场景识别**（模板由调用方显式指定）。执行一次 LLM 槽位提取后确定性渲染模板。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| text | String | 是 | 自然语言任务描述 |
+| text | String | 是 | 自然语言任务描述；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | templateUri | TemplateUri | 是 | Task-T 模板，如 `StandardTemplates.PRIVATE_LINE_COMPLAINT`（`Task-T/network-layer/private-line-complaint/v1`） |
 
 **请求样例**
@@ -896,7 +806,7 @@ public MetadataContent generateTaskPromptFromDataWithSchema(
 
 **典型场景**：客户端Agent将上游系统的结构化任务参数（字段名可与模板槽位不同，由Schema描述字段语义）转换为Task-T协议报文，适合任务参数已结构化持有的场景。
 
-**功能说明**：从结构化数据 + 语义 Schema 按指定 Task-T 模板生成任务提示词，**跳过场景识别**。`schema` 描述每个输入字段的业务含义（description / examples / enum 等），指导槽位填充与取值约束；每个 data 的 key 对应一个槽位值。生成阶段同样执行内置槽位 Schema 校验（必填槽缺失或取值非法时以 `slot.*` 错误码（如 `slot.not_provided`）快速失败）。
+**功能说明**：从结构化数据 + 语义 Schema 按指定 Task-T 模板生成任务提示词，**跳过场景识别**。`schema` 描述每个输入字段的业务含义（description / examples / enum 等），指导槽位填充与取值约束；每个 data 的 key 对应一个槽位值。
 
 **输入说明**
 
@@ -986,13 +896,13 @@ public FilledParamData validateTaskPromptAndDataFilling(
 
 **典型场景**：服务端Agent收到Task-T报文后、进入业务执行前的参数校验与提取入口；也是协商流程中"缺槽检测"的判定点——required参数缺失时由调用方决定是否发起协商补参。
 
-**功能说明**：校验一条 Task-T 任务提示词报文是否匹配模板与槽位约束，并按调用方提供的 JSON Schema 提取参数。流水线：确定性规则门禁（模板内置槽位校验）→ 一次 LLM 语义校验调用（同时完成参数提取，可重试错误码上最多重试至配置上限）。
+**功能说明**：校验一条 Task-T 任务提示词报文是否匹配模板与槽位约束，并按调用方提供的 JSON Schema 提取参数。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| prompt | String | 是（非空） | 待校验的任务提示词报文文本（`MetadataContent.promptText()`） |
+| prompt | String | 是（非空） | 待校验的任务提示词报文文本（`MetadataContent.promptText()`）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | schema | Map&lt;String, Object&gt; | 是 | 调用方提供的参数 JSON Schema，声明要提取/校验的参数及 required 约束 |
 | templateUri | TemplateUri | 是 | Task-T 模板（前缀段必须为 `Task-T`） |
 
@@ -1084,13 +994,13 @@ public MetadataContent generateNotificationPromptFromText(String text, TemplateU
 
 **典型场景**：客户端Agent将自然语言订阅需求（如业务抢通事件订阅）转换为指定场景的Notification-T订阅报文。
 
-**功能说明**：从自然语言文本按指定 Notification-T 模板生成通知订阅提示词报文，跳过场景识别。执行一次 LLM 槽位提取后确定性渲染模板，生成阶段执行内置槽位 Schema 校验。
+**功能说明**：从自然语言文本按指定 Notification-T 模板生成通知订阅提示词报文。执行一次 LLM 槽位提取后确定性渲染模板，生成阶段执行内置槽位 Schema 校验。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| text | String | 是 | 自然语言订阅描述（通知主题、订阅条件、上报通知数据格式等） |
+| text | String | 是 | 自然语言订阅描述（通知主题、订阅条件、上报通知数据格式等）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | templateUri | TemplateUri | 是 | Notification-T 模板，如 `StandardTemplates.SUBSCRIBE_INCIDENT`、`StandardTemplates.SERVICE_RECOVERY` |
 
 **请求样例**
@@ -1161,7 +1071,7 @@ public MetadataContent generateNotificationPromptFromDataWithSchema(
 
 **典型场景**：客户端Agent将上游系统/界面提交的结构化订阅参数转换为Notification-T订阅报文，适合订阅参数已结构化持有的场景。
 
-**功能说明**：从结构化数据 + 语义 Schema 按指定 Notification-T 模板生成通知订阅提示词，跳过场景识别。语义约束同 1.3.11。
+**功能说明**：从结构化数据 + 语义 Schema 按指定 Notification-T 模板生成通知订阅提示词。
 
 **输入说明**
 
@@ -1255,13 +1165,13 @@ public FilledParamData validateNotificationPromptAndDataFilling(
 
 **典型场景**：服务端Agent收到Notification-T订阅报文后校验合规性并提取订阅参数（主题/条件/上报格式），据此建立订阅关系。
 
-**功能说明**：校验一条 Notification-T 通知订阅提示词报文是否匹配模板与槽位约束，并按调用方 Schema 提取参数（订阅主题、订阅条件、上报通知数据格式等）。流水线与异常语义同 [validateTaskPromptAndDataFilling](#1312-validatetaskpromptanddatafilling)。
+**功能说明**：校验一条 Notification-T 通知订阅提示词报文是否匹配模板与槽位约束，并按调用方 Schema 提取参数（订阅主题、订阅条件、上报通知数据格式等）。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| prompt | String | 是（非空） | 待校验的通知订阅提示词报文文本 |
+| prompt | String | 是（非空） | 待校验的通知订阅提示词报文文本；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | schema | Map&lt;String, Object&gt; | 是 | 调用方提供的参数 JSON Schema |
 | templateUri | TemplateUri | 是 | Notification-T 模板（前缀段必须为 `Notification-T`） |
 
@@ -1324,13 +1234,13 @@ public MetadataContent generateAuthPromptFromText(String text, TemplateUri templ
 
 **典型场景**：客户端Agent将自然语言授权诉求（新增/修改/删除/查询动网操作授权策略）转换为Authorization-T报文。
 
-**功能说明**：从自然语言文本按指定 Authorization-T 模板生成授权策略操作提示词报文，跳过场景识别。执行一次 LLM 槽位提取后确定性渲染模板。Authorization-T 槽位 Schema 随 `a2a-t-resources` 内置，classpath 资源源下开箱可用。
+**功能说明**：从自然语言文本按指定 Authorization-T 模板生成授权策略操作提示词报文。执行一次 LLM 槽位提取后确定性渲染模板。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| text | String | 是 | 自然语言授权描述（操作类型 + 动网操作的授权策略内容） |
+| text | String | 是 | 自然语言授权描述（操作类型 + 动网操作的授权策略内容）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | templateUri | TemplateUri | 是 | Authorization-T 模板：`StandardTemplates.AUTHORIZATION_POLICY_MANAGEMENT`（`Authorization-T/authorization-policy-management/v1`） |
 
 **请求样例**
@@ -1471,13 +1381,13 @@ public FilledParamData validateAuthPromptAndDataFilling(
 
 **典型场景**：服务端Agent收到Authorization-T报文后校验合规性并提取操作类型与策略列表，据此执行授权策略管理动作。
 
-**功能说明**：校验一条 Authorization-T 授权提示词报文是否匹配模板与槽位约束，并按调用方 Schema 提取参数（操作类型、策略列表等）。流水线与异常语义同 1.3.12。按各操作类型的字段要求做差异化校验：新增条目须含业务场景/处置类型/操作名称/有效期，修改条目须含策略标识与新有效期，删除条目可为策略标识或条件字段。
+**功能说明**：校验一条 Authorization-T 授权提示词报文是否匹配模板与槽位约束，并按调用方 Schema 提取参数（操作类型、策略列表等）。按各操作类型的字段要求做差异化校验：新增条目须含业务场景/处置类型/操作名称/有效期，修改条目须含策略标识与新有效期，删除条目可为策略标识或条件字段。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| prompt | String | 是（非空） | 待校验的授权提示词报文文本 |
+| prompt | String | 是（非空） | 待校验的授权提示词报文文本；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 | schema | Map&lt;String, Object&gt; | 是 | 调用方提供的参数 JSON Schema（含 `操作类型`、`策略列表` 等） |
 | templateUri | TemplateUri | 是 | Authorization-T 模板（前缀段必须为 `Authorization-T`） |
 
@@ -1536,13 +1446,13 @@ public PromptGenerationResult generateTaskPrompt(Object userInput)
 
 **典型场景**：客户端Agent的场景自动路由入口：不指定模板，由SDK识别用户输入所属业务场景并生成对应报文，适合场景集合已知、希望简化接入的场景。
 
-**功能说明**：通用任务提示词生成入口，**经场景识别**自动定位模板：自然语言或结构化输入先由 LLM 识别业务场景，再按场景对应的内置模板完成槽位提取与渲染。需要显式指定模板时使用 1.3.1x 的 FromText / FromDataWithSchema 系列接口。
+**功能说明**：通用任务提示词生成入口，经场景识别自动定位模板：自然语言或结构化输入先由 LLM 识别业务场景，再按场景对应的内置模板完成槽位提取与渲染。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| userInput | Object | 是 | 任务描述：`String`（自然语言）或 `Map<String, Object>`（结构化输入），统一经 LLM 抽取，无零 LLM 捷径 |
+| userInput | Object | 是 | 任务描述：`String`（自然语言）或 `Map<String, Object>`（结构化输入），统一经 LLM 抽取；入参为 `String` 时输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 
 **请求样例**
 
@@ -1626,15 +1536,15 @@ result.failure() =
 public PromptComplianceResult checkTaskPrompt(String processedPromptText)
 ```
 
-**典型场景**：服务端Agent对收到的任务报文做协议完备性把关（场景/模板/槽位合规），只需通过与失败结论、无需提取参数的场景。
+**典型场景**：服务端Agent对收到的任务报文做协议完备性校验（场景/模板/槽位合规），只需通过与失败结论、无需提取参数的场景。
 
-**功能说明**：通用任务提示词合规校验入口（服务端）：对客户端下发的 processed task prompt 执行场景匹配、模板遵从性校验与槽位校验（是否启用由 `A2AT_PROMPT_COMPLIANCE_ENABLED` 控制）。与 `validateTaskPromptAndDataFilling` 的区别：本接口不提取参数、不接收调用方 Schema，仅给出通过与失败的标准化结论。
+**功能说明**：通用任务提示词合规校验入口（服务端）：对客户端下发的 processed task prompt 执行场景匹配、模板遵从性校验与槽位校验。与 `validateTaskPromptAndDataFilling` 的区别：本接口不提取参数、不接收调用方 Schema，仅给出通过与失败的标准化结论。
 
 **输入说明**
 
 | 参数 | 类型 | 必填 | 说明 |
 | ---- | ---- | ---- | ---- |
-| processedPromptText | String | 是 | 客户端下发的 A2A-T 协议报文文本（`Message.metadata` 中以扩展 URI 为 key 的值） |
+| processedPromptText | String | 是 | 客户端下发的 A2A-T 协议报文文本（`Message.metadata` 中以扩展 URI 为 key 的值）；输入长度受配置项 `A2AT_INPUT_TEXT_MAX_CHARS` 限制，默认值为 16384 |
 
 **请求样例**
 
@@ -1682,10 +1592,10 @@ if (result.success()) {
 成功时：
 
 ```text
-prompt check passed
+result.success() = true
 ```
 
-失败时（报文缺少必填槽位，错误码与阶段取自服务端合规流水线）：
+失败时：
 
 ```text
 result.success() = false
@@ -1693,7 +1603,51 @@ result.failure() =
 { code=slot.not_provided, message=输入中未提供「任务对象」。, stage=slot_validation }
 ```
 
+## 1.4 错误码目录
 
+**错误码分类**：BUSINESS = 调用方可行动的预期业务失败，由 `A2ATBusinessException` 子类携带；INFRA = 基础设施失败，由普通 `A2ATError` 携带。
 
-
-
+| 错误码                                    | 类别     | 消息（zh-CN）                                                | 消息（en-US）                                                |
+| ----------------------------------------- | -------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `template.not_found`                      | BUSINESS | 模板「{template_uri}」不支持语言「{language}」,请检查模板标识与语言配置 | Template '{template_uri}' does not support language '{language}'; check the template URI and language setting |
+| `template.render_failed`                  | BUSINESS | 模板「{template_uri}」渲染失败:{reason}                      | Failed to render template '{template_uri}': {reason}         |
+| `template.load_failed`                    | INFRA    | 模板资源「{resource_path}」读取失败                          | Failed to read template resource '{resource_path}'           |
+| `slot.schema_not_found`                   | BUSINESS | 模板「{template_uri}」缺少参数定义文件(语言「{language}」)   | Template '{template_uri}' is missing its slot schema (language '{language}') |
+| `slot.not_provided`                       | BUSINESS | 输入中未提供「{slot_label}」。                               | '{slot_label}' is not provided in the input.                 |
+| `slot.constraint_violated`                | BUSINESS | 「{slot_label}」的取值「{actual}」不在允许范围内             | The value of '{slot_label}' ({actual}) is not within the allowed range |
+| `slot.semantic_conflict`                  | BUSINESS | 「{slot_label}」的取值与参数定义冲突:{reason}                | The value of '{slot_label}' conflicts with the slot definition: {reason} |
+| `slot.fabricated_value`                   | BUSINESS | 「{slot_label}」的取值「{actual}」是占位内容,不是有效值      | The value of '{slot_label}' ({actual}) is placeholder content, not a valid value |
+| `slot.cross_scenario_pollution`           | BUSINESS | 「{slot_label}」的取值混入了其他场景的内容                   | The value of '{slot_label}' contains content from a different scenario |
+| `slot.insufficient_grounding`             | BUSINESS | 「{slot_label}」的取值缺少充分依据                           | The value of '{slot_label}' lacks sufficient grounding       |
+| `slot.rule_violation`                     | BUSINESS | 「{slot_label}」的取值不符合校验规则。                       | The value of '{slot_label}' violates the validation rules.   |
+| `input.text_too_long`                     | BUSINESS | 输入文本长度 {actual_length} 超过上限 {max_chars}(A2AT_INPUT_TEXT_MAX_CHARS) | Input text length {actual_length} exceeds the maximum of {max_chars} (A2AT_INPUT_TEXT_MAX_CHARS) |
+| `content.param_missing`                   | BUSINESS | 「{section_label}」未填写,请补充该参数的取值                 | '{section_label}' is empty; please provide a value           |
+| `content.entry_field_missing`             | BUSINESS | 「{section_label}」第 {index} 条缺少必填字段「{field_label}」 | Entry {index} of '{section_label}' is missing required field '{field_label}' |
+| `content.format_error`                    | BUSINESS | 「{section_label}」的取值格式不符合要求:{reason}             | The format of '{section_label}' is invalid: {reason}         |
+| `content.value_not_allowed`               | BUSINESS | 「{section_label}」的取值「{actual}」不在允许范围内          | The value of '{section_label}' ({actual}) is not allowed     |
+| `content.semantic_conflict`               | BUSINESS | 「{section_label}」存在语义冲突:{reason}                     | '{section_label}' has a semantic conflict: {reason}          |
+| `content.rule_violation`                  | BUSINESS | 「{section_label}」的取值不符合校验规则。                    | The value of '{section_label}' violates the validation rules. |
+| `scenario.not_matched`                    | BUSINESS | 输入内容无法匹配任何已知场景:{reason}                        | The input does not match any known scenario: {reason}        |
+| `llm.not_configured`                      | BUSINESS | 未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置)     | No LLM client is configured; check the A2AT_LLM_* settings   |
+| `llm.invocation_failed`                   | BUSINESS | LLM 调用失败(提供方 {provider}):{reason}                     | LLM invocation failed (provider {provider}): {reason}        |
+| `llm.response_invalid`                    | BUSINESS | LLM 返回内容不符合要求({step} 步骤),请重试                   | The LLM response is invalid (step: {step}); please retry     |
+| `negotiation.invalid_input`               | BUSINESS | 输入的协商内容无效:{reason}                                  | The negotiation input is invalid: {reason}                   |
+| `negotiation.invalid_context_id`          | BUSINESS | 协商上下文标识「{actual}」不是合法的 UUID                    | The negotiation context id '{actual}' is not a valid UUID    |
+| `negotiation.round_exceeded`              | BUSINESS | 协商轮次 {round} 已超过上限 {max_rounds}                     | Negotiation round {round} exceeds the maximum of {max_rounds} |
+| `negotiation.type_mismatch`               | BUSINESS | 报文内容属于「{implied}」协商,与声明的模板类型「{declared}」不符 | The message implies '{implied}' negotiation but the declared template type is '{declared}' |
+| `negotiation.phase_mismatch`              | BUSINESS | 报文阶段与声明的模板阶段不符({implied} vs {declared})        | The message phase does not match the declared template phase ({implied} vs {declared}) |
+| `negotiation.conclusion_mismatch`         | BUSINESS | 报文结论为「{actual}」,与该方法的预期「{expected}」不符      | The message conclusion is '{actual}' but '{expected}' is expected for this method |
+| `negotiation.content_invalid`             | BUSINESS | 协商内容字段「{field}」无效:{reason}                         | The negotiation content field '{field}' is invalid: {reason} |
+| `negotiation.field_missing`               | BUSINESS | 协商报文缺少必填字段「{field}」                              | The negotiation message is missing required field '{field}'  |
+| `negotiation.content_extract_failed`      | BUSINESS | 无法从文本提取协商内容({field}):{reason}                     | Failed to extract negotiation content from text ({field}): {reason} |
+| `negotiation.conclusion_content_mismatch` | BUSINESS | 结论为「{conclusion}」,但「{section_label}」未表达该结论应携带的内容 | The conclusion is '{conclusion}' but '{section_label}' does not state the content the conclusion requires |
+| `negotiation.missing_result_content`      | BUSINESS | 「{section_label}」板块缺少结论应携带的内容                  | The '{section_label}' section is missing the content required by its conclusion |
+| `negotiation.mutually_exclusive_sections` | BUSINESS | 互斥板块同时出现:{sections}                                  | Mutually exclusive sections appear together: {sections}      |
+| `negotiation.constraint_conflict`         | BUSINESS | 「{section_label}」与既有约束冲突:{reason}                   | '{section_label}' conflicts with existing constraints: {reason} |
+| `negotiation.field_inconsistency`         | BUSINESS | 「{section_label}」内字段取值前后不一致:{reason}             | Fields within '{section_label}' are inconsistent: {reason}   |
+| `negotiation.invalid_time_interval`       | BUSINESS | 「{section_label}」的时间区间不合法(开始时间不得晚于结束时间) | The time interval of '{section_label}' is invalid (start must not be later than end) |
+| `negotiation.semantic_rejected`           | BUSINESS | 协商报文语义校验未通过                                       | The negotiation message failed semantic validation           |
+| `negotiation.rule_violation`              | BUSINESS | 「{section_label}」不符合协商报文的校验规则。                | '{section_label}' violates the negotiation message validation rules. |
+| `infra.config_invalid`                    | INFRA    | 配置项「{key}」无效:{reason}                                 | Invalid configuration '{key}': {reason}                      |
+| `infra.resource_read_failed`              | INFRA    | 资源「{resource_path}」读取失败                              | Failed to read resource '{resource_path}'                    |
+| `infra.internal_error`                    | INFRA    | SDK 内部错误,请联系维护方并提供上下文                        | SDK internal error; contact the maintainer with context      |
