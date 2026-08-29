@@ -11,7 +11,7 @@
 ### 1.1.1 A2A-T Capabilities
 A2A-T (Agent-to-Agent Telecom) is a telecom-domain multi-agent interconnection protocol built on the A2A protocol, designed for complex collaboration scenarios in the telecom domain.
 
-Industry-generic agent interconnection protocols focus mainly on agent interconnection and interaction frameworks and pay insufficient attention to business scenarios and concrete interaction content, which results in a low task completion success rate. Business scenarios in the telecom domain are complex and demanding; the interconnection and collaboration of O&M agents require dedicated protocol support. Building on the A2A protocol, the A2A-T solution applies extensions focused on the information models, task negotiation, and collaboration security related to telecom-domain service flows.
+Business scenarios in the telecom domain are complex and demanding; the interconnection and collaboration of O&M agents require dedicated protocol support. Building on the A2A protocol, the A2A-T solution applies extensions focused on the information models, task negotiation, and collaboration security related to telecom-domain service flows.
 
 a2a-t-sdk-java is a Java SDK for telecom agent collaboration scenarios. It generates, validates, and negotiates task prompts in A2A-T interactions. The SDK is suitable for integration by client agents, server agents, and upper-layer orchestration systems.
 
@@ -63,13 +63,13 @@ The relationships between the components are shown below:
 ```mermaid
 flowchart TD
     subgraph Client["Client Agent"]
-        A1["A2A-T Client SDK<br><br>Prompt template generation: generateTaskPrompt"]
+        A1["A2A-T Client SDK<br><br>Prompt template generation: generate*PromptFromText"]
         A2["A2A Client SDK<br><br>Sends requests over HTTP/REST"]
         A1 --> A2
     end
 
     subgraph Server["Server Agent"]
-        B1["A2A-T Server SDK<br><br>Compliance validation: checkTaskPrompt"]
+        B1["A2A-T Server SDK<br><br>Compliance validation and parameter extraction: validate*AndDataFilling"]
         B2["A2A Server SDK<br><br>Receives requests"]
         B2 --> B1
     end
@@ -144,72 +144,101 @@ This basic development sample mainly uses the following two A2A-T SDK APIs. In a
 
 **1. A2A-T Client SDK**
 
-API definition and function description: recognizes the scenario from the input content and generates the corresponding prompt template
+API definition and function description: generates a notification subscription prompt message from natural-language text with the specified Notification-T template (skipping scenario recognition). It runs one LLM slot-extraction step and then renders the template deterministically; the generation phase performs built-in slot schema validation.
 
 ```java
-public PromptGenerationResult generateTaskPrompt(Object userInput)
+public MetadataContent generateNotificationPromptFromText(String text, TemplateUri templateUri)
 ```
-
-`PromptGenerationResult` is a record type with three accessors — `success()`, `promptText()`, and `failure()`; `failure` carries `code`, `message`, and `stage`.
 
 Sample invocation:
 
 ```java
 import java.nio.file.Path;
 import net.openan.a2at.sdk.client.A2ATClient;
-import net.openan.a2at.sdk.client.model.PromptGenerationResult;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 
 A2ATClient client = new A2ATClient(Path.of("client.env"));
-PromptGenerationResult result = client.generateTaskPrompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart");
+TemplateUri templateUri = TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
 
-if (result.success()) {
-    System.out.println(result.promptText());
-}
+MetadataContent result = client.generateNotificationPromptFromText(
+        "I would like to subscribe to service recovery events. The notification data format is as follows: "
+                + "1. Service recovery plan execution status, possible values: not started, finished; "
+                + "2. Complaint diagnosis task serial number; 3. OSS-side event serial number; 4. Access port name; "
+                + "5. Whether OMC automatic recovery is authorized, possible values: yes, no; 6. Service recovery plan name; 7. Service recovery plan details",
+        templateUri);
 
-/* Output of the generated prompt template
+/* Output of the generated notification subscription prompt message (result.promptText(); the actual text varies with the LLM slot-extraction result)
 ## Subscription Description
-Based on the following <Notification Topic>, <Subscribe Condition>, <Notification Data Format>, and <Expected Output> information, complete the network-side intelligent fault Incident subscription and reporting task.
+Based on the following <Notification Topic>, <Subscribe Condition>, <Notification Data Format>, and <Expected Output> information, complete the subscription to and reporting of network-side service recovery events.
 
 ## Notification Topic
-The name of this topic is "incident"
+Service recovery event
 
 ## Subscribe Condition
-Fault levels are "critical", "medium", "high", "low"
+(Optional)
+1. Subnet name; e.g. xx subnet;
 
 ## Notification Data Format
-Report Incident data via DataPart
+1. Service recovery plan execution status, possible values: not started, finished
+2. Complaint diagnosis task serial number
+3. OSS-side event serial number
+4. Access port name
+5. Whether OMC automatic recovery is authorized, possible values: yes, no
+6. Service recovery plan name
+7. Service recovery plan details
 
 ## Expected Output
-1. Subscription result, success or failure
+1. Subscription result, possible values: success, failure
 2. Reason for subscription failure (optional)
+3. After a successful subscription, report messages per the <Notification Data Format>
 */
 ```
 
 **2. A2A-T Server SDK**
 
-API definition and function description:
+API definition and function description: validates whether a Notification-T notification subscription prompt message matches the template and slot constraints, and extracts parameters (subscription topic, subscription condition, notification data format, etc.) per the caller's schema.
 
 ```java
-public PromptComplianceResult checkTaskPrompt(String processedPromptText)
+public FilledParamData validateNotificationPromptAndDataFilling(
+        String prompt, Map<String, Object> schema, TemplateUri templateUri)
 ```
 
-`PromptComplianceResult` is a record type with two accessors — `success()` and `failure()` (on validation failure, `failure` carries `code`, `message`, and `stage`).
-
-Sample invocation: validates the completeness of an A2A-T protocol message
+Sample invocation: validates the notification subscription message sent by the client and extracts the subscription parameters
 
 ```java
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.server.A2ATServer;
-import net.openan.a2at.sdk.server.model.PromptComplianceResult;
 
 A2ATServer server = new A2ATServer(Path.of("server.env"));
-PromptComplianceResult result = server.checkTaskPrompt("## Subscription DescriptionBased on the following <Notification Topic>, <Subscribe Condition>, <Notification Data Format>, and <Expected Output> information, complete the network-side intelligent fault Incident subscription and reporting task.## Notification TopicThe name of this topic is \"incident\"## Subscribe Condition \n\n Fault levels are \"critical\", \"medium\", \"high\", \"low\" \n\n ## Notification Data Format \n\nReport Incident data via DataPart## Expected Output1. Subscription result, success or failure2. Reason for subscription failure (optional)");
+TemplateUri templateUri = TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
 
-if (result.success()) {
-    System.out.println("prompt check passed");
-} else {
-    System.out.println(result.failure().message());
+Map<String, Object> validationSchema = Map.of(
+        "type", "object",
+        "properties", Map.of(
+                "topic", Map.of("type", "string", "description", "Subscription topic (required). The name of the event topic to subscribe to."),
+                "subscriptionCondition", Map.of(
+                        "type", "string", "description", "Subscription condition (optional). The description of the condition to subscribe to."),
+                "notificationDataFormat", Map.of(
+                        "type", "string", "description", "Notification data format (required). The description of the notification data format to report.")),
+        "required", List.of("topic", "notificationDataFormat"));
+
+// promptText is the text of the notification subscription prompt message generated by the client (see the client sample invocation above)
+FilledParamData result = server.validateNotificationPromptAndDataFilling(
+        promptText, validationSchema, templateUri);
+
+/* Subscription parameters extracted per the schema (result.data(); an empty subscription condition
+   means the input in this example carries no subscription condition)
+{
+  topic=Service recovery event,
+  subscriptionCondition=,
+  notificationDataFormat=Service recovery event data includes: service recovery plan execution status (not started, finished), complaint diagnosis task serial number, OSS-side event serial number, access port name, whether OMC automatic recovery is authorized (yes, no), service recovery plan name, service recovery plan details.
 }
+*/
 ```
 
 ### 1.4.2 Development Workflow
@@ -365,9 +394,9 @@ import org.a2aproject.sdk.spec.AgentInterface;
 import org.a2aproject.sdk.spec.AgentProvider;
 import org.a2aproject.sdk.spec.AgentSkill;
 
-private static final String TASK_T_EXT =
+private static final String TASK_T_EXT_URI =
         "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Task-T/v1";
-private static final String NOTIFICATION_T_EXT =
+private static final String NOTIFICATION_T_EXT_URI =
         "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
 
 private static AgentCard buildClientAgentCard() {
@@ -382,11 +411,11 @@ private static AgentCard buildClientAgentCard() {
                     .extendedAgentCard(false)
                     .extensions(List.of(
                             AgentExtension.builder()
-                                    .uri(TASK_T_EXT)
+                                    .uri(TASK_T_EXT_URI)
                                     .description("Extension of structured prompt Task-T requests.")
                                     .build(),
                             AgentExtension.builder()
-                                    .uri(NOTIFICATION_T_EXT)
+                                    .uri(NOTIFICATION_T_EXT_URI)
                                     .description("Extension of structured prompt Notification-T requests.")
                                     .build()))
                     .build())
@@ -665,22 +694,29 @@ Both `A2ATClient` and `A2ATServer` take the `.env` file path explicitly at const
 
 #### Step6 Generate the A2A-T Template Message
 
-The client uses the A2A-T Client SDK API `generateTaskPrompt` to generate the processed_prompt, and then sends it to the target agent as part of an A2A message.
+The client uses the A2A-T Client SDK API `generateNotificationPromptFromText` to generate the Notification-T subscription message (processed_prompt), and then sends it to the target agent as part of an A2A message.
 
 ```java
 import java.nio.file.Path;
 import net.openan.a2at.sdk.client.A2ATClient;
-import net.openan.a2at.sdk.client.model.PromptGenerationResult;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 
 A2ATClient client = new A2ATClient(Path.of("client.env"));
 
-// Generate the A2A-T prompt
-PromptGenerationResult result = client.generateTaskPrompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart");
-if (!result.success()) {
-    throw new IllegalStateException(result.failure().code() + ": " + result.failure().message());
-}
+// Generate the A2A-T notification subscription prompt message
+// (on generation failure a PromptGenerationException is thrown, carrying code and message)
+TemplateUri templateUri =
+        TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
+MetadataContent result = client.generateNotificationPromptFromText(
+        "I would like to subscribe to service recovery events. The notification data format is as follows: "
+                + "1. Service recovery plan execution status, possible values: not started, finished; "
+                + "2. Complaint diagnosis task serial number; 3. OSS-side event serial number; 4. Access port name; "
+                + "5. Whether OMC automatic recovery is authorized, possible values: yes, no; 6. Service recovery plan name; 7. Service recovery plan details",
+        templateUri);
 
 String processedPrompt = result.promptText();
+String extensionUri = result.extensionUri();  // A2A-T extension URI, used for message metadata and request headers
 ```
 
 #### Step7 Activate the A2A-T Extension in Request Headers
@@ -690,7 +726,7 @@ The A2A protocol conveys the protocol version and extension declarations through
 | Header | Direction | Required | Value |
 | ------ | --------- | -------- | ----- |
 | `A2A-Version` | Request header | Yes | Protocol version, e.g. `1.0` (the client must carry it with every request) |
-| `A2A-Extensions` | Request header | No (recommended when using extensions) | Comma-separated list of extension URIs, declaring the extensions used by this request |
+| `A2A-Extensions` | Request header | Required when using A2A-T | Comma-separated list of extension URIs, declaring the extensions used by this request |
 
 Sample of filling in client request headers: when sending requests with a2a-java, `A2A-Extensions` is passed in through the headers of `ClientCallContext` (protocol headers such as the protocol version are carried by the a2a-java transport layer as required by the protocol)
 
@@ -715,7 +751,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import net.openan.a2at.sdk.client.A2ATClient;
-import net.openan.a2at.sdk.client.model.PromptGenerationResult;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import org.a2aproject.sdk.client.Client;
 import org.a2aproject.sdk.client.ClientEvent;
 import org.a2aproject.sdk.client.MessageEvent;
@@ -732,30 +769,34 @@ import org.a2aproject.sdk.spec.TextPart;
 
 String notificationPromptExt = "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
 
-// 1) Generate the A2A-T prompt (see Step6)
+// 1) Generate the A2A-T template message (see 1.4.3 Step6)
 A2ATClient client = new A2ATClient(Path.of("client.env"));
-PromptGenerationResult result = client.generateTaskPrompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart");
-if (!result.success()) {
-    throw new IllegalStateException(result.failure().code() + ": " + result.failure().message());
-}
+TemplateUri templateUri =
+        TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
+MetadataContent result = client.generateNotificationPromptFromText(
+        "I would like to subscribe to service recovery events. The notification data format is as follows: "
+                + "1. Service recovery plan execution status, possible values: not started, finished; "
+                + "2. Complaint diagnosis task serial number; 3. OSS-side event serial number; 4. Access port name; "
+                + "5. Whether OMC automatic recovery is authorized, possible values: yes, no; 6. Service recovery plan name; 7. Service recovery plan details",
+        templateUri);
 String processedPrompt = result.promptText();
 
 // 2) Build the A2A message carrying the A2A-T extension (the prompt goes into metadata, keyed by the extension URI)
 Message message = Message.builder()
         .messageId(UUID.randomUUID().toString())
         .role(Message.Role.ROLE_USER)
-        .parts(new TextPart("Create an intelligent fault incident reporting task"))
+        .parts(new TextPart("I would like to subscribe to service recovery events"))
         .metadata(Map.of(notificationPromptExt, processedPrompt))
         .build();
 MessageSendParams params = MessageSendParams.builder().message(message).build();
 
-// 3) Declare the A2A-T extension request header through ClientCallContext (see Step7)
+// 3) Declare the A2A-T extension request header through ClientCallContext (see 1.4.3 Step7)
 ClientCallContext callContext =
         new ClientCallContext(Map.of(), Map.of("A2A-Extensions", notificationPromptExt));
 
 // 4) Send the request with the a2a-java Client and consume task events
 CountDownLatch done = new CountDownLatch(1);
-try (Client a2aClient = Client.builder(agentCard)  // org.a2aproject.sdk.spec.AgentCard retrieved and converted in Step4
+try (Client a2aClient = Client.builder(agentCard)
         .withTransport(RestTransport.class, new RestTransportConfig())
         .build()) {
     a2aClient.sendMessage(
@@ -804,7 +845,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.openan.a2at.sdk.client.A2ATClient;
-import net.openan.a2at.sdk.client.model.PromptGenerationResult;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import org.a2aproject.sdk.client.Client;
 import org.a2aproject.sdk.client.ClientEvent;
 import org.a2aproject.sdk.client.MessageEvent;
@@ -820,7 +862,7 @@ import org.a2aproject.sdk.spec.TaskStatusUpdateEvent;
 import org.a2aproject.sdk.spec.TextPart;
 
 public final class ClientSample {
-    private static final String NOTIFICATION_PROMPT_EXT =
+    private static final String NOTIFICATION_T_EXT_URI =
             "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
 
     private static final ObjectMapper MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
@@ -828,28 +870,32 @@ public final class ClientSample {
 
     public static void main(String[] args) throws Exception {
         // 1) Register the client AgentCard and discover the server AgentCard
-        registerAgentCard("http://{ip:port}", buildClientAgentCard());  // the client AgentCard defined in Step3
-        AgentCard serverAgentCard = toAgentCard(  // the conversion defined in Step4
+        registerAgentCard("http://{ip:port}", buildClientAgentCard());  // the client AgentCard defined in 1.4.3 Step3
+        AgentCard serverAgentCard = toAgentCard(
                 discoverAgent("http://{ip:port}", "Huawei", "RAN Domain Agent"));
 
-        // 2) Use the SDK capability to generate the A2A-T prompt
+        // 2) Use the SDK capability to generate the A2A-T notification subscription prompt message
         A2ATClient client = new A2ATClient(Path.of("client.env"));
-        PromptGenerationResult result = client.generateTaskPrompt("Generate an Incident event subscription task: the notification topic is Incident, the subscription levels are critical, medium, high, and low, and the notification data format is DataPart");
-        if (!result.success()) {
-            throw new IllegalStateException(result.failure().code() + ": " + result.failure().message());
-        }
+        TemplateUri templateUri =
+                TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
+        MetadataContent result = client.generateNotificationPromptFromText(
+                "I would like to subscribe to service recovery events. The notification data format is as follows: "
+                        + "1. Service recovery plan execution status, possible values: not started, finished; "
+                        + "2. Complaint diagnosis task serial number; 3. OSS-side event serial number; 4. Access port name; "
+                        + "5. Whether OMC automatic recovery is authorized, possible values: yes, no; 6. Service recovery plan name; 7. Service recovery plan details",
+                templateUri);
         String processedPrompt = result.promptText();
 
         // 3) Build the A2A message carrying the A2A-T extension (request headers declare the extension; the message body carries the A2A-T extension field)
         Message message = Message.builder()
                 .messageId(UUID.randomUUID().toString())
                 .role(Message.Role.ROLE_USER)
-                .parts(new TextPart("Create an intelligent fault incident reporting task"))
-                .metadata(Map.of(NOTIFICATION_PROMPT_EXT, processedPrompt))
+                .parts(new TextPart("I would like to subscribe to service recovery events"))
+                .metadata(Map.of(NOTIFICATION_T_EXT_URI, processedPrompt))
                 .build();
         MessageSendParams params = MessageSendParams.builder().message(message).build();
         ClientCallContext callContext =
-                new ClientCallContext(Map.of(), Map.of("A2A-Extensions", NOTIFICATION_PROMPT_EXT));
+                new ClientCallContext(Map.of(), Map.of("A2A-Extensions", NOTIFICATION_T_EXT_URI));
 
         // 4) Send the request with the a2a-java Client and consume task events
         CountDownLatch done = new CountDownLatch(1);
@@ -921,7 +967,7 @@ public final class ClientSample {
 
 #### Step1-Step5 Prerequisites
 
-Steps such as installing dependencies and configuring the LLM can all reference the [client implementation](#step1-install-dependencies). The differences are as follows:
+Steps such as installing dependencies and configuring the LLM can all reference the [client implementation](#143-sample-client-development-steps). The differences are as follows:
 
 It is recommended that the server agent use the official a2a-java REST reference server (based on Quarkus, which automatically assembles the REST transport, task management, and event queues) to host A2A requests. Add the following dependencies:
 
@@ -997,7 +1043,7 @@ import net.openan.a2at.sdk.server.A2ATServer;
 A2ATServer server = new A2ATServer(Path.of("server.env"));
 ```
 
-- Initialize the AgentCard: a2a-java officially recommends exposing the AgentCard qualified with `@PublicAgentCard` through a CDI producer (built with the Builder; see the complete server code). Reference server AgentCard definition:
+- Initialize the AgentCard: a2a-java officially recommends exposing the AgentCard qualified with `@PublicAgentCard` through a CDI producer (built with the Builder; see 1.4.3 Step3 for the construction approach). Reference server AgentCard definition:
 
 ```java
 import java.util.List;
@@ -1008,9 +1054,9 @@ import org.a2aproject.sdk.spec.AgentInterface;
 import org.a2aproject.sdk.spec.AgentProvider;
 import org.a2aproject.sdk.spec.AgentSkill;
 
-private static final String TASK_T_EXT =
+private static final String TASK_T_EXT_URI =
         "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Task-T/v1";
-private static final String NOTIFICATION_T_EXT =
+private static final String NOTIFICATION_T_EXT_URI =
         "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
 
 private static AgentCard buildServerAgentCard() {
@@ -1025,12 +1071,12 @@ private static AgentCard buildServerAgentCard() {
                     .extendedAgentCard(false)
                     .extensions(List.of(
                             AgentExtension.builder()
-                                    .uri(TASK_T_EXT)
+                                    .uri(TASK_T_EXT_URI)
                                     .description("Extension of structured prompt TASK-T requests.")
                                     .required(false)
                                     .build(),
                             AgentExtension.builder()
-                                    .uri(NOTIFICATION_T_EXT)
+                                    .uri(NOTIFICATION_T_EXT_URI)
                                     .description("Extension of structured prompt Notification-T requests.")
                                     .required(false)
                                     .build()))
@@ -1099,7 +1145,7 @@ private static AgentCard buildServerAgentCard() {
             "Incident Reporting"
           ],
           "examples": [
-            "## Subscription Description\\nBased on the following \\u003cNotification Topic\\u003e, \\u003cSubscribe Condition\\u003e, \\u003cNotification Data Format\\u003e, and \\u003cExpected Output\\u003e information, complete the network-side intelligent fault Incident subscription and reporting task.\\n## Notification Topic\\nThe name of this topic is \\\"incident\\\"\\n## Subscribe Condition\\nFault level is \\\"high\\\"\\n## Notification Data Format\\nReport Incident data via DataPart\\n## Expected Output\\n1. Subscription result, success or failure\\n2. Reason for subscription failure (optional)"
+            "## Subscription Description\\nBased on the following \<Notification Topic\>, \<Subscribe Condition\>, \<Notification Data Format\>, and \<Expected Output\> information, complete the network-side intelligent fault Incident subscription and reporting task.\\n## Notification Topic\\nThe name of this topic is \\\"incident\\\"\\n## Subscribe Condition\\nFault level is \\\"high\\\"\\n## Notification Data Format\\nReport Incident data via DataPart\\n## Expected Output\\n1. Subscription result, success or failure\\n2. Reason for subscription failure (optional)"
           ],
           "inputModes": [
             "application/json",
@@ -1141,15 +1187,16 @@ private static AgentCard buildServerAgentCard() {
 
 #### Step6-Step7 Receive and Validate the Message on the Server
 
-When the server is hosted by a2a-java, protocol parsing, task creation, and event queue management are handled by the SDK. The business side implements the official `AgentExecutor` interface: in the `execute` callback, take the processed task prompt out of the message `metadata` field (keyed by the extension URI), pass it to `A2ATServer.checkTaskPrompt` for validation, and push task status and result events through `AgentEmitter`:
+When the server is hosted by a2a-java, protocol parsing, task creation, and event queue management are handled by the SDK. The business side implements the official `AgentExecutor` interface: in the `execute` callback, take the Notification-T subscription message out of the message `metadata` field (keyed by the extension URI), pass it to `A2ATServer.validateNotificationPromptAndDataFilling` for validation and subscription-parameter extraction, and push task status and result events through `AgentEmitter`:
 
 ```java
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.core.validation.ContentValidationException;
 import net.openan.a2at.sdk.server.A2ATServer;
-import net.openan.a2at.sdk.server.model.PromptComplianceResult;
 import org.a2aproject.sdk.server.agentexecution.AgentExecutor;
 import org.a2aproject.sdk.server.agentexecution.RequestContext;
 import org.a2aproject.sdk.server.tasks.AgentEmitter;
@@ -1158,14 +1205,27 @@ import org.a2aproject.sdk.spec.DataPart;
 import org.a2aproject.sdk.spec.Message;
 import org.a2aproject.sdk.spec.TextPart;
 
-public final class IncidentSubscriptionExecutor implements AgentExecutor {
+public final class ServiceRecoverySubscriptionExecutor implements AgentExecutor {
 
-    private static final String NOTIFICATION_PROMPT_EXT =
+    private static final String NOTIFICATION_T_EXT_URI =
             "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
+
+    private static final TemplateUri NOTIFICATION_TEMPLATE_URI =
+            TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
+
+    private static final Map<String, Object> NOTIFICATION_PARAM_SCHEMA = Map.of(
+            "type", "object",
+            "properties", Map.of(
+                    "topic", Map.of("type", "string", "description", "Subscription topic (required). The name of the event topic to subscribe to."),
+                    "subscriptionCondition", Map.of(
+                            "type", "string", "description", "Subscription condition (optional). The description of the condition to subscribe to."),
+                    "notificationDataFormat", Map.of(
+                            "type", "string", "description", "Notification data format (required). The description of the notification data format to report.")),
+            "required", List.of("topic", "notificationDataFormat"));
 
     private final A2ATServer server;
 
-    public IncidentSubscriptionExecutor(A2ATServer server) {
+    public ServiceRecoverySubscriptionExecutor(A2ATServer server) {
         this.server = server;
     }
 
@@ -1174,34 +1234,46 @@ public final class IncidentSubscriptionExecutor implements AgentExecutor {
         // 1) Take the A2A-T extension message out of the message metadata (keyed by the extension URI)
         String processedPrompt = extractPrompt(requestContext.getMessage());
         if (processedPrompt.isBlank()) {
-            agentEmitter.reject(statusMessage(requestContext, "missing A2A-T task prompt"));
+            agentEmitter.reject(statusMessage(requestContext, "missing A2A-T notification prompt"));
             return;
         }
-        agentEmitter.submit(statusMessage(requestContext, "Subscription accepted, starting Incident reporting task"));
+        agentEmitter.submit(statusMessage(requestContext,
+                "Subscription accepted, starting service recovery event reporting task"));
 
-        // 2) Use the SDK capability to validate the completeness of the A2A-T protocol message
-        PromptComplianceResult checkResult = server.checkTaskPrompt(processedPrompt);
-        if (!checkResult.success()) {
-            // Validation failed; failure carries code, message, and stage
+        // 2) Use the SDK capability to validate the Notification-T subscription message and extract the subscription parameters per the schema
+        Map<String, Object> filledParams;
+        try {
+            FilledParamData checkResult = server.validateNotificationPromptAndDataFilling(
+                    processedPrompt, NOTIFICATION_PARAM_SCHEMA, NOTIFICATION_TEMPLATE_URI);
+            filledParams = checkResult.data();
+        } catch (ContentValidationException error) {
+            // Validation failed; the exception carries code, message, and the per-slot details from errors()
             agentEmitter.reject(statusMessage(requestContext,
-                    "Prompt validation failed: " + checkResult.failure().message()));
+                    "Notification prompt validation failed: " + error.getCode() + ": " + error.getMessage()));
             return;
         }
 
-        // 3) Validation passed; execute the business and push task events through AgentEmitter
-        agentEmitter.startWork(statusMessage(requestContext, "Incident reporting task in progress"));
+        // 3) Validation passed; establish the subscription per the extracted subscription parameters
+        //    (topic/subscriptionCondition/notificationDataFormat) and report service recovery events
+        //    (event fields taken from the sample a2a-t-sample/.../service-recovery/server/mock-event-data.json;
+        //    the "service recovery plan details" field is long and omitted here)
+        agentEmitter.startWork(statusMessage(requestContext,
+                "Subscribed to [" + filledParams.get("topic") + "], service recovery event reporting in progress"));
         agentEmitter.addArtifact(
                 List.of(new DataPart(Map.of(
-                        "faultManagement.Incident", Map.of(
-                                "csn", 1673735459373056L,
-                                "name", "LASER_MOD_ERR",
-                                "domain", "PTN",
-                                "priority", "high",
-                                "status", "unacknowledged-and-uncleared")))),
-                "faultManagement.Incident",
-                "Incident artifact",
+                        "serviceManagement.ServiceRecoveryEvent", Map.of(
+                                "service recovery plan execution status", "finished",
+                                "complaint diagnosis task serial number", "9de168c0-6179-4778-8b72-4279582c0a3f",
+                                "OSS-side event serial number", "event-id-202606250128",
+                                "access port name", "P781-SZ-PTN7900-23-TPA1EG24-17",
+                                "whether OMC automatic recovery is authorized", "yes",
+                                "service recovery plan name", "tunnel tuning",
+                                "service recovery plan execution end time", "2026-05-11T08:21:46Z")))),
+                "serviceManagement.ServiceRecoveryEvent",
+                "Service recovery event artifact",
                 null);
-        agentEmitter.complete(statusMessage(requestContext, "Incident reporting completed"));
+        agentEmitter.complete(statusMessage(requestContext,
+                "Service recovery notification reporting finished, subscription task completed"));
     }
 
     @Override
@@ -1213,7 +1285,7 @@ public final class IncidentSubscriptionExecutor implements AgentExecutor {
         if (message == null || message.metadata() == null) {
             return "";
         }
-        Object prompt = message.metadata().get(NOTIFICATION_PROMPT_EXT);
+        Object prompt = message.metadata().get(NOTIFICATION_T_EXT_URI);
         return prompt == null ? "" : String.valueOf(prompt);
     }
 
@@ -1233,7 +1305,7 @@ public final class IncidentSubscriptionExecutor implements AgentExecutor {
 
 | Header | Direction | Required | Value |
 | ------ | --------- | -------- | ----- |
-| `A2A-Extensions` | Response header | No (recommended when using extensions) | List of extension URIs (comma-separated) actually engaged by the server |
+| `A2A-Extensions` | Response header | Required when using A2A-T | List of extension URIs (comma-separated) actually engaged by the server |
 
 When the server is hosted by the a2a-java REST transport, the protocol layer (validation of the protocol version and extension declarations in requests, task and event management, and SSE streaming responses) is handled by the SDK transport layer; the business side only needs to push task status and result events through `AgentEmitter`. If the business system implements its own HTTP hosting, it must fill in the `A2A-Extensions` header in responses as shown in the table above.
 
@@ -1255,8 +1327,10 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Produces;
+import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.core.validation.ContentValidationException;
 import net.openan.a2at.sdk.server.A2ATServer;
-import net.openan.a2at.sdk.server.model.PromptComplianceResult;
 import org.a2aproject.sdk.server.PublicAgentCard;
 import org.a2aproject.sdk.server.agentexecution.AgentExecutor;
 import org.a2aproject.sdk.server.agentexecution.RequestContext;
@@ -1275,14 +1349,14 @@ import org.a2aproject.sdk.spec.TextPart;
 @ApplicationScoped
 public class ServerSample {
 
-    private static final String TASK_T_EXT =
+    private static final String TASK_T_EXT_URI =
             "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Task-T/v1";
-    private static final String NOTIFICATION_PROMPT_EXT =
+    private static final String NOTIFICATION_T_EXT_URI =
             "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    // 1) CDI producer: expose the server AgentCard to a2a-java (same definition as in Step3)
+    // 1) CDI producer: expose the server AgentCard to a2a-java (same definition as the server sample AgentCard in the 1.4.4 prerequisites)
     @Produces
     @PublicAgentCard
     public AgentCard agentCard() {
@@ -1297,12 +1371,12 @@ public class ServerSample {
                         .extendedAgentCard(false)
                         .extensions(List.of(
                                 AgentExtension.builder()
-                                        .uri(TASK_T_EXT)
+                                        .uri(TASK_T_EXT_URI)
                                         .description("Extension of structured prompt TASK-T requests.")
                                         .required(false)
                                         .build(),
                                 AgentExtension.builder()
-                                        .uri(NOTIFICATION_PROMPT_EXT)
+                                        .uri(NOTIFICATION_T_EXT_URI)
                                         .description("Extension of structured prompt Notification-T requests.")
                                         .required(false)
                                         .build()))
@@ -1326,7 +1400,7 @@ public class ServerSample {
     // 2) CDI producer: initialize the A2A-T server and wire it into the AgentExecutor
     @Produces
     public AgentExecutor agentExecutor() {
-        return new IncidentSubscriptionExecutor(new A2ATServer(Path.of("server.env")));
+        return new ServiceRecoverySubscriptionExecutor(new A2ATServer(Path.of("server.env")));
     }
 
     // 3) Register the server AgentCard with the registry center at startup (the address depends on the actual deployment)
@@ -1344,12 +1418,30 @@ public class ServerSample {
         }
     }
 
-    // 4) A2A-T task executor: receive and validate A2A-T messages (same as Step6-Step7)
-    static final class IncidentSubscriptionExecutor implements AgentExecutor {
+    // 4) A2A-T task executor: receive the Notification-T subscription message, validate it, and extract parameters
+    //    (same implementation as 1.4.4 Step6-Step7)
+    static final class ServiceRecoverySubscriptionExecutor implements AgentExecutor {
+
+        private static final String NOTIFICATION_T_EXT_URI =
+                "https://projects.tmforum.org/a2aproject/telecommunication/extensions/Notification-T/v1";
+
+        private static final TemplateUri NOTIFICATION_TEMPLATE_URI =
+                TemplateUri.parse("Notification-T/network-layer/service-recovery/v1").orElseThrow();
+
+        // Parameter extraction schema (same as a2a-t-sample/src/main/resources/sample/service-recovery/server/schema.json)
+        private static final Map<String, Object> NOTIFICATION_PARAM_SCHEMA = Map.of(
+                "type", "object",
+                "properties", Map.of(
+                        "topic", Map.of("type", "string", "description", "Subscription topic (required). The name of the event topic to subscribe to."),
+                        "subscriptionCondition", Map.of(
+                                "type", "string", "description", "Subscription condition (optional). The description of the condition to subscribe to."),
+                        "notificationDataFormat", Map.of(
+                                "type", "string", "description", "Notification data format (required). The description of the notification data format to report.")),
+                "required", List.of("topic", "notificationDataFormat"));
 
         private final A2ATServer server;
 
-        IncidentSubscriptionExecutor(A2ATServer server) {
+        ServiceRecoverySubscriptionExecutor(A2ATServer server) {
             this.server = server;
         }
 
@@ -1358,34 +1450,46 @@ public class ServerSample {
             // 4.1) Take the A2A-T extension message out of the message metadata (keyed by the extension URI)
             String processedPrompt = extractPrompt(requestContext.getMessage());
             if (processedPrompt.isBlank()) {
-                agentEmitter.reject(statusMessage(requestContext, "missing A2A-T task prompt"));
+                agentEmitter.reject(statusMessage(requestContext, "missing A2A-T notification prompt"));
                 return;
             }
-            agentEmitter.submit(statusMessage(requestContext, "Subscription accepted, starting Incident reporting task"));
+            agentEmitter.submit(statusMessage(requestContext,
+                    "Subscription accepted, starting service recovery event reporting task"));
 
-            // 4.2) Use the SDK capability to validate the completeness of the A2A-T protocol message
-            PromptComplianceResult checkResult = server.checkTaskPrompt(processedPrompt);
-            if (!checkResult.success()) {
-                // Validation failed; failure carries code, message, and stage
+            // 4.2) Use the SDK capability to validate the Notification-T subscription message and extract the subscription parameters per the schema
+            Map<String, Object> filledParams;
+            try {
+                FilledParamData checkResult = server.validateNotificationPromptAndDataFilling(
+                        processedPrompt, NOTIFICATION_PARAM_SCHEMA, NOTIFICATION_TEMPLATE_URI);
+                filledParams = checkResult.data();
+            } catch (ContentValidationException error) {
+                // Validation failed; the exception carries code, message, and the per-slot details from errors()
                 agentEmitter.reject(statusMessage(requestContext,
-                        "Prompt validation failed: " + checkResult.failure().message()));
+                        "Notification prompt validation failed: " + error.getCode() + ": " + error.getMessage()));
                 return;
             }
 
-            // 4.3) Validation passed; execute the business and push task events through AgentEmitter
-            agentEmitter.startWork(statusMessage(requestContext, "Incident reporting task in progress"));
+            // 4.3) Validation passed; establish the subscription per the extracted subscription parameters
+            //      (topic/subscriptionCondition/notificationDataFormat) and report service recovery events
+            //      (event fields taken from the sample a2a-t-sample/.../service-recovery/server/mock-event-data.json;
+            //      the "service recovery plan details" field is long and omitted here)
+            agentEmitter.startWork(statusMessage(requestContext,
+                    "Subscribed to [" + filledParams.get("topic") + "], service recovery event reporting in progress"));
             agentEmitter.addArtifact(
                     List.of(new DataPart(Map.of(
-                            "faultManagement.Incident", Map.of(
-                                    "csn", 1673735459373056L,
-                                    "name", "LASER_MOD_ERR",
-                                    "domain", "PTN",
-                                    "priority", "high",
-                                    "status", "unacknowledged-and-uncleared")))),
-                    "faultManagement.Incident",
-                    "Incident artifact",
+                            "serviceManagement.ServiceRecoveryEvent", Map.of(
+                                    "service recovery plan execution status", "finished",
+                                    "complaint diagnosis task serial number", "9de168c0-6179-4778-8b72-4279582c0a3f",
+                                    "OSS-side event serial number", "event-id-202606250128",
+                                    "access port name", "P781-SZ-PTN7900-23-TPA1EG24-17",
+                                    "whether OMC automatic recovery is authorized", "yes",
+                                    "service recovery plan name", "tunnel tuning",
+                                    "service recovery plan execution end time", "2026-05-11T08:21:46Z")))),
+                    "serviceManagement.ServiceRecoveryEvent",
+                    "Service recovery event artifact",
                     null);
-            agentEmitter.complete(statusMessage(requestContext, "Incident reporting completed"));
+            agentEmitter.complete(statusMessage(requestContext,
+                    "Service recovery notification reporting finished, subscription task completed"));
         }
 
         @Override
@@ -1397,7 +1501,7 @@ public class ServerSample {
             if (message == null || message.metadata() == null) {
                 return "";
             }
-            Object prompt = message.metadata().get(NOTIFICATION_PROMPT_EXT);
+            Object prompt = message.metadata().get(NOTIFICATION_T_EXT_URI);
             return prompt == null ? "" : String.valueOf(prompt);
         }
 
@@ -1477,12 +1581,8 @@ Following the directory structure of `a2a-t-resources/src/main/resources/prompt_
 Notes:
 
 1. `<Extension-T>` supports `Task-T`, `Notification-T`, and `Authorization-T`; the template version segment is fixed at `v1`; the built-in languages are `zh-CN` and `en-US`.
-2. `<scenario path>` supports two forms:
-   - With a domain prefix (recommended, consistent with the built-in resources): `network-layer/<scenario code>`, e.g. `network-layer/ran-energy-saving`;
-   - Without a domain prefix: `<scenario code>`, e.g. `authorization-policy-management`.
-
-   When business code looks up a template by the bare scenario code (e.g. `ran-energy-saving`), the SDK first searches under `<Extension-T>/network-layer/<code>/v1/<language>/` and then falls back to `<Extension-T>/<code>/v1/<language>/`; you can also look up directly with the full scenario path containing `/` (e.g. `network-layer/ran-energy-saving`).
-3. If the local root directory contains `prompts/`, `templates/Negotiation-T/`, or `negotiation-vocabulary/` directories, they are ignored at construction time with a warning log (these resources are always loaded from the classpath).
+2. `<scenario path>` is configured as `network-layer/<scenario code>`, e.g. `network-layer/ran-energy-saving`;
+3. If the local root directory contains `prompts/`, `templates/Negotiation-T/`, or `negotiation-vocabulary/` directories, they are ignored at construction time with a warning log (these resources are loaded from the classpath).
 
 #### Step2 Write the resource files
 
@@ -1566,13 +1666,13 @@ MetadataContent metadata = client.generateTaskPromptFromText(
         "Please perform an on-site inspection of station xx, focusing on alarms and performance metrics", templateUri);
 ```
 
-To override a built-in template (e.g. `StandardTemplates.PRIVATE_LINE_COMPLAINT`), place `template.md` and `slot.json` at the same relative path under the local root directory and keep using the original constant in the code. Note that in `local_file` mode business templates are read only from the local root directory without classpath fallback; when the file for a `templateUri` is missing, the API throws `PromptGenerationException` with the error code `template_not_found`.
+To override a built-in template (e.g. `StandardTemplates.PRIVATE_LINE_COMPLAINT`), place `template.md` and `slot.json` at the same relative path under the local root directory and keep using the original constant in the code. Note that in `local_file` mode business templates are read only from the local root directory without classpath fallback; when the file for a `templateUri` is missing, the API throws `PromptGenerationException` with the error code `template.not_found`.
 
 #### Step4 Verification and troubleshooting
 
 After starting the client or server, confirm and troubleshoot as follows:
 
-1. **Missing resources**: when a template is not found, a `ResourceNotFoundException` is thrown (error code `validation_prompt_resource_not_found` on the validation path); the exception message contains the expected file path — complete the directory structure as prompted.
+1. **Missing resources**: when a template is not found, the generation path throws `PromptGenerationException` and the validation path throws `ContentValidationException`, both with the error code `template.not_found`; the exception message contains the expected file path — complete the directory structure as prompted.
 2. **Content not updated**: changes to local files do not take effect without restarting the process; restart the SDK process and construct again.
 3. **Negotiation and LLM resources are not customizable**: `Negotiation-T` templates support only the built-in fixed set; negotiation template URIs outside the set are skipped with a warning.
 
@@ -1584,8 +1684,8 @@ The sample configuration file provided by the SDK is `env.example`. When constru
 | --- | --- |
 | `A2AT_LANGUAGE` | Prompt resource language; built-in `zh-CN` and `en-US`, default `en-US` |
 | `A2AT_PROMPT_SOURCE_TYPE` | Prompt resource source; supports `classpath` and `local_file`, default `classpath` |
-| `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` | Local prompt resource root directory; required in `local_file` mode — unset or non-existent paths fail fast at assembly time; only business content (templates/slots/scenarios of Task-T/Notification-T/Authorization-T) is read from this root, while negotiation resources and LLM prompts are always loaded from the classpath |
-| `A2AT_INPUT_TEXT_MAX_CHARS` | Maximum number of characters for free-text inputs (FromText generation and message validation entry points); exceeding the limit fails fast with error code `input_text_too_long`, default `16384`; structured data that involves no LLM calls is not subject to this limit |
+| `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` | Local prompt resource root directory; required in `local_file` mode — unset or non-existent paths fail fast at assembly time; only business content (templates/slots/scenarios of Task-T/Notification-T/Authorization-T) is read from this root, while negotiation resources and LLM prompts are loaded from the classpath |
+| `A2AT_INPUT_TEXT_MAX_CHARS` | Maximum number of characters for free-text inputs (FromText generation and message validation entry points); exceeding the limit fails fast with error code `input.text_too_long`, default `16384`; structured data that involves no LLM calls is not subject to this limit |
 | `A2AT_LLM_PROVIDER` | LLM protocol type; currently only `openai` is supported |
 | `A2AT_LLM_MODEL` | Model name |
 | `A2AT_LLM_API_KEY` | LLM API key |
