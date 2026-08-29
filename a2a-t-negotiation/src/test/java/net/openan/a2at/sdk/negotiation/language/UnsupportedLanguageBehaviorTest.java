@@ -50,7 +50,8 @@ class UnsupportedLanguageBehaviorTest {
         for (String bundledLanguage : List.of("zh-CN", "en-US")) {
             assertEquals(
                     7,
-                    negotiationPrompts(new TemplateQueryService(bundledLanguage, "classpath", null)).size(),
+                    negotiationPrompts(new TemplateQueryService(bundledLanguage, "classpath", null))
+                            .size(),
                     "the bundled languages keep their full template set");
         }
     }
@@ -69,8 +70,8 @@ class UnsupportedLanguageBehaviorTest {
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> loader.load(
-                        new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR")));
+                () -> loader.load(new NegotiationReference(
+                        NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR")));
 
         assertTrue(
                 exception.getMessage().contains("A2AT_LANGUAGE"),

@@ -1,29 +1,29 @@
 package net.openan.a2at.sdk.corpus.property;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.corpus.LlmFailMarker;
+import net.openan.a2at.sdk.corpus.LlmScriptStep;
+import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.corpus.LlmFailMarker;
-import net.openan.a2at.sdk.corpus.LlmScriptStep;
-import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
 
 /**
- * Shared plumbing of the jqwik property layer: production-wired service assembly through the real builder, JSON
- * payload construction and the scripted-LLM seam reused from the corpus testdata package.
+ * Shared plumbing of the jqwik property layer: production-wired service assembly through the real builder, JSON payload
+ * construction and the scripted-LLM seam reused from the corpus testdata package.
  *
- * <p>Mirroring the {@code CaseEngine} discipline, everything except the LLM client is production assembly; the
- * property layer only decides inputs and expected invariants.
+ * <p>Mirroring the {@code CaseEngine} discipline, everything except the LLM client is production assembly; the property
+ * layer only decides inputs and expected invariants.
  *
  * @since 2026-08
  */
@@ -48,8 +48,8 @@ final class PropertyHarness {
     }
 
     /**
-     * Assembles the production service with a template loader that fails every load, the property-layer stand-in of
-     * the corpus {@code inject: failingTemplateLoader} hook.
+     * Assembles the production service with a template loader that fails every load, the property-layer stand-in of the
+     * corpus {@code inject: failingTemplateLoader} hook.
      *
      * @param language message language
      * @param llmClient scripted LLM client of the run
@@ -140,10 +140,9 @@ final class PropertyHarness {
      * @return strictly consuming scripted client that always fails
      */
     static ScriptedNegotiationLlmClient failing(LlmFailMarker marker) {
-        return new ScriptedNegotiationLlmClient(
-                java.util.stream.IntStream.rangeClosed(1, MAX_ATTEMPTS)
-                        .mapToObj(ignored -> (LlmScriptStep) new LlmScriptStep.Fail(marker))
-                        .toList());
+        return new ScriptedNegotiationLlmClient(java.util.stream.IntStream.rangeClosed(1, MAX_ATTEMPTS)
+                .mapToObj(ignored -> (LlmScriptStep) new LlmScriptStep.Fail(marker))
+                .toList());
     }
 
     /**

@@ -57,8 +57,7 @@ class DefaultContentValidatorTest {
         DefaultContentValidator validator =
                 new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
 
-        TemplateUri unsupportedVersion =
-                TemplateUri.of("Task-T", List.of("network-layer", "ran-energy-saving"), "v2");
+        TemplateUri unsupportedVersion = TemplateUri.of("Task-T", List.of("network-layer", "ran-energy-saving"), "v2");
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,

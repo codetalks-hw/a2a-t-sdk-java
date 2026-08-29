@@ -13,13 +13,13 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Locks the two sources of negotiation template URI spelling together: the constants in {@link StandardTemplates}
- * (a2a-t-core, cannot depend on this module) and the compositional logic in {@link NegotiationReference} backed by
- * the {@link NegotiationType}/{@link NegotiationPerformative} enums. Any drift turns this test red.
+ * (a2a-t-core, cannot depend on this module) and the compositional logic in {@link NegotiationReference} backed by the
+ * {@link NegotiationType}/{@link NegotiationPerformative} enums. Any drift turns this test red.
  */
 class StandardTemplatesNegotiationConsistencyTest {
 
-    private static final List<NegotiationPerformative> TYPED_PERFORMATIVES = List.of(
-            NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT, NegotiationPerformative.REJECT);
+    private static final List<NegotiationPerformative> TYPED_PERFORMATIVES =
+            List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT, NegotiationPerformative.REJECT);
 
     @Test
     void negotiationConstantsMatchReferenceComposition() {
@@ -30,8 +30,7 @@ class StandardTemplatesNegotiationConsistencyTest {
                 assertEquals(
                         reference.uri(),
                         expected.uri(),
-                        "StandardTemplates has no constant matching the composed URI of " + type + "/"
-                                + performative);
+                        "StandardTemplates has no constant matching the composed URI of " + type + "/" + performative);
             }
         }
         NegotiationReference abort = new NegotiationReference(null, NegotiationPerformative.ABORT, "en-US");
@@ -44,8 +43,10 @@ class StandardTemplatesNegotiationConsistencyTest {
 
     @Test
     void negotiationGroupCoversExactlyTheComposedUris() {
-        List<String> composed =
-                StandardTemplates.NEGOTIATION.stream().map(TemplateUri::uri).sorted().toList();
+        List<String> composed = StandardTemplates.NEGOTIATION.stream()
+                .map(TemplateUri::uri)
+                .sorted()
+                .toList();
         List<String> expected = new ArrayList<>();
         // Accept and reject share the accept-reject template, so the group carries one URI per type for them.
         for (NegotiationType type : NegotiationType.values()) {

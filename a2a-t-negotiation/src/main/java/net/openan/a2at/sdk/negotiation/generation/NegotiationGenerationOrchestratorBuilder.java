@@ -19,10 +19,10 @@ import org.slf4j.Logger;
 /**
  * Fluent builder assembling one {@link NegotiationGenerationOrchestrator}.
  *
- * <p>The language is required. The LLM client is optional: without one, the from-data generation still works, while
- * the LLM steps of the from-text generation and the validation pipeline fail with the {@code llm.not_configured}
- * code. Every collaborator has a default implementation wired from the language (classpath-fixed templates and
- * negotiation vocabulary), and each of them can be overridden for testing or customization.
+ * <p>The language is required. The LLM client is optional: without one, the from-data generation still works, while the
+ * LLM steps of the from-text generation and the validation pipeline fail with the {@code llm.not_configured} code.
+ * Every collaborator has a default implementation wired from the language (classpath-fixed templates and negotiation
+ * vocabulary), and each of them can be overridden for testing or customization.
  *
  * @since 2026-08
  */
@@ -185,16 +185,14 @@ public final class NegotiationGenerationOrchestratorBuilder {
                 complianceChecker != null ? complianceChecker : new DefaultNegotiationComplianceChecker(language);
         NegotiationSemanticValidator effectiveSemanticValidator =
                 semanticValidator != null ? semanticValidator : defaultSemanticValidator();
-        ParamExtractor paramExtractor = new ParamExtractor(
-                effectiveComplianceChecker,
-                effectiveSemanticValidator,
-                maxAttempts,
-                reference -> {
+        ParamExtractor paramExtractor =
+                new ParamExtractor(effectiveComplianceChecker, effectiveSemanticValidator, maxAttempts, reference -> {
                     PromptTemplate template = effectiveTemplateLoader.load(reference);
                     String content = template.content();
                     if (content == null) {
                         throw new ResourceNotFoundException(
-                                "Negotiation template body is missing for " + template.templateUri().uri() + ".",
+                                "Negotiation template body is missing for "
+                                        + template.templateUri().uri() + ".",
                                 template.templateUri().uri());
                     }
                     return content;

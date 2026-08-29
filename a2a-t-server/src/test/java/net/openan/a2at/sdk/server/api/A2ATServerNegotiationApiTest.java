@@ -9,17 +9,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
-import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
-import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
-import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
+import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
+import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.server.A2ATServer;
 import org.junit.jupiter.api.Test;
 
@@ -104,12 +104,10 @@ class A2ATServerNegotiationApiTest {
         A2ATServer server = new A2ATServer(writeEnv("zh-CN"));
 
         assertTrue(server.getPrompt(INFORMATION_PROPOSE).isPresent());
-        assertTrue(server
-                .getPrompt(StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT)
+        assertTrue(server.getPrompt(StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT)
                 .isPresent());
-        assertFalse(server
-                .getPrompt(TemplateUri.of(StandardTemplates.NEGOTIATION_EXTENSION_NAME, "unknown-negotiation",
-                        "propose"))
+        assertFalse(server.getPrompt(
+                        TemplateUri.of(StandardTemplates.NEGOTIATION_EXTENSION_NAME, "unknown-negotiation", "propose"))
                 .isPresent());
         PromptTemplate template = server.getPrompt(INFORMATION_PROPOSE).orElseThrow();
         assertEquals(INFORMATION_PROPOSE, template.templateUri());

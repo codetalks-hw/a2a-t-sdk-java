@@ -350,8 +350,6 @@ public final class A2ATServer {
         return templateQueryService.getPrompt(templateUri);
     }
 
-
-
     /**
      * Validates a propose-phase negotiation message and extracts its parameters.
      *
@@ -503,12 +501,11 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
-     *     {@code negotiation.invalid_input} when the template URI is null,
-     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the content,
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
-     *     its retries, or {@code template.not_found} when the validation prompt resources are missing, or
-     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
-     *     default 16384)
+     *     {@code negotiation.invalid_input} when the template URI is null, {@code negotiation.semantic_rejected} when
+     *     the semantic validation rejects the content, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the semantic step fails after exhausting its retries, or {@code template.not_found} when the validation
+     *     prompt resources are missing, or {@code input.text_too_long} when the prompt exceeds the configured maximum
+     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public FilledParamData validateTaskPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
@@ -528,12 +525,11 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
-     *     {@code negotiation.invalid_input} when the template URI is null,
-     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the content,
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
-     *     its retries, or {@code template.not_found} when the validation prompt resources are missing, or
-     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
-     *     default 16384)
+     *     {@code negotiation.invalid_input} when the template URI is null, {@code negotiation.semantic_rejected} when
+     *     the semantic validation rejects the content, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the semantic step fails after exhausting its retries, or {@code template.not_found} when the validation
+     *     prompt resources are missing, or {@code input.text_too_long} when the prompt exceeds the configured maximum
+     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public FilledParamData validateNotificationPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
@@ -553,12 +549,11 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
-     *     {@code negotiation.invalid_input} when the template URI is null,
-     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the content,
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
-     *     its retries, or {@code template.not_found} when the validation prompt resources are missing, or
-     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
-     *     default 16384)
+     *     {@code negotiation.invalid_input} when the template URI is null, {@code negotiation.semantic_rejected} when
+     *     the semantic validation rejects the content, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the semantic step fails after exhausting its retries, or {@code template.not_found} when the validation
+     *     prompt resources are missing, or {@code input.text_too_long} when the prompt exceeds the configured maximum
+     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public FilledParamData validateAuthPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {

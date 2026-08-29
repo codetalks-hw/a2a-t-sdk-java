@@ -105,7 +105,8 @@ class NegotiationDeliveredResourceContractTest {
         assertEquals(
                 expected,
                 actual,
-                "the deprecated forwarding registry is locked; adding or changing constants must update this" + " test");
+                "the deprecated forwarding registry is locked; adding or changing constants must update this"
+                        + " test");
         assertTrue(
                 !actual.containsValue("negotiation_type_unrecognized"),
                 "the removed type-recognition code must not reappear");

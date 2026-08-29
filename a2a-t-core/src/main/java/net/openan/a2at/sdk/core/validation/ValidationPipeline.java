@@ -184,8 +184,7 @@ public final class ValidationPipeline<T> {
 
     private ContentValidationException templateNotFound(ResourceNotFoundException exception) {
         String effectiveLanguage = language == null ? ErrorMessages.DEFAULT_LANGUAGE : language;
-        Map<String, String> facts =
-                Map.of("template_uri", exception.resourcePath(), "language", effectiveLanguage);
+        Map<String, String> facts = Map.of("template_uri", exception.resourcePath(), "language", effectiveLanguage);
         return new ContentValidationException(
                 ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(),
                 ErrorMessages.render(ErrorCatalog.TEMPLATE_NOT_FOUND, language, facts),

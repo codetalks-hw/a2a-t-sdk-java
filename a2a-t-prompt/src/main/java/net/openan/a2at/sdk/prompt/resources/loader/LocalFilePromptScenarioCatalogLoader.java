@@ -12,8 +12,8 @@ import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
 /**
  * Loads shared scenario catalogs from one local prompt resource root.
  *
- * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch
- * the filesystem, so changes to the local files only take effect after the SDK is restarted.
+ * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch the
+ * filesystem, so changes to the local files only take effect after the SDK is restarted.
  *
  * @since 2026-06
  */

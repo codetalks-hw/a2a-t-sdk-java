@@ -5,10 +5,10 @@ import java.util.Objects;
 import net.openan.a2at.sdk.core.model.A2ATConfig;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -131,8 +131,7 @@ public final class NegotiationContentService {
      * @throws NegotiationGenerationException with the code {@code template.not_found} or
      *     {@code negotiation.field_missing} when loading or rendering the template fails
      */
-    public MetadataContent generateAbortFromData(
-            @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
+    public MetadataContent generateAbortFromData(@NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
         return orchestrator.generateAbortFromData(data, templateUri);
     }
 
@@ -140,7 +139,8 @@ public final class NegotiationContentService {
      * Generates a propose negotiation message from free text through one LLM content-extraction step.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI whose performative segment must be {@code propose}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
@@ -161,7 +161,8 @@ public final class NegotiationContentService {
      * Generates an accept negotiation message from free text through one LLM content-extraction step.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI whose performative segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
@@ -182,7 +183,8 @@ public final class NegotiationContentService {
      * Generates a reject negotiation message from free text through one LLM content-extraction step.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI whose performative segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
@@ -203,7 +205,8 @@ public final class NegotiationContentService {
      * Generates an abort negotiation message from free text through one LLM content-extraction step.
      *
      * @param text free-text input stating the termination reason
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
@@ -223,8 +226,8 @@ public final class NegotiationContentService {
      * Validates a propose negotiation message and extracts its parameters.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI whose performative segment must be {@code propose}
      * @return filled parameter data carrying the context parameters and the extracted parameters
@@ -247,8 +250,8 @@ public final class NegotiationContentService {
      * Validates an accept negotiation message and extracts its parameters.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI whose performative segment must be {@code accept-reject}
      * @return filled parameter data carrying the context parameters and the extracted parameters
@@ -271,8 +274,8 @@ public final class NegotiationContentService {
      * Validates a reject negotiation message and extracts its parameters.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI whose performative segment must be {@code accept-reject}
      * @return filled parameter data carrying the context parameters and the extracted parameters
@@ -295,15 +298,15 @@ public final class NegotiationContentService {
      * Validates an abort negotiation message and extracts its parameters.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
      * @return filled parameter data carrying the context parameters and the extracted parameters
      * @throws NullPointerException if the schema or the template URI is null
      * @throws IllegalArgumentException if the template URI does not address the common abort template
-     * @throws NegotiationParamExtractionException with the code {@code input.text_too_long} when the prompt exceeds
-     *     the configured maximum length, or another validation pipeline failure code otherwise
+     * @throws NegotiationParamExtractionException with the code {@code input.text_too_long} when the prompt exceeds the
+     *     configured maximum length, or another validation pipeline failure code otherwise
      */
     public FilledParamData validateAbortPromptAndDataFilling(
             String prompt,

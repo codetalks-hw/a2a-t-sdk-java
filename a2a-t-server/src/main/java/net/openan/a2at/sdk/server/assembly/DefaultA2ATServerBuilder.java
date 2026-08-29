@@ -83,8 +83,8 @@ public final class DefaultA2ATServerBuilder {
      * Injects an explicit LLM client that fully replaces the factory default.
      *
      * <p>The injection point exists for testability and custom LLM assemblies: when set, every orchestrator and
-     * validator built by this builder reuses the given client and no client is created from the `.env` LLM config.
-     * When unset, the builder keeps creating its default client and the behavior is unchanged.
+     * validator built by this builder reuses the given client and no client is created from the `.env` LLM config. When
+     * unset, the builder keeps creating its default client and the behavior is unchanged.
      *
      * @param llmClient LLM client to inject; {@code null} keeps the factory default built from the `.env` LLM config
      * @return current builder
@@ -181,7 +181,9 @@ public final class DefaultA2ATServerBuilder {
         require(config, "Unified SDK config must be configured.");
         requireSupportedConfig();
         return new TemplateQueryService(
-                config.prompt().language(), config.prompt().sourceType(), config.prompt().localRootDir());
+                config.prompt().language(),
+                config.prompt().sourceType(),
+                config.prompt().localRootDir());
     }
 
     /**
@@ -271,4 +273,4 @@ public final class DefaultA2ATServerBuilder {
         }
         return promptResourceAccess;
     }
-} 
+}

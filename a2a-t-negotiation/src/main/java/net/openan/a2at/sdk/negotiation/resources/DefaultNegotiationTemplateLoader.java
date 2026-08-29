@@ -6,10 +6,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.resources.ClasspathResourceStreams;
 import net.openan.a2at.sdk.core.resources.PathSegments;
-import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.prompt.resources.catalog.TemplateDescriptions;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -21,9 +21,9 @@ import org.slf4j.LoggerFactory;
  * <p>Templates are resolved from the built-in classpath resources bundled with the SDK — negotiation templates are
  * classpath-fixed and never configurable. Local template copies are not consulted.
  *
- * <p>Classpath resources are frozen at assembly time: each template is resolved once and cached at the JVM
- * level, so every subsequent load returns the cached snapshot. Missing templates throw on every call and are never
- * cached. The loader is thread-safe.
+ * <p>Classpath resources are frozen at assembly time: each template is resolved once and cached at the JVM level, so
+ * every subsequent load returns the cached snapshot. Missing templates throw on every call and are never cached. The
+ * loader is thread-safe.
  *
  * @since 2026-08
  */
@@ -67,7 +67,10 @@ public final class DefaultNegotiationTemplateLoader implements NegotiationTempla
         CacheKey cacheKey = new CacheKey(classpathPath, Thread.currentThread().getContextClassLoader());
         String content = CACHE.computeIfAbsent(cacheKey, ignored -> readTemplate(classpathPath));
         PromptTemplate template = new PromptTemplate(
-                reference.templateUri(), TemplateDescriptions.extract(content), content, PromptTemplate.SOURCE_CLASSPATH);
+                reference.templateUri(),
+                TemplateDescriptions.extract(content),
+                content,
+                PromptTemplate.SOURCE_CLASSPATH);
         LOGGER.atDebug().log("negotiation_template_loaded uri={} language={}", reference.uri(), reference.language());
         return template;
     }
@@ -101,5 +104,3 @@ public final class DefaultNegotiationTemplateLoader implements NegotiationTempla
 
     private record CacheKey(String classpathPath, @Nullable ClassLoader contextClassLoader) {}
 }
-
-

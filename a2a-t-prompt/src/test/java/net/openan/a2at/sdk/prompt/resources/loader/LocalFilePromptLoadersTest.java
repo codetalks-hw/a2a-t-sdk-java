@@ -268,29 +268,21 @@ class LocalFilePromptLoadersTest {
 
     @Test
     void loadTemplateRejectsTraversalOrBlankScenarioPathSegments() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new LocalFilePromptTemplateLoader(snapshot(), promptRootDir)
-                        .loadTemplate("../etc/passwd", "en"));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new LocalFilePromptTemplateLoader(snapshot(), promptRootDir)
-                        .loadTemplate("Task-T//network-layer/x", "en"));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new LocalFilePromptTemplateLoader(snapshot(), promptRootDir)
-                        .loadTemplate("incident_triage", "en/../admin"));
+        assertThrows(IllegalArgumentException.class, () -> new LocalFilePromptTemplateLoader(snapshot(), promptRootDir)
+                .loadTemplate("../etc/passwd", "en"));
+        assertThrows(IllegalArgumentException.class, () -> new LocalFilePromptTemplateLoader(snapshot(), promptRootDir)
+                .loadTemplate("Task-T//network-layer/x", "en"));
+        assertThrows(IllegalArgumentException.class, () -> new LocalFilePromptTemplateLoader(snapshot(), promptRootDir)
+                .loadTemplate("incident_triage", "en/../admin"));
     }
 
     @Test
     void loadSlotSchemaRejectsNonSimpleLanguage() {
         assertThrows(
-                IllegalArgumentException.class,
-                () -> new LocalFilePromptSlotSchemaLoader(snapshot(), promptRootDir)
+                IllegalArgumentException.class, () -> new LocalFilePromptSlotSchemaLoader(snapshot(), promptRootDir)
                         .loadSlotSchema("incident_triage", "../en"));
         assertThrows(
-                IllegalArgumentException.class,
-                () -> new LocalFilePromptSlotSchemaLoader(snapshot(), promptRootDir)
+                IllegalArgumentException.class, () -> new LocalFilePromptSlotSchemaLoader(snapshot(), promptRootDir)
                         .loadSlotSchema("Task-T/network-layer/..", "en"));
     }
 

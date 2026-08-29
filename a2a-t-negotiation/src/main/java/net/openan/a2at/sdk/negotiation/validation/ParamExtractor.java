@@ -2,7 +2,6 @@ package net.openan.a2at.sdk.negotiation.validation;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
@@ -24,8 +23,8 @@ import org.jspecify.annotations.Nullable;
  * alongside the message to the core rule checker contract; the injected {@link TemplateContentLoader} resolves the
  * template body after the rule gate and before semantic validation, so the template is never preloaded by the caller.
  * The pipeline emits the final {@link net.openan.a2at.sdk.core.exception.ErrorCatalog} codes with messages rendered in
- * the language of the negotiation reference; there is no code mapping layer between the pipeline steps and the
- * surfaced exception.
+ * the language of the negotiation reference; there is no code mapping layer between the pipeline steps and the surfaced
+ * exception.
  *
  * @since 2026-08
  */

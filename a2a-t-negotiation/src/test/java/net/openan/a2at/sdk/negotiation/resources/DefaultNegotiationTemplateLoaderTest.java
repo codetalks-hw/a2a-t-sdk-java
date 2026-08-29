@@ -14,10 +14,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import org.junit.jupiter.api.Test;
 
@@ -70,8 +70,8 @@ class DefaultNegotiationTemplateLoaderTest {
     void loadReturnsFullTemplateContentFromTheClasspath() {
         DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("en-US");
 
-        PromptTemplate template =
-                loader.load(new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "en-US"));
+        PromptTemplate template = loader.load(
+                new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "en-US"));
 
         assertEquals(StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE, template.templateUri());
         assertTrue(template.content().startsWith("## Information Negotiation"));
@@ -97,8 +97,8 @@ class DefaultNegotiationTemplateLoaderTest {
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> loader.load(
-                        new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR")));
+                () -> loader.load(new NegotiationReference(
+                        NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR")));
 
         assertTrue(exception.getMessage().contains("A2AT_LANGUAGE"));
     }

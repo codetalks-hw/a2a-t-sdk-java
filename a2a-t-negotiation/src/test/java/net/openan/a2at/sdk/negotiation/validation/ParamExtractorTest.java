@@ -12,10 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.validation.SemanticValidator;
 import net.openan.a2at.sdk.core.validation.TemplateContentLoader;
 import net.openan.a2at.sdk.core.validation.ValidationPipeline;
@@ -33,8 +33,7 @@ class ParamExtractorTest {
     private static final NegotiationContext CONTEXT =
             new NegotiationContext(SESSION_ID, 2, 5, NegotiationPerformative.PROPOSE);
 
-    private static final String VALID_ZH_PROMPT = "## 所需信息项\n"
-            + "1. 节能区域信息：请提供真实存在的区域\n";
+    private static final String VALID_ZH_PROMPT = "## 所需信息项\n" + "1. 节能区域信息：请提供真实存在的区域\n";
 
     private static final NegotiationReference REFERENCE =
             new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "zh-CN");
@@ -94,7 +93,8 @@ class ParamExtractorTest {
     @Test
     void ruleFailureSkipsTemplateLoadingAndTheSemanticValidationCall() {
         complianceChecker.result = new NegotiationRuleCheckResult(
-                false, List.of(new SlotValidationError("round", "negotiation.round_exceeded", "round exceeds maxRounds")));
+                false,
+                List.of(new SlotValidationError("round", "negotiation.round_exceeded", "round exceeds maxRounds")));
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
@@ -109,8 +109,8 @@ class ParamExtractorTest {
 
     @Test
     void extractFailsOnRuleViolationWithoutTouchingTheValidator() {
-        complianceChecker.result =
-                new NegotiationRuleCheckResult(false, List.of(new SlotValidationError("id", "negotiation.invalid_context_id", "not a uuid")));
+        complianceChecker.result = new NegotiationRuleCheckResult(
+                false, List.of(new SlotValidationError("id", "negotiation.invalid_context_id", "not a uuid")));
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
@@ -142,7 +142,8 @@ class ParamExtractorTest {
     void semanticRejectionPassesErrorsThrough() {
         complianceChecker.result = new NegotiationRuleCheckResult(true, List.of());
         List<SlotValidationError> semanticErrors = List.of(
-                new SlotValidationError("section.target_result_content", "negotiation.conclusion_content_mismatch", "Mismatch"),
+                new SlotValidationError(
+                        "section.target_result_content", "negotiation.conclusion_content_mismatch", "Mismatch"),
                 new SlotValidationError("section.context", "negotiation.conclusion_mismatch", "Abort is reserved"));
         semanticValidator.result = new SemanticValidationResult(false, "target", semanticErrors, Map.of());
 
@@ -285,7 +286,10 @@ class ParamExtractorTest {
 
         @Override
         public SemanticValidationResult validateNegotiation(
-                String prompt, Map<String, Object> callerSchema, NegotiationReference reference, String templateContent) {
+                String prompt,
+                Map<String, Object> callerSchema,
+                NegotiationReference reference,
+                String templateContent) {
             invocations++;
             lastTemplateContent = templateContent;
             if (failure != null) {

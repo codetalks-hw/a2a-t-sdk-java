@@ -7,15 +7,15 @@ import java.util.function.Supplier;
 import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.ExtensionUriConstants;
+import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.InputLimitConfig;
 import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -183,8 +183,7 @@ public final class NegotiationGenerationOrchestrator {
      * @throws NegotiationGenerationException with the code {@code template.not_found} when no template exists for the
      *     URI in any resource root, or the code {@code template.render_failed} when rendering the template fails
      */
-    public MetadataContent generateAbortFromData(
-            @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
+    public MetadataContent generateAbortFromData(@NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
         Objects.requireNonNull(data, "Negotiation abort data must not be null.");
         return generateFromData(data.context(), data.content(), templateUri, NegotiationPerformative.ABORT);
     }
@@ -198,7 +197,8 @@ public final class NegotiationGenerationOrchestrator {
      * {@code negotiation.content_extract_failed}, {@code llm.invocation_failed} and {@code llm.response_invalid}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}; its phase segment
      *     must be {@code propose}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI;
@@ -208,10 +208,10 @@ public final class NegotiationGenerationOrchestrator {
      * @throws IllegalArgumentException if the template URI's phase contradicts the method
      * @throws NegotiationGenerationException with the code {@code template.not_found} when no template or prompt
      *     resource exists for the URI and language, {@code negotiation.content_extract_failed} or
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after
-     *     exhausting its retries, {@code negotiation.field_missing} when the extracted content misses a required
-     *     field, or {@code negotiation.invalid_input} when the text is blank or the extracted content contradicts the
-     *     phase, or {@code input.text_too_long} when the text exceeds the configured maximum length
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after exhausting
+     *     its retries, {@code negotiation.field_missing} when the extracted content misses a required field, or
+     *     {@code negotiation.invalid_input} when the text is blank or the extracted content contradicts the phase, or
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateProposeFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -226,7 +226,8 @@ public final class NegotiationGenerationOrchestrator {
      * conclusion must be {@code Accept}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its phase
      *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI;
@@ -236,11 +237,11 @@ public final class NegotiationGenerationOrchestrator {
      * @throws IllegalArgumentException if the template URI's phase contradicts the method
      * @throws NegotiationGenerationException with the code {@code template.not_found} when no template or prompt
      *     resource exists for the URI and language, {@code negotiation.content_extract_failed} or
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after
-     *     exhausting its retries, {@code negotiation.field_missing} when the extracted content misses a required
-     *     field, or {@code negotiation.invalid_input} when the text is blank,
-     *     {@code negotiation.conclusion_mismatch} when the extracted conclusion is not {@code Accept}, or
-     *     {@code input.text_too_long} when the text exceeds the configured maximum length
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after exhausting
+     *     its retries, {@code negotiation.field_missing} when the extracted content misses a required field, or
+     *     {@code negotiation.invalid_input} when the text is blank, {@code negotiation.conclusion_mismatch} when the
+     *     extracted conclusion is not {@code Accept}, or {@code input.text_too_long} when the text exceeds the
+     *     configured maximum length
      */
     public MetadataContent generateAcceptFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -255,7 +256,8 @@ public final class NegotiationGenerationOrchestrator {
      * conclusion must be {@code Reject}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its phase
      *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI;
@@ -265,11 +267,11 @@ public final class NegotiationGenerationOrchestrator {
      * @throws IllegalArgumentException if the template URI's phase contradicts the method
      * @throws NegotiationGenerationException with the code {@code template.not_found} when no template or prompt
      *     resource exists for the URI and language, {@code negotiation.content_extract_failed} or
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after
-     *     exhausting its retries, {@code negotiation.field_missing} when the extracted content misses a required
-     *     field, or {@code negotiation.invalid_input} when the text is blank,
-     *     {@code negotiation.conclusion_mismatch} when the extracted conclusion is not {@code Reject}, or
-     *     {@code input.text_too_long} when the text exceeds the configured maximum length
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after exhausting
+     *     its retries, {@code negotiation.field_missing} when the extracted content misses a required field, or
+     *     {@code negotiation.invalid_input} when the text is blank, {@code negotiation.conclusion_mismatch} when the
+     *     extracted conclusion is not {@code Reject}, or {@code input.text_too_long} when the text exceeds the
+     *     configured maximum length
      */
     public MetadataContent generateRejectFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -285,7 +287,8 @@ public final class NegotiationGenerationOrchestrator {
      * {@code negotiation.content_extract_failed}, {@code llm.invocation_failed} and {@code llm.response_invalid}.
      *
      * @param text free-text input stating the termination reason
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI;
      *     the emitted negotiation context is the input context stamped with the performative of the addressed template,
@@ -294,10 +297,10 @@ public final class NegotiationGenerationOrchestrator {
      * @throws IllegalArgumentException if the template URI does not address the common abort template
      * @throws NegotiationGenerationException with the code {@code template.not_found} when no template or prompt
      *     resource exists for the URI and language, {@code negotiation.content_extract_failed} or
-     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after
-     *     exhausting its retries, {@code negotiation.field_missing} when the extracted content misses the termination
-     *     reason, or {@code negotiation.invalid_input} when the text is blank, or {@code input.text_too_long} when
-     *     the text exceeds the configured maximum length
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the extraction step fails after exhausting
+     *     its retries, {@code negotiation.field_missing} when the extracted content misses the termination reason, or
+     *     {@code negotiation.invalid_input} when the text is blank, or {@code input.text_too_long} when the text
+     *     exceeds the configured maximum length
      */
     public MetadataContent generateAbortFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -339,9 +342,8 @@ public final class NegotiationGenerationOrchestrator {
      * Validates an accept-phase negotiation message and extracts its parameters.
      *
      * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling(String, NegotiationContext, Map,
-     * TemplateUri)} with the expected
-     * phase fixed to accept: the template URI must declare the {@code accept-reject} segment and the message must
-     * satisfy the accept-phase semantic constraints.
+     * TemplateUri)} with the expected phase fixed to accept: the template URI must declare the {@code accept-reject}
+     * segment and the message must satisfy the accept-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
      * @param context negotiation context carried alongside the message in the A2A-T metadata
@@ -371,9 +373,8 @@ public final class NegotiationGenerationOrchestrator {
      * Validates a reject-phase negotiation message and extracts its parameters.
      *
      * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling(String, NegotiationContext, Map,
-     * TemplateUri)} with the expected
-     * phase fixed to reject: the template URI must declare the {@code accept-reject} segment and the message must
-     * satisfy the reject-phase semantic constraints.
+     * TemplateUri)} with the expected phase fixed to reject: the template URI must declare the {@code accept-reject}
+     * segment and the message must satisfy the reject-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
      * @param context negotiation context carried alongside the message in the A2A-T metadata
@@ -403,9 +404,8 @@ public final class NegotiationGenerationOrchestrator {
      * Validates an abort negotiation message and extracts its parameters.
      *
      * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling(String, NegotiationContext, Map,
-     * TemplateUri)} with the expected
-     * phase fixed to abort: the template URI must address the common abort template and the message must satisfy the
-     * abort-phase semantic constraints.
+     * TemplateUri)} with the expected phase fixed to abort: the template URI must address the common abort template and
+     * the message must satisfy the abort-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
      * @param context negotiation context carried alongside the message in the A2A-T metadata
@@ -630,7 +630,8 @@ public final class NegotiationGenerationOrchestrator {
 
     private void requireTextWithinLimit(String text) {
         if (InputLimitConfig.isTooLong(text, maxTextChars)) {
-            throw new NegotiationGenerationException(ErrorCatalog.INPUT_TEXT_TOO_LONG, language, inputTooLongFacts(text));
+            throw new NegotiationGenerationException(
+                    ErrorCatalog.INPUT_TEXT_TOO_LONG, language, inputTooLongFacts(text));
         }
     }
 

@@ -16,12 +16,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
-import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenCase;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
+import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenCase;
 import net.openan.a2at.sdk.negotiation.resources.DefaultNegotiationTemplateLoader;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -64,8 +64,7 @@ class NegotiationResourceIntegrityTest {
             for (NegotiationType type : NegotiationType.values()) {
                 for (NegotiationPerformative performative :
                         List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT)) {
-                    PromptTemplate template =
-                            loader.load(new NegotiationReference(type, performative, language));
+                    PromptTemplate template = loader.load(new NegotiationReference(type, performative, language));
                     assertFalse(template.content().isBlank());
                     templateCount++;
                 }
@@ -98,12 +97,12 @@ class NegotiationResourceIntegrityTest {
                 String slotName = matcher.group(1);
                 assertTrue(
                         valuesToKeys.containsKey(slotName),
-                        "the slot name " + slotName + " of " + template.templateUri().uri() + " must be a vocabulary value of "
-                                + language);
+                        "the slot name " + slotName + " of "
+                                + template.templateUri().uri() + " must be a vocabulary value of " + language);
                 assertTrue(
                         valuesToKeys.containsKey(section.title),
-                        "the section title " + section.title + " of " + template.templateUri().uri()
-                                + " must be a vocabulary value of " + language);
+                        "the section title " + section.title + " of "
+                                + template.templateUri().uri() + " must be a vocabulary value of " + language);
                 allSlotNames.add(slotName);
                 if (!slotName.equals(section.title)) {
                     slotsDifferingFromTheirTitle.add(slotName);
@@ -233,7 +232,6 @@ class NegotiationResourceIntegrityTest {
         }
         return sections;
     }
-
 
     private static final class Section {
 

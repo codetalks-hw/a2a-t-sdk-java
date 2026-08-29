@@ -10,21 +10,21 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import net.openan.a2at.sdk.client.A2ATClient;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMClientConfig;
 import net.openan.a2at.sdk.llm.LLMClientFactory;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.negotiation.content.NegotiationAbortContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -111,7 +111,8 @@ class A2ATClientNegotiationApiTest {
         MetadataContent result = client.generateNegotiationAbortPromptFromData(
                 new NegotiationAbortData(
                         new NegotiationContext(UUID, 3, 5, NegotiationPerformative.ABORT),
-                        new NegotiationAbortContent("Reached the negotiation round limit. This negotiation is confirmed and ended.")),
+                        new NegotiationAbortContent(
+                                "Reached the negotiation round limit. This negotiation is confirmed and ended.")),
                 StandardTemplates.NEGOTIATION_ABORT);
 
         assertEquals(StandardTemplates.NEGOTIATION_ABORT.uri(), result.templateUri());
@@ -135,12 +136,11 @@ class A2ATClientNegotiationApiTest {
         A2ATClient client = new A2ATClient(writeEnv("zh-CN"));
 
         assertTrue(client.getPrompt(INFORMATION_PROPOSE).isPresent());
-        assertTrue(client
-                .getPrompt(StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT)
+        assertTrue(client.getPrompt(StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT)
                 .isPresent());
-        assertFalse(client
-                .getPrompt(TemplateUri.of("Negotiation-T", List.of("information-negotiation", "propose"), "v9"))
-                .isPresent());
+        assertFalse(
+                client.getPrompt(TemplateUri.of("Negotiation-T", List.of("information-negotiation", "propose"), "v9"))
+                        .isPresent());
         PromptTemplate template = client.getPrompt(INFORMATION_PROPOSE).orElseThrow();
         assertEquals(INFORMATION_PROPOSE, template.templateUri());
         assertFalse(template.content().isBlank());

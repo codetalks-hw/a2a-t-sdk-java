@@ -963,8 +963,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
                 new FakeTemplateLoader("Site: {site}"),
                 (userInput, scenarioCode, language) -> new StructuredSlotExtractionResult(
                         Map.of("site", "Site A"),
-                        List.of(new StructuredSlotValidationError(
-                                "subscriptionCondition", "slot.not_provided", null))),
+                        List.of(new StructuredSlotValidationError("subscriptionCondition", "slot.not_provided", null))),
                 new TaskPromptRenderer(),
                 EMPTY_SCHEMA_LOADER);
 

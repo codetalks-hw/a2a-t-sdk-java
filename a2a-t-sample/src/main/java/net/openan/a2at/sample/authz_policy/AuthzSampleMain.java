@@ -23,8 +23,6 @@ import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.client.prompt.assembly.DefaultA2ATClientBuilder;
 import net.openan.a2at.sdk.client.prompt.orchestration.ClientPromptGenerationOrchestrator;
 import net.openan.a2at.sdk.core.model.A2ATConfig;
-import net.openan.a2at.sdk.core.model.FilledParamData;
-import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
@@ -39,10 +37,10 @@ import net.openan.a2at.sdk.server.assembly.DefaultA2ATServerBuilder;
  * Entry point for the Authorization-T demo.
  *
  * <p>Loads scenarios from the resource configured via {@code authz.scenarios} (default:
- * {@code sample/authz-policy/scenarios.json}), generates authorization prompts through
- * {@link A2ATClient}, validates them through {@link A2ATServer} against the business-level parameter
- * schema ({@code sample/authz-policy/param-schema.json}), and writes a JSON report with staged
- * client/server expectations, actual behaviour and per-assertion match details.
+ * {@code sample/authz-policy/scenarios.json}), generates authorization prompts through {@link A2ATClient}, validates
+ * them through {@link A2ATServer} against the business-level parameter schema
+ * ({@code sample/authz-policy/param-schema.json}), and writes a JSON report with staged client/server expectations,
+ * actual behaviour and per-assertion match details.
  *
  * @since 2026-08
  */
@@ -63,8 +61,7 @@ public final class AuthzSampleMain {
 
     private static final String OUTDIR_PROPERTY = "authz.outdir";
 
-    private static final DateTimeFormatter REPORT_TIMESTAMP =
-            DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final DateTimeFormatter REPORT_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private static final List<String> REQUIRED_LLM_KEYS =
             List.of("A2AT_LLM_PROVIDER", "A2AT_LLM_MODEL", "A2AT_LLM_API_KEY");
@@ -84,8 +81,7 @@ public final class AuthzSampleMain {
         try {
             workers = AuthzScenarioExecutor.resolveWorkers();
         } catch (IllegalArgumentException e) {
-            System.err.println(
-                    "Usage: -Dauthz.workers=<N> (integer >= 1, default 8). " + e.getMessage());
+            System.err.println("Usage: -Dauthz.workers=<N> (integer >= 1, default 8). " + e.getMessage());
             System.exit(1);
             return;
         }
@@ -94,8 +90,7 @@ public final class AuthzSampleMain {
         try {
             reasoning = AuthzReasoningCapture.resolveReasoningFlag();
         } catch (IllegalArgumentException e) {
-            System.err.println(
-                    "Usage: -Dauthz.reasoning=true|false (default false). " + e.getMessage());
+            System.err.println("Usage: -Dauthz.reasoning=true|false (default false). " + e.getMessage());
             System.exit(1);
             return;
         }
@@ -115,13 +110,20 @@ public final class AuthzSampleMain {
         long startMillis = System.currentTimeMillis();
 
         List<ScenarioOutcome> outcomes = executor.executeAll(
-                scenarios, paramSchema, templateUri, workers,
+                scenarios,
+                paramSchema,
+                templateUri,
+                workers,
                 (completedIndex, outcome, elapsedSeconds) -> {
                     String matchStr = outcome.result().match() ? "PASS" : "FAIL";
-                    System.out.printf("[%d/%d] %s %s (%s, %.1fs)%n",
-                            completedIndex, scenarios.size(), matchStr,
+                    System.out.printf(
+                            "[%d/%d] %s %s (%s, %.1fs)%n",
+                            completedIndex,
+                            scenarios.size(),
+                            matchStr,
                             scenarios.get(completedIndex - 1).label(),
-                            outcome.result().outcome(), elapsedSeconds);
+                            outcome.result().outcome(),
+                            elapsedSeconds);
                 },
                 capture);
 
@@ -132,12 +134,13 @@ public final class AuthzSampleMain {
         }
 
         Path outDir = Path.of(System.getProperty(OUTDIR_PROPERTY, DEFAULT_OUTPUT_DIR));
-        Path reportPath = writeReport(scenarios, outcomes, outDir, workers, wallTimeSeconds,
-                SCENARIOS_RESOURCE, reasoning, capture);
+        Path reportPath = writeReport(
+                scenarios, outcomes, outDir, workers, wallTimeSeconds, SCENARIOS_RESOURCE, reasoning, capture);
         System.out.println("Report written to: " + reportPath.toAbsolutePath().normalize());
         System.out.println();
 
-        List<ScenarioResult> results = outcomes.stream().map(ScenarioOutcome::result).toList();
+        List<ScenarioResult> results =
+                outcomes.stream().map(ScenarioOutcome::result).toList();
         printSummary(scenarios, results);
         System.exit(exitCode(results));
     }
@@ -191,8 +194,7 @@ public final class AuthzSampleMain {
         }
     }
 
-    static AuthzPromptGenerator buildGenerator(
-            Path envPath, TemplateUri templateUri, AuthzReasoningCapture capture) {
+    static AuthzPromptGenerator buildGenerator(Path envPath, TemplateUri templateUri, AuthzReasoningCapture capture) {
         if (capture == null) {
             A2ATClient client = new A2ATClient(envPath);
             return scenario -> {
@@ -201,19 +203,21 @@ public final class AuthzSampleMain {
                     return client.generateAuthPromptFromText(text, templateUri);
                 }
                 @SuppressWarnings("unchecked")
-                Map<String, Object> data = (Map<String, Object>) scenario.input().get("data");
+                Map<String, Object> data =
+                        (Map<String, Object>) scenario.input().get("data");
                 @SuppressWarnings("unchecked")
-                Map<String, Object> schema = (Map<String, Object>) scenario.input().get("schema");
+                Map<String, Object> schema =
+                        (Map<String, Object>) scenario.input().get("schema");
                 return client.generateAuthPromptFromDataWithSchema(data, schema, templateUri);
             };
         }
-        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(
-                A2ATConfig.load(envPath), envPath);
-        LLMClient real = LLMClientFactory.create(
-                config.llm().provider(), LLMClientConfig.from(config.llm()));
+        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envPath), envPath);
+        LLMClient real = LLMClientFactory.create(config.llm().provider(), LLMClientConfig.from(config.llm()));
         LLMClient decorated = capture.wrap(real);
         DefaultA2ATClientBuilder builder = DefaultA2ATClientBuilder.builder()
-                .envPath(envPath).config(config).llmClient(decorated);
+                .envPath(envPath)
+                .config(config)
+                .llmClient(decorated);
         ClientPromptGenerationOrchestrator orchestrator = builder.buildPromptGenerationOrchestrator();
         return scenario -> {
             if (AuthzScenario.FROM_TEXT.equals(scenario.entry())) {
@@ -233,13 +237,13 @@ public final class AuthzSampleMain {
             A2ATServer server = new A2ATServer(envPath);
             return server::validateAuthPromptAndDataFilling;
         }
-        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(
-                A2ATConfig.load(envPath), envPath);
-        LLMClient real = LLMClientFactory.create(
-                config.llm().provider(), LLMClientConfig.from(config.llm()));
+        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envPath), envPath);
+        LLMClient real = LLMClientFactory.create(config.llm().provider(), LLMClientConfig.from(config.llm()));
         LLMClient decorated = capture.wrap(real);
         DefaultA2ATServerBuilder builder = DefaultA2ATServerBuilder.builder()
-                .envPath(envPath).config(config).llmClient(decorated);
+                .envPath(envPath)
+                .config(config)
+                .llmClient(decorated);
         ContentValidator contentValidator = builder.buildAuthContentValidator();
         return contentValidator::validate;
     }
@@ -285,13 +289,18 @@ public final class AuthzSampleMain {
             }
             sb.append(")");
         } else {
-            sb.append(" (client: outcome=").append(result.match() ? "OK" : "FAIL").append(")");
+            sb.append(" (client: outcome=")
+                    .append(result.match() ? "OK" : "FAIL")
+                    .append(")");
         }
         return sb.toString();
     }
 
     static String indent(String text, String prefix) {
-        return text.lines().map(line -> prefix + line).reduce((a, b) -> a + "\n" + b).orElse("");
+        return text.lines()
+                .map(line -> prefix + line)
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse("");
     }
 
     static void printSummary(List<AuthzScenario> scenarios, List<ScenarioResult> results) {
@@ -318,17 +327,21 @@ public final class AuthzSampleMain {
             boolean reasoning,
             AuthzReasoningCapture capture) {
         Map<String, Object> report = new LinkedHashMap<>();
-        report.put("meta", Map.of(
-                "workers", workers,
-                "wallTimeSeconds", wallTimeSeconds,
-                "scenariosResource", scenariosResource,
-                "reasoning", reasoning));
+        report.put(
+                "meta",
+                Map.of(
+                        "workers", workers,
+                        "wallTimeSeconds", wallTimeSeconds,
+                        "scenariosResource", scenariosResource,
+                        "reasoning", reasoning));
         long matchCount = outcomes.stream().filter(o -> o.result().match()).count();
         long mismatchCount = outcomes.size() - matchCount;
-        report.put("summary", Map.of(
-                "total", scenarios.size(),
-                "match", matchCount,
-                "mismatch", mismatchCount));
+        report.put(
+                "summary",
+                Map.of(
+                        "total", scenarios.size(),
+                        "match", matchCount,
+                        "mismatch", mismatchCount));
         List<Map<String, Object>> scenarioEntries = new ArrayList<>();
         for (int i = 0; i < scenarios.size(); i++) {
             AuthzScenario scenario = scenarios.get(i);
@@ -340,19 +353,26 @@ public final class AuthzSampleMain {
             entry.put("expected_server", formatServerExpectation(scenario));
             entry.put("actual_outcome", outcome.result().outcome());
             entry.put("match", outcome.result().match());
-            entry.put("actual_slot_errors", formatActualSlotErrors(outcome.result().slotErrors()));
-            entry.put("prompt_text", outcome.metadata() != null ? outcome.metadata().promptText() : null);
-            entry.put("actual_params", outcome.filled() != null ? outcome.filled().data() : null);
+            entry.put(
+                    "actual_slot_errors",
+                    formatActualSlotErrors(outcome.result().slotErrors()));
+            entry.put(
+                    "prompt_text",
+                    outcome.metadata() != null ? outcome.metadata().promptText() : null);
+            entry.put(
+                    "actual_params", outcome.filled() != null ? outcome.filled().data() : null);
             Map<String, Object> assertions = new LinkedHashMap<>();
             assertions.put("client_prompt", outcome.result().clientPromptMatch());
             assertions.put("server_outcome", outcome.result().serverOutcomeMatch());
             assertions.put("server_params", outcome.result().serverParamsMatch());
             entry.put("assertions", assertions);
-            entry.put("error", outcome.result().error() != null
-                    ? Map.of(
-                            "code", outcome.result().error().getCode(),
-                            "message", outcome.result().error().getMessage())
-                    : null);
+            entry.put(
+                    "error",
+                    outcome.result().error() != null
+                            ? Map.of(
+                                    "code", outcome.result().error().getCode(),
+                                    "message", outcome.result().error().getMessage())
+                            : null);
             entry.put("warnings", outcome.result().warnings());
             if (reasoning && capture != null) {
                 Optional<StageCapture> captured = capture.capture(scenario.label());

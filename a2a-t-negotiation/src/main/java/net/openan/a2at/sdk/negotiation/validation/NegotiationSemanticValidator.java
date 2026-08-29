@@ -72,8 +72,8 @@ public interface NegotiationSemanticValidator extends SemanticValidator<Negotiat
             throw new ContentValidationException(
                     ErrorCatalog.LLM_RESPONSE_INVALID.getCode(),
                     message,
-                    List.of(
-                            new SlotValidationError("_llm", ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), message, facts)),
+                    List.of(new SlotValidationError(
+                            "_llm", ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), message, facts)),
                     exception);
         }
     }

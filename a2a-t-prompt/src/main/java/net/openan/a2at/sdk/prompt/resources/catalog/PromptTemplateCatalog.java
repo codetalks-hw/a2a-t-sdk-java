@@ -39,13 +39,13 @@ import org.slf4j.LoggerFactory;
  * URI formed from the segments before the language, for example
  * {@code Negotiation-T/information-negotiation/propose/v1} or {@code Task-T/network-layer/ran-energy-saving/v1}.
  *
- * <p>The catalog builds the effective set at assembly time according to the configured {@code sourceType}:
- * the {@code classpath} mode enumerates the full built-in template tree; the {@code local_file} mode enumerates only
- * the local business content (Task-T, Notification-T and Authorization-T) plus the classpath-fixed Negotiation-T
- * templates, without unioning the built-in business content. Every template record carries its effective origin
- * ({@code classpath} or {@code local}). Negotiation-T templates are filtered to the closed set of seven shapes; a
- * Negotiation-T template outside the closed set is ignored with a warning. Both query methods never throw: a template
- * or a root that cannot be loaded is skipped or answered with an empty result and a warning log.
+ * <p>The catalog builds the effective set at assembly time according to the configured {@code sourceType}: the
+ * {@code classpath} mode enumerates the full built-in template tree; the {@code local_file} mode enumerates only the
+ * local business content (Task-T, Notification-T and Authorization-T) plus the classpath-fixed Negotiation-T templates,
+ * without unioning the built-in business content. Every template record carries its effective origin ({@code classpath}
+ * or {@code local}). Negotiation-T templates are filtered to the closed set of seven shapes; a Negotiation-T template
+ * outside the closed set is ignored with a warning. Both query methods never throw: a template or a root that cannot be
+ * loaded is skipped or answered with an empty result and a warning log.
  *
  * @since 2026-08
  */
@@ -84,8 +84,8 @@ final class PromptTemplateCatalog {
      * Creates a catalog for one language, two source types and an optional local template root.
      *
      * <p>The constructor captures the classpath template tree and, in {@code local_file} mode, the local
-     * {@code templates/} tree once as immutable snapshots: the catalog never re-reads the classpath or the
-     * local filesystem after construction, so a template that is added or removed after assembly is not visible to
+     * {@code templates/} tree once as immutable snapshots: the catalog never re-reads the classpath or the local
+     * filesystem after construction, so a template that is added or removed after assembly is not visible to
      * {@link #loadAll()} or {@link #load(TemplateUri)}.
      *
      * @param language locale identifier such as {@code zh-CN} or {@code en-US}
@@ -111,24 +111,23 @@ final class PromptTemplateCatalog {
         }
         if (PromptRuntimeConfig.SOURCE_TYPE_LOCAL_FILE.equals(this.sourceType)
                 && (localRootDir == null || localRootDir.isBlank())) {
-            throw new IllegalArgumentException(
-                    "Prompt resource local root directory is required for sourceType '"
-                            + PromptRuntimeConfig.SOURCE_TYPE_LOCAL_FILE
-                            + "' but is not set; configure " + A2ATConfigKeys.PromptRuntime.LOCAL_ROOT_DIR
-                            + " to the local prompt resource root.");
+            throw new IllegalArgumentException("Prompt resource local root directory is required for sourceType '"
+                    + PromptRuntimeConfig.SOURCE_TYPE_LOCAL_FILE
+                    + "' but is not set; configure " + A2ATConfigKeys.PromptRuntime.LOCAL_ROOT_DIR
+                    + " to the local prompt resource root.");
         }
         this.localRootDir = localRootDir == null || localRootDir.isBlank() ? null : Path.of(localRootDir);
         if (this.localRootDir != null && !Files.isDirectory(this.localRootDir)) {
-            throw new IllegalArgumentException(
-                    "Prompt resource local root directory configured via "
-                            + A2ATConfigKeys.PromptRuntime.LOCAL_ROOT_DIR
-                            + " does not exist or is not a directory: "
-                            + this.localRootDir);
+            throw new IllegalArgumentException("Prompt resource local root directory configured via "
+                    + A2ATConfigKeys.PromptRuntime.LOCAL_ROOT_DIR
+                    + " does not exist or is not a directory: "
+                    + this.localRootDir);
         }
         this.classpathSnapshot = captureClasspathTemplates();
-        this.localSnapshot = PromptRuntimeConfig.SOURCE_TYPE_LOCAL_FILE.equals(this.sourceType) && this.localRootDir != null
-                ? Map.copyOf(localTemplates())
-                : Map.of();
+        this.localSnapshot =
+                PromptRuntimeConfig.SOURCE_TYPE_LOCAL_FILE.equals(this.sourceType) && this.localRootDir != null
+                        ? Map.copyOf(localTemplates())
+                        : Map.of();
     }
 
     private Map<String, String> captureClasspathTemplates() {

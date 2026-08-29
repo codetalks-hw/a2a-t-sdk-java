@@ -14,8 +14,8 @@ import net.openan.a2at.sdk.negotiation.runtime.RoleBoundNegotiationOrchestrator;
 import net.openan.a2at.sdk.negotiation.store.impl.InMemoryNegotiationStore;
 import net.openan.a2at.sdk.negotiation.types.model.NegotiationRole;
 import net.openan.a2at.sdk.prompt.analysis.impl.DefaultStructuredPromptSlotValueExtractor;
-import net.openan.a2at.sdk.prompt.analysis.impl.PromptSlotValueExtractor;
 import net.openan.a2at.sdk.prompt.analysis.impl.LlmScenarioRecognizer;
+import net.openan.a2at.sdk.prompt.analysis.impl.PromptSlotValueExtractor;
 import net.openan.a2at.sdk.prompt.analysis.impl.ScenarioRecognizer;
 import net.openan.a2at.sdk.prompt.analysis.model.ScenarioRecognitionResult;
 import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
@@ -78,8 +78,8 @@ public final class DefaultA2ATClientBuilder {
      * Injects an explicit LLM client that fully replaces the factory default.
      *
      * <p>The injection point exists for testability and custom LLM assemblies: when set, every orchestrator built by
-     * this builder reuses the given client and no client is created from the `.env` LLM config. When unset, the
-     * builder keeps creating its default client and the behavior is unchanged.
+     * this builder reuses the given client and no client is created from the `.env` LLM config. When unset, the builder
+     * keeps creating its default client and the behavior is unchanged.
      *
      * @param llmClient LLM client to inject; {@code null} keeps the factory default built from the `.env` LLM config
      * @return current builder
@@ -180,7 +180,9 @@ public final class DefaultA2ATClientBuilder {
         require(config, "Unified SDK config must be configured.");
         requireSupportedConfig();
         return new TemplateQueryService(
-                config.prompt().language(), config.prompt().sourceType(), config.prompt().localRootDir());
+                config.prompt().language(),
+                config.prompt().sourceType(),
+                config.prompt().localRootDir());
     }
 
     private void requireSupportedConfig() {
@@ -219,8 +221,7 @@ public final class DefaultA2ATClientBuilder {
 
         private final ScenarioRecognizer delegate;
 
-        private SingleScenarioAwareRecognizer(
-                List<ScenarioDefinition> scenarios, ScenarioRecognizer delegate) {
+        private SingleScenarioAwareRecognizer(List<ScenarioDefinition> scenarios, ScenarioRecognizer delegate) {
             this.scenarios = scenarios;
             this.delegate = delegate;
         }

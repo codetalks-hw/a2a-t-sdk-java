@@ -13,6 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import net.openan.a2at.sdk.client.A2ATClient;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMClientConfig;
 import net.openan.a2at.sdk.llm.LLMClientFactory;
@@ -21,16 +26,11 @@ import net.openan.a2at.sdk.negotiation.content.FeasibilityEndingContent;
 import net.openan.a2at.sdk.negotiation.content.FeasibilityProposeContent;
 import net.openan.a2at.sdk.negotiation.content.InformationEndingContent;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAction;
 import net.openan.a2at.sdk.negotiation.content.NegotiationConclusion;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.content.TargetEndingContent;
 import net.openan.a2at.sdk.negotiation.content.TargetProposeContent;
@@ -244,7 +244,8 @@ class NegotiationFacadeOutputSymmetryTest {
     }
 
     /** One symmetry case: a fixed input addressed to one of the three from-data generation methods. */
-    private record SymmetryCase(String label, NegotiationPerformative performative, TemplateUri templateUri, Object data) {
+    private record SymmetryCase(
+            String label, NegotiationPerformative performative, TemplateUri templateUri, Object data) {
 
         MetadataContent generate(ProposeGenerator propose, EndingGenerator accept, EndingGenerator reject) {
             return switch (performative) {

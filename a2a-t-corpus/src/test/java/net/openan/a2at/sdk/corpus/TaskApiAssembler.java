@@ -19,22 +19,23 @@ import net.openan.a2at.sdk.server.assembly.DefaultA2ATServerBuilder;
 
 /**
  * Real-builder assembly of the three closed-loop task APIs (Q21): the corpus harness drives exactly the production
- * wiring the {@code A2ATClient} and {@code A2ATServer} facades drive internally, so a change of the production
- * assembly cannot drift past the corpus.
+ * wiring the {@code A2ATClient} and {@code A2ATServer} facades drive internally, so a change of the production assembly
+ * cannot drift past the corpus.
  *
  * <ul>
  *   <li>{@code generateTaskPromptFromText} and {@code generateTaskPromptFromDataWithSchema} run through the
- *       {@link ClientPromptGenerationOrchestrator} built by {@link DefaultA2ATClientBuilder#buildPromptGenerationOrchestrator()}
- *       — the same build method the client facade constructor calls;</li>
+ *       {@link ClientPromptGenerationOrchestrator} built by
+ *       {@link DefaultA2ATClientBuilder#buildPromptGenerationOrchestrator()} — the same build method the client facade
+ *       constructor calls;
  *   <li>{@code validateTaskPromptAndDataFilling} runs through the {@link ContentValidator} built by
  *       {@link DefaultA2ATServerBuilder#buildTaskContentValidator()} — the same build method the server facade
- *       constructor calls.</li>
+ *       constructor calls.
  * </ul>
  *
- * <p>Both builders are driven exactly like the facades drive them: a minimal classpath-source {@code .env} (written once
- * per language and retry limit into a temporary directory, following the facade test precedent) is loaded through
- * {@link A2ATConfig#load(Path)} plus {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)},
- * and the {@link ScriptedNegotiationLlmClient} is injected through the builders' {@code llmClient(...)} seam — the same
+ * <p>Both builders are driven exactly like the facades drive them: a minimal classpath-source {@code .env} (written
+ * once per language and retry limit into a temporary directory, following the facade test precedent) is loaded through
+ * {@link A2ATConfig#load(Path)} plus {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)}, and the
+ * {@link ScriptedNegotiationLlmClient} is injected through the builders' {@code llmClient(...)} seam — the same
  * instance feeds the client-side and the server-side components, so the {@code llmCalls} expectation counts the whole
  * closed loop. The facade constructors are locked to the {@code Path}-only signature by the API-surface guard tests, so
  * the builders are the direct route to the identical assembly.
@@ -69,8 +70,7 @@ final class TaskApiAssembler {
      * @param llmClient LLM client injected at the same seam the facade builders inject their real client
      */
     TaskApiAssembler(Path envPath, LLMClient llmClient) {
-        A2ATConfig config =
-                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envPath), envPath);
+        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envPath), envPath);
         this.promptGeneration = DefaultA2ATClientBuilder.builder()
                 .config(config)
                 .envPath(envPath)
@@ -121,7 +121,8 @@ final class TaskApiAssembler {
      * @param templateUri template URI declaring the expected task template
      * @return filled parameter data carrying the extracted parameters; null values mark missing parameters
      */
-    FilledParamData validateTaskPromptAndDataFilling(String prompt, Map<String, Object> schema, TemplateUri templateUri) {
+    FilledParamData validateTaskPromptAndDataFilling(
+            String prompt, Map<String, Object> schema, TemplateUri templateUri) {
         return taskValidator.validate(prompt, schema, templateUri);
     }
 
@@ -143,14 +144,14 @@ final class TaskApiAssembler {
                 Files.writeString(
                         envFile,
                         ("A2AT_LANGUAGE=%s%n"
-                                + "A2AT_PROMPT_SOURCE_TYPE=classpath%n"
-                                + "A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=%n"
-                                + "A2AT_LLM_PROVIDER=openai%n"
-                                + "A2AT_LLM_MODEL=scripted-model%n"
-                                + "A2AT_LLM_BASE_URL=https://llm.example.test/v1%n"
-                                + "A2AT_LLM_API_KEY=corpus-scripted%n"
-                                + "A2AT_LLM_MAX_ATTEMPTS=%d%n"
-                                + "A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory%n")
+                                        + "A2AT_PROMPT_SOURCE_TYPE=classpath%n"
+                                        + "A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=%n"
+                                        + "A2AT_LLM_PROVIDER=openai%n"
+                                        + "A2AT_LLM_MODEL=scripted-model%n"
+                                        + "A2AT_LLM_BASE_URL=https://llm.example.test/v1%n"
+                                        + "A2AT_LLM_API_KEY=corpus-scripted%n"
+                                        + "A2AT_LLM_MAX_ATTEMPTS=%d%n"
+                                        + "A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory%n")
                                 .formatted(language, maxAttempts),
                         StandardCharsets.UTF_8);
                 return envFile;

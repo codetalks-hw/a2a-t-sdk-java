@@ -133,8 +133,12 @@ class AbortMessageGenerationTest {
 
     @Test
     void singleQueryResolvesTheCommonAbortTemplateUri() {
-        assertTrue(new TemplateQueryService("zh-CN", "classpath", null).getPrompt(ABORT_URI).isPresent());
-        assertTrue(new TemplateQueryService("en-US", "classpath", null).getPrompt(ABORT_URI).isPresent());
+        assertTrue(new TemplateQueryService("zh-CN", "classpath", null)
+                .getPrompt(ABORT_URI)
+                .isPresent());
+        assertTrue(new TemplateQueryService("en-US", "classpath", null)
+                .getPrompt(ABORT_URI)
+                .isPresent());
     }
 
     @Test

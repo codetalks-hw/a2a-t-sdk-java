@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
  * Locks the v3 negotiation API surface of both facades and the field faces of the result records.
  *
  * <p>The client and the server expose exactly the twelve camelCase negotiation methods with their pinned parameter
- * counts, their surface carries none of the removed v2-shape method names nor the removed negotiation query methods, and
- * the result records expose exactly their documented components.
+ * counts, their surface carries none of the removed v2-shape method names nor the removed negotiation query methods,
+ * and the result records expose exactly their documented components.
  */
 class NegotiationV3ApiSurfaceTest {
 

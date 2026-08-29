@@ -315,9 +315,7 @@ class AuthzScenarioRunnerTest {
         AuthzScenarioRunner runner = new AuthzScenarioRunner(generator, validator);
         AuthzExpected expected = new AuthzExpected(
                 new ClientExpected(
-                        "slot.not_provided",
-                        null,
-                        List.of(new SlotErrorExpectation("授权策略的操作类型", "slot.not_provided"))),
+                        "slot.not_provided", null, List.of(new SlotErrorExpectation("授权策略的操作类型", "slot.not_provided"))),
                 null);
         AuthzScenario scenario = new AuthzScenario("test", "from_text", Map.of("text", "hello"), expected);
 

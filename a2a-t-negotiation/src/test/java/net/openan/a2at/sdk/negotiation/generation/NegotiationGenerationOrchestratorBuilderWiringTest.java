@@ -14,23 +14,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.exception.ErrorCatalog;
-import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.llm.LLMError;
-import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.llm.LLMClient;
+import net.openan.a2at.sdk.llm.LLMError;
+import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
-import net.openan.a2at.sdk.negotiation.content.Vocabulary;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationComplianceChecker;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationRuleCheckResult;
@@ -142,8 +140,8 @@ class NegotiationGenerationOrchestratorBuilderWiringTest {
 
     @Test
     void nullTemplateContentFromCustomLoaderIsReportedAsTemplateNotFoundNotNpe() {
-        NegotiationTemplateLoader nullContentLoader = reference -> new PromptTemplate(
-                reference.templateUri(), "", null, PromptTemplate.SOURCE_CLASSPATH);
+        NegotiationTemplateLoader nullContentLoader =
+                reference -> new PromptTemplate(reference.templateUri(), "", null, PromptTemplate.SOURCE_CLASSPATH);
         NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
                 .language("zh-CN")
                 .templateLoader(nullContentLoader)
@@ -171,7 +169,9 @@ class NegotiationGenerationOrchestratorBuilderWiringTest {
         NegotiationGenerationException generationFailure = org.junit.jupiter.api.Assertions.assertThrows(
                 NegotiationGenerationException.class,
                 () -> generationOrchestrator.generateProposeFromText(
-                        "请提供节能区域。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE_URI));
+                        "请提供节能区域。",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE_URI));
         assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), generationFailure.getCode());
         assertEquals(2, generationClient.calls.get(), "generation chain must retry up to the limit");
 
