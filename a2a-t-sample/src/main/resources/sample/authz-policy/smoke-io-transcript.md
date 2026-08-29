@@ -141,7 +141,7 @@
 3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；
 ```
 
-**提参理由（LLM reasoning）**：输入中出现“新增”且处于新增授权策略的指令语境，按封闭取值范围规则13a映射为“新增授权策略”。策略列表按新增形字段顺序提取：业务场景、处置类型、操作名称、有效期，并将日期区间归一化为YYYY-MM-DD~YYYY-MM-DD格式；操作类型为新增，列表已提供，因此不报告missing_input。
+**提参理由（LLM reasoning）**：输入中出现“新增”且处于新增授权策略的指令语境，按封闭取值范围规则13a映射为“新增授权策略”。策略列表按新增形字段顺序提取：业务场景、处置类型、操作名称、有效期，并将日期区间归一化为YYYY-MM-DD~YYYY-MM-DD格式；操作类型为新增，列表已提供，因此不报告slot.not_provided。
 
 ### 服务端（校验 + 提参）
 
@@ -950,19 +950,23 @@
 
 （输入 prompt 即上方客户端渲染结果，此处不重复。）
 
-**校验与提参结果**：`validation_semantic_rejected`
+**校验与提参结果**：`negotiation.semantic_rejected`
 
 ```json
 [
   {
     "slot_name": "policyList",
-    "code": "invalid_value",
-    "message": "修改授权策略仅支持修改有效期，但动网操作的授权策略列表第1条试图将业务场景改为校园专网，属于修改不允许修改的字段。"
+    "code": "content.value_not_allowed",
+    "message": "「动网操作的授权策略列表」的取值「业务场景改为校园专网」不在允许范围内",
+    "facts": {
+      "section_label": "动网操作的授权策略列表",
+      "actual": "业务场景改为校园专网"
+    }
   }
 ]
 ```
 
-**校验理由（LLM reasoning）**：操作类型为“修改授权策略”，已提取。策略列表第1条提供策略标识和将业务场景改为校园专网的意图。模板正文规定修改授权策略仅支持修改有效期，因此该业务场景修改意图超出可修改范围，判定为invalid_value，semantic_verdict=false。params按参数schema提取：policyId取自策略标识，scene取值为校园专网，其余未提供字段置null。
+**校验理由（LLM reasoning）**：操作类型为“修改授权策略”，已提取。策略列表第1条提供策略标识和将业务场景改为校园专网的意图。模板正文规定修改授权策略仅支持修改有效期，因此该业务场景修改意图超出可修改范围，判定为content.value_not_allowed，semantic_verdict=false。params按参数schema提取：policyId取自策略标识，scene取值为校园专网，其余未提供字段置null。
 
 **键名泄漏扫描**：无泄漏
 
@@ -1051,14 +1055,18 @@
 
 （输入 prompt 即上方客户端渲染结果，此处不重复。）
 
-**校验与提参结果**：`validation_semantic_rejected`
+**校验与提参结果**：`negotiation.semantic_rejected`
 
 ```json
 [
   {
     "slot_name": "policyList",
-    "code": "format_error",
-    "message": "动网操作的授权策略列表第1条的有效期“2026-13-01~2030-12-31”中月份“13”无效，日期格式不合法。"
+    "code": "content.format_error",
+    "message": "「动网操作的授权策略列表」的取值格式不符合要求:第1条的有效期“2026-13-01~2030-12-31”中月份“13”无效",
+    "facts": {
+      "section_label": "动网操作的授权策略列表",
+      "reason": "第1条的有效期“2026-13-01~2030-12-31”中月份“13”无效"
+    }
   }
 ]
 ```
@@ -1134,7 +1142,7 @@
           },
           "actionType": {
             "type": "string",
-            "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 invalid_value"
+            "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 content.value_not_allowed"
           },
           "operationName": {
             "type": "string",
@@ -1153,19 +1161,23 @@
 
 （输入 prompt 即上方客户端渲染结果，此处不重复。）
 
-**校验与提参结果**：`validation_semantic_rejected`
+**校验与提参结果**：`negotiation.semantic_rejected`
 
 ```json
 [
   {
     "slot_name": "policyList",
-    "code": "invalid_value",
-    "message": "策略列表第1条的处置类型为整句描述“网络出了问题要赶紧恢复”，应使用简短的处置动作短语（如业务抢通、业务优化、路由调整）"
+    "code": "content.value_not_allowed",
+    "message": "「动网操作的授权策略列表」的取值「网络出了问题要赶紧恢复」不在允许范围内",
+    "facts": {
+      "section_label": "动网操作的授权策略列表",
+      "actual": "网络出了问题要赶紧恢复"
+    }
   }
 ]
 ```
 
-**校验理由（LLM reasoning）**：操作类型“新增授权策略”在枚举范围内；动网操作的授权策略列表包含1条，新增必填的业务场景、处置类型、操作名称、有效期均已提供，有效期格式为完整区间且起始早于结束；但处置类型“网络出了问题要赶紧恢复”为整句描述，不符合参数 schema 要求的简短处置动作短语，故判定 invalid_value，整体校验不通过。
+**校验理由（LLM reasoning）**：操作类型“新增授权策略”在枚举范围内；动网操作的授权策略列表包含1条，新增必填的业务场景、处置类型、操作名称、有效期均已提供，有效期格式为完整区间且起始早于结束；但处置类型“网络出了问题要赶紧恢复”为整句描述，不符合参数 schema 要求的简短处置动作短语，故判定 content.value_not_allowed，整体校验不通过。
 
 **键名泄漏扫描**：无泄漏
 
@@ -1254,19 +1266,24 @@
 
 （输入 prompt 即上方客户端渲染结果，此处不重复。）
 
-**校验与提参结果**：`validation_semantic_rejected`
+**校验与提参结果**：`negotiation.semantic_rejected`
 
 ```json
 [
   {
     "slot_name": "policyList",
-    "code": "missing_required",
-    "message": "动网操作的授权策略列表第1条缺少创建授权策略时必填的“有效期”字段。"
+    "code": "content.entry_field_missing",
+    "message": "「动网操作的授权策略列表」第 1 条缺少必填字段「有效期」",
+    "facts": {
+      "section_label": "动网操作的授权策略列表",
+      "index": "1",
+      "field_label": "有效期"
+    }
   }
 ]
 ```
 
-**校验理由（LLM reasoning）**：操作类型为“新增授权策略”，在参数 schema 枚举范围内；模板正文要求新增授权策略列表条目必填业务场景、处置类型、操作名称、有效期。输入列表第1条提供了业务场景、处置类型和操作名称，但未提供有效期，因此校验失败并报告 missing_required。参数提取按 schema 结构进行，缺失字段置 null。
+**校验理由（LLM reasoning）**：操作类型为“新增授权策略”，在参数 schema 枚举范围内；模板正文要求新增授权策略列表条目必填业务场景、处置类型、操作名称、有效期。输入列表第1条提供了业务场景、处置类型和操作名称，但未提供有效期，因此校验失败并报告 content.entry_field_missing。参数提取按 schema 结构进行，缺失字段置 null。
 
 **键名泄漏扫描**：无泄漏
 
@@ -1357,14 +1374,18 @@
 
 （输入 prompt 即上方客户端渲染结果，此处不重复。）
 
-**校验与提参结果**：`validation_semantic_rejected`
+**校验与提参结果**：`negotiation.semantic_rejected`
 
 ```json
 [
   {
     "slot_name": "policyList",
-    "code": "format_error",
-    "message": "策略列表第2条的有效期“2026-13-01~2030-12-31”存在无效月份（13月），请提供有效日期。"
+    "code": "content.format_error",
+    "message": "「动网操作的授权策略列表」的取值格式不符合要求:第2条的有效期“2026-13-01~2030-12-31”存在无效月份（13月）",
+    "facts": {
+      "section_label": "动网操作的授权策略列表",
+      "reason": "第2条的有效期“2026-13-01~2030-12-31”存在无效月份（13月）"
+    }
   }
 ]
 ```
@@ -1411,19 +1432,22 @@ input.schema:
 
 ```json
 {
-  "code": "slot_validation_error",
-  "message": "Required slots are missing or empty: 授权策略的操作类型",
+  "code": "slot.not_provided",
+  "message": "输入中未提供「授权策略的操作类型」。",
   "slot_errors": [
     {
       "slot_name": "授权策略的操作类型",
-      "code": "missing_required",
-      "message": "Required slot is missing or empty"
+      "code": "slot.not_provided",
+      "message": "输入中未提供「授权策略的操作类型」。",
+      "facts": {
+        "slot_label": "授权策略的操作类型"
+      }
     }
   ]
 }
 ```
 
-**提参理由（LLM reasoning）**：输入中仅有 scene=校园专网、actionType=业务抢通，未出现“新增、修改、删除、查询”等操作类型合法取值或其认可同义词，按封闭取值范围规则不能推断，故“授权策略的操作类型”置为 null 并报告 missing_input。scene 对应“业务场景”，actionType 对应“处置类型”，这两项属于动网操作授权策略列表中允许的查询条件字段，因此按“字段名是值”格式合并为一条编号列表。
+**提参理由（LLM reasoning）**：输入中仅有 scene=校园专网、actionType=业务抢通，未出现“新增、修改、删除、查询”等操作类型合法取值或其认可同义词，按封闭取值范围规则不能推断，故“授权策略的操作类型”置为 null 并报告 slot.not_provided。scene 对应“业务场景”，actionType 对应“处置类型”，这两项属于动网操作授权策略列表中允许的查询条件字段，因此按“字段名是值”格式合并为一条编号列表。
 
 ### 服务端（校验 + 提参）
 
@@ -1445,19 +1469,22 @@ input.schema:
 
 ```json
 {
-  "code": "slot_validation_error",
-  "message": "Required slots are missing or empty: 授权策略的操作类型",
+  "code": "slot.not_provided",
+  "message": "输入中未提供「授权策略的操作类型」。",
   "slot_errors": [
     {
       "slot_name": "授权策略的操作类型",
-      "code": "missing_required",
-      "message": "Required slot is missing or empty"
+      "code": "slot.not_provided",
+      "message": "输入中未提供「授权策略的操作类型」。",
+      "facts": {
+        "slot_label": "授权策略的操作类型"
+      }
     }
   ]
 }
 ```
 
-**提参理由（LLM reasoning）**：输入中虽然出现“新增”，但位于“不要新增……我还没准备好”的否定/排除语义中，依据规则3不得作为正向slot值提取，因此“授权策略的操作类型”视为缺失并报告missing_input；“动网操作的授权策略列表”中的“校园专网”同样处于否定语义中，不提取，且操作类型未确定，不触发该列表的必填条件，故返回null。
+**提参理由（LLM reasoning）**：输入中虽然出现“新增”，但位于“不要新增……我还没准备好”的否定/排除语义中，依据规则3不得作为正向slot值提取，因此“授权策略的操作类型”视为缺失并报告slot.not_provided；“动网操作的授权策略列表”中的“校园专网”同样处于否定语义中，不提取，且操作类型未确定，不触发该列表的必填条件，故返回null。
 
 ### 服务端（校验 + 提参）
 

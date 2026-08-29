@@ -22,7 +22,6 @@ import net.openan.a2at.sample.authz_policy.AuthzScenarioRunner.ScenarioResult;
 import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.client.prompt.assembly.DefaultA2ATClientBuilder;
 import net.openan.a2at.sdk.client.prompt.orchestration.ClientPromptGenerationOrchestrator;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.core.model.A2ATConfig;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
@@ -426,6 +425,7 @@ public final class AuthzSampleMain {
                     m.put("slot_name", e.slotName());
                     m.put("code", e.code());
                     m.put("message", e.message());
+                    m.put("facts", e.facts());
                     return m;
                 })
                 .toList();

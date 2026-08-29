@@ -33,22 +33,32 @@ class AuthzScenarioLoaderTest {
         assertEquals("b4-nl-bad-id-01", scenarios.get(7).label());
         assertEquals("success", scenarios.get(7).expected().server().outcome());
         assertEquals("b3-nl-invalid-mod-01", scenarios.get(8).label());
-        assertEquals("validation_semantic_rejected", scenarios.get(8).expected().server().outcome());
+        assertEquals(
+                "negotiation.semantic_rejected",
+                scenarios.get(8).expected().server().outcome());
         assertEquals("b2-nl-format-01", scenarios.get(9).label());
-        assertEquals("validation_semantic_rejected", scenarios.get(9).expected().server().outcome());
+        assertEquals(
+                "negotiation.semantic_rejected",
+                scenarios.get(9).expected().server().outcome());
         assertEquals("b2-nl-format-01-varreq", scenarios.get(10).label());
-        assertEquals("validation_semantic_rejected", scenarios.get(10).expected().server().outcome());
+        assertEquals(
+                "negotiation.semantic_rejected",
+                scenarios.get(10).expected().server().outcome());
         assertNotNull(scenarios.get(10).validateSchema());
         assertEquals("b1-nl-missing-01", scenarios.get(11).label());
-        assertEquals("validation_semantic_rejected", scenarios.get(11).expected().server().outcome());
+        assertEquals(
+                "negotiation.semantic_rejected",
+                scenarios.get(11).expected().server().outcome());
         assertEquals("c6-nl-mixed-07", scenarios.get(12).label());
-        assertEquals("validation_semantic_rejected", scenarios.get(12).expected().server().outcome());
+        assertEquals(
+                "negotiation.semantic_rejected",
+                scenarios.get(12).expected().server().outcome());
         assertEquals("a-data-starve-01", scenarios.get(13).label());
         assertEquals("from_data_with_schema", scenarios.get(13).entry());
-        assertEquals("slot_validation_error", scenarios.get(13).expected().client().outcome());
+        assertEquals("slot.not_provided", scenarios.get(13).expected().client().outcome());
         assertNull(scenarios.get(13).expected().server());
         assertEquals("a-nl-neg-01", scenarios.get(14).label());
-        assertEquals("slot_validation_error", scenarios.get(14).expected().client().outcome());
+        assertEquals("slot.not_provided", scenarios.get(14).expected().client().outcome());
         assertNull(scenarios.get(14).expected().server());
     }
 
@@ -69,15 +79,18 @@ class AuthzScenarioLoaderTest {
                 .count();
         assertEquals(47, variants);
         long clientInterceptions = scenarios.stream()
-                .filter(s -> s.expected().client() != null && s.expected().client().outcome() != null)
+                .filter(s ->
+                        s.expected().client() != null && s.expected().client().outcome() != null)
                 .count();
         assertEquals(9, clientInterceptions);
         long serverRejections = scenarios.stream()
                 .filter(s -> s.expected().server() != null
-                        && "validation_semantic_rejected".equals(s.expected().server().outcome()))
+                        && "negotiation.semantic_rejected"
+                                .equals(s.expected().server().outcome()))
                 .count();
         assertEquals(37, serverRejections);
-        long validateSchemas = scenarios.stream().filter(s -> s.validateSchema() != null).count();
+        long validateSchemas =
+                scenarios.stream().filter(s -> s.validateSchema() != null).count();
         assertEquals(43, validateSchemas);
     }
 
@@ -133,9 +146,7 @@ class AuthzScenarioLoaderTest {
         AuthzScenario present = scenarios.get(0);
         assertEquals("vs-present", present.label());
         assertNotNull(present.validateSchema());
-        assertEquals(
-                "应为简短的处置动作短语",
-                ((Map<?, ?>) present.validateSchema().get("动网操作的授权策略列表")).get("处置类型"));
+        assertEquals("应为简短的处置动作短语", ((Map<?, ?>) present.validateSchema().get("动网操作的授权策略列表")).get("处置类型"));
     }
 
     @Test

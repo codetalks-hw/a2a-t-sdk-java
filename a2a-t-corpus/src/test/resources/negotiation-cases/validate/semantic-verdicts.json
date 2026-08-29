@@ -160,8 +160,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "section.target", "code": "template_type_mismatch" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "section.target", "code": "negotiation.type_mismatch" } ],
       "llmCalls": 1
     }
   },
@@ -180,8 +180,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "section.info_static", "code": "template_type_mismatch" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "section.info_static", "code": "negotiation.type_mismatch" } ],
       "llmCalls": 1
     }
   },
@@ -200,8 +200,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "section.info_static", "code": "template_type_mismatch" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "section.info_static", "code": "negotiation.type_mismatch" } ],
       "llmCalls": 1
     }
   },
@@ -220,8 +220,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "section.info_static", "code": "template_type_mismatch" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "section.info_static", "code": "negotiation.type_mismatch" } ],
       "llmCalls": 1
     }
   },
@@ -240,8 +240,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "accessPort", "code": "missing" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "accessPort", "code": "negotiation.field_missing" } ],
       "llmCalls": 1
     }
   },
@@ -256,12 +256,12 @@
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "prompt": { "golden": "information_reject" },
     "schema": { "$ref": "schemas/biz.complaint.params" },
-    "llm": { "script": [ "{\"semantic_verdict\":false,\"negotiation_type\":\"target\",\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\",\"message\":\"The access port parameter is missing.\"}],\"params\":{}}" ] },
+    "llm": { "script": [ "{\"semantic_verdict\":false,\"negotiation_type\":\"target\",\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\",\"facts\":{\"section_label\":\"接入端口名称\"}}],\"params\":{}}" ] },
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "accessPort", "code": "missing" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "accessPort", "code": "negotiation.rule_violation" } ],
       "llmCalls": 1
     }
   },
@@ -280,7 +280,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
+      "code": "negotiation.semantic_rejected",
       "llmCalls": 1
     }
   },
@@ -295,12 +295,12 @@
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "prompt": { "golden": "information_propose" },
     "schema": { "$ref": "schemas/biz.complaint.params" },
-    "llm": { "script": [ "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\",\"message\":\"The access port parameter is missing.\"}],\"params\":{\"accessPort\":\"P533-珠江旧城-PTN3900-23-TPA1EG24-1\"}}" ] },
+    "llm": { "script": [ "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\",\"facts\":{\"section_label\":\"接入端口名称\"}}],\"params\":{\"accessPort\":\"P533-珠江旧城-PTN3900-23-TPA1EG24-1\"}}" ] },
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "accessPort", "code": "missing" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "accessPort", "code": "negotiation.rule_violation" } ],
       "llmCalls": 1
     }
   },
@@ -315,12 +315,12 @@
     "templateUri": "Negotiation-T/common/abort/v1",
     "prompt": { "golden": "abort" },
     "schema": { "$ref": "schemas/empty" },
-    "llm": { "script": [ "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":\"termination_reason\",\"code\":\"missing\",\"message\":\"The termination reason is missing.\"}],\"params\":{}}" ] },
+    "llm": { "script": [ "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":\"termination_reason\",\"code\":\"missing\",\"facts\":{\"section_label\":\"协商终止原因\"}}],\"params\":{}}" ] },
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "termination_reason", "code": "missing" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "termination_reason", "code": "negotiation.rule_violation" } ],
       "llmCalls": 1
     }
   },
@@ -345,8 +345,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_semantic_rejected",
-      "slotErrors": [ { "slot": "accessPort", "code": "missing" } ],
+      "code": "negotiation.semantic_rejected",
+      "slotErrors": [ { "slot": "accessPort", "code": "negotiation.field_missing" } ],
       "llmCalls": 1
     }
   },
@@ -361,7 +361,7 @@
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "prompt": { "text": "## 信息协商\n请根据<所需信息项>补充相关内容。\n\n## 所需信息项\n1. 接入端口名称：举例：P533-珠江旧城-PTN3900-23-TPA1EG24-1\n2. 投诉分类：举例：专线质差\n3. 专线业务标识\n缺失项之间的关系：OR" },
     "schema": { "$ref": "schemas/biz.complaint.params" },
-    "llm": { "script": [ "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\",\"message\":\"The access port parameter is missing.\"}],\"params\":{}}" ] },
+    "llm": { "script": [ "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\",\"facts\":{\"section_label\":\"接入端口名称\"}}],\"params\":{}}" ] },
     "expect": {
       "outcome": "success",
       "llmCalls": 1,

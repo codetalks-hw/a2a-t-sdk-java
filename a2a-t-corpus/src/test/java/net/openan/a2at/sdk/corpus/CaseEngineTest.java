@@ -5,27 +5,27 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
-import org.junit.jupiter.api.BeforeEach;
 import net.openan.a2at.sdk.corpus.Expectation.Metadata;
-import org.junit.jupiter.api.Test;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Direct unit tests of the {@link CaseEngine} against inline case objects: the four P0 contracts, the Q17 C+
  * differential double run, the inject hook, the fail-on-overconsumption calibration through {@code llmCalls}, and the
- * red paths proving the engine is not a rubber stamp (every flipped expectation fails with the case id and the JSON path
- * of the expectation).
+ * red paths proving the engine is not a rubber stamp (every flipped expectation fails with the case id and the JSON
+ * path of the expectation).
  *
- * <p>The engine runs against the real production wiring (builders, classpath resources, renderers, vocabulary, rule gate,
- * semantic validator); the golden comparisons use the committed golden fixtures of the test resources.
+ * <p>The engine runs against the real production wiring (builders, classpath resources, renderers, vocabulary, rule
+ * gate, semantic validator); the golden comparisons use the committed golden fixtures of the test resources.
  */
 class CaseEngineTest {
 
@@ -38,16 +38,14 @@ class CaseEngineTest {
     private static final String INFORMATION_ACCEPT_REJECT_URI =
             "Negotiation-T/information-negotiation/accept-reject/v1";
 
-    private static final String PRIVATE_LINE_COMPLAINT_URI =
-            "Task-T/network-layer/private-line-complaint/v1";
+    private static final String PRIVATE_LINE_COMPLAINT_URI = "Task-T/network-layer/private-line-complaint/v1";
 
     /**
-     * The workbench raw complaint of the five-step closed loop (样例步骤1): deliberately lacking the access port name
-     * and the complaint category — the causal starting point of the information negotiation.
+     * The workbench raw complaint of the five-step closed loop (样例步骤1): deliberately lacking the access port name and
+     * the complaint category — the causal starting point of the information negotiation.
      */
-    private static final String COMPLAINT_TEXT =
-            "深圳访问广州的专线从5月11号早上8点半开始响应时延从平均12ms骤升至320ms，访问广州机房的核心交易系统非常慢，"
-                    + "柜面和手机银行的交易接口频繁报“连接超时”。OSS侧事件流水号：event-id-20260511-09013。";
+    private static final String COMPLAINT_TEXT = "深圳访问广州的专线从5月11号早上8点半开始响应时延从平均12ms骤升至320ms，访问广州机房的核心交易系统非常慢，"
+            + "柜面和手机银行的交易接口频繁报“连接超时”。OSS侧事件流水号：event-id-20260511-09013。";
 
     /** Slot-extraction payload of the closed loop's step 1: the task object stays empty (no port name in the text). */
     private static final String TASK_SLOTS_OBJECT_EMPTY =
@@ -82,8 +80,8 @@ class CaseEngineTest {
 
     /** Semantic payload rejecting the task prompt (rejection-sample shape: key slots missing). */
     private static final String TASK_SEMANTIC_REJECTED =
-            "{\"semantic_verdict\":false,\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"missing\","
-                    + "\"message\":\"The access port parameter is missing.\"}],\"params\":{}}";
+            "{\"semantic_verdict\":false,\"errors\":[{\"slot_name\":\"accessPort\",\"code\":\"content.param_missing\","
+                    + "\"facts\":{\"section_label\":\"接入端口名称\"}}],\"params\":{}}";
 
     /** The task parameter schema of the closed loop (server-side keys, dictionary §10). */
     private static final String TASK_PARAM_SCHEMA =
@@ -92,7 +90,8 @@ class CaseEngineTest {
                     + "{\"type\":\"string\"}},\"required\":[\"accessPort\",\"bizScenario\"]}";
 
     /** The rendered task prompt the OMC receives (样例步骤1, shortened): the negotiation-causing message. */
-    private static final String TASK_PROMPT_MISSING_PARAMS = """
+    private static final String TASK_PROMPT_MISSING_PARAMS =
+            """
             ## 任务类型(Task Type)
             传输专线业务投诉诊断
 
@@ -129,8 +128,8 @@ class CaseEngineTest {
 
     private static final String SEMANTIC_REJECT_PAYLOAD =
             "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":"
-                    + "\"accessPort\",\"code\":\"missing\",\"message\":\"The access port parameter is"
-                    + " missing.\"}],\"params\":{}}";
+                    + "\"accessPort\",\"code\":\"negotiation.field_missing\",\"facts\":{\"field\":"
+                    + "\"接入端口名称\"}}],\"params\":{}}";
 
     private final CaseEngine engine = new CaseEngine();
 
@@ -155,8 +154,8 @@ class CaseEngineTest {
         assertNotNull(message);
         assertEquals(1, outcome.llmCalls());
         assertEquals(INFORMATION_ACCEPT_REJECT_URI, message.templateUri());
-        assertEquals(new NegotiationContext(SESSION_ID, 2, 5, NegotiationPerformative.ACCEPT),
-                message.negotiationContext());
+        assertEquals(
+                new NegotiationContext(SESSION_ID, 2, 5, NegotiationPerformative.ACCEPT), message.negotiationContext());
     }
 
     @Test
@@ -205,7 +204,7 @@ class CaseEngineTest {
                 null,
                 null,
                 "failingTemplateLoader",
-                failed("NegotiationGenerationException", "template_not_found", 0, List.of(), List.of()));
+                failed("NegotiationGenerationException", "template.not_found", 0, List.of(), List.of()));
 
         engine.run(testCase);
     }
@@ -229,7 +228,7 @@ class CaseEngineTest {
                 new PromptSource.Golden("information_propose"),
                 schema,
                 "failingSemanticValidator",
-                failed("NegotiationParamExtractionException", "template_not_found", 0, List.of(), List.of()));
+                failed("NegotiationParamExtractionException", "template.not_found", 0, List.of(), List.of()));
 
         engine.run(testCase);
     }
@@ -262,7 +261,15 @@ class CaseEngineTest {
         NegotiationCase testCase = validateProposeCase(
                 okParams(
                         1,
-                        Map.of("id", SESSION_ID, "round", 2, "maxRounds", 5, "accessPort", "P533-珠江旧城-PTN3900-23-TPA1EG24-1"),
+                        Map.of(
+                                "id",
+                                SESSION_ID,
+                                "round",
+                                2,
+                                "maxRounds",
+                                5,
+                                "accessPort",
+                                "P533-珠江旧城-PTN3900-23-TPA1EG24-1"),
                         List.of("contextKeysInMergedParams")),
                 SEMANTIC_ACCEPT_PAYLOAD_WITH_PARAMS);
 
@@ -291,15 +298,15 @@ class CaseEngineTest {
                 new LlmScript(
                         null,
                         List.of(
-                                new LlmScriptStep.Fail(LlmFailMarker.RUNTIME_EXCEPTION),
-                                new LlmScriptStep.Fail(LlmFailMarker.RUNTIME_EXCEPTION),
-                                new LlmScriptStep.Fail(LlmFailMarker.RUNTIME_EXCEPTION))),
+                                new LlmScriptStep.Fail(LlmFailMarker.NON_JSON),
+                                new LlmScriptStep.Fail(LlmFailMarker.NON_JSON),
+                                new LlmScriptStep.Fail(LlmFailMarker.NON_JSON))),
                 null,
                 null,
                 null,
                 failed(
                         "NegotiationGenerationException",
-                        "negotiation_llm_infrastructure_error",
+                        "llm.response_invalid",
                         3,
                         List.of(),
                         List.of("noLlmLeakInUserMessage")));
@@ -372,9 +379,9 @@ class CaseEngineTest {
         NegotiationCase testCase = validateProposeCase(
                 failed(
                         "NegotiationParamExtractionException",
-                        "negotiation_semantic_rejected",
+                        "negotiation.semantic_rejected",
                         1,
-                        List.of(new Expectation.SlotError("accessPort", "missing")),
+                        List.of(new Expectation.SlotError("accessPort", "negotiation.field_missing")),
                         List.of()),
                 SEMANTIC_REJECT_PAYLOAD);
 
@@ -386,11 +393,11 @@ class CaseEngineTest {
         NegotiationCase testCase = validateProposeCase(
                 failed(
                         "NegotiationParamExtractionException",
-                        "negotiation_semantic_rejected",
+                        "negotiation.semantic_rejected",
                         1,
                         List.of(
-                                new Expectation.SlotError("accessPort", "missing"),
-                                new Expectation.SlotError("round", "out_of_range")),
+                                new Expectation.SlotError("accessPort", "negotiation.field_missing"),
+                                new Expectation.SlotError("round", "negotiation.round_exceeded")),
                         List.of()),
                 SEMANTIC_REJECT_PAYLOAD);
 
@@ -422,14 +429,14 @@ class CaseEngineTest {
                 null,
                 null,
                 null,
-                failed(null, "negotiation_invalid_input", 1, List.of(), List.of()));
+                failed(null, "negotiation.invalid_input", 1, List.of(), List.of()));
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(testCase));
 
         assertTrue(
                 failure.getMessage().contains("FT-EXTRACT-01/zh-CN")
                         && failure.getMessage().contains("$.expect.code")
-                        && failure.getMessage().contains("negotiation_slot_missing"),
+                        && failure.getMessage().contains("negotiation.field_missing"),
                 "the failure must carry the case id, the JSON path and both codes but was: " + failure.getMessage());
     }
 
@@ -440,7 +447,8 @@ class CaseEngineTest {
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(testCase));
 
         assertTrue(
-                failure.getMessage().contains("$.expect.llmCalls") && failure.getMessage().contains("2"),
+                failure.getMessage().contains("$.expect.llmCalls")
+                        && failure.getMessage().contains("2"),
                 "a wrong llmCalls expectation must fail but was: " + failure.getMessage());
     }
 
@@ -479,7 +487,8 @@ class CaseEngineTest {
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(testCase));
 
         assertTrue(
-                failure.getMessage().contains("$.expect.outcome") && failure.getMessage().contains("failure"),
+                failure.getMessage().contains("$.expect.outcome")
+                        && failure.getMessage().contains("failure"),
                 "an unexpected failure must flip the outcome expectation but was: " + failure.getMessage());
     }
 
@@ -487,11 +496,8 @@ class CaseEngineTest {
 
     @Test
     void runsATaskFromTextCaseThroughTheMirroredClientWiring() {
-        NegotiationCase testCase = taskFromTextCase(okTask(
-                1,
-                List.of("## 任务类型", "## 任务对象", "## 任务上下文", "event-id-20260511-09013"),
-                null,
-                Map.of()));
+        NegotiationCase testCase = taskFromTextCase(
+                okTask(1, List.of("## 任务类型", "## 任务对象", "## 任务上下文", "event-id-20260511-09013"), null, Map.of()));
 
         CaseEngine.CaseOutcome outcome = engine.run(testCase);
 
@@ -507,11 +513,8 @@ class CaseEngineTest {
 
     @Test
     void runsATaskFromDataWithSchemaCaseThroughTheMirroredClientWiring() throws Exception {
-        NegotiationCase testCase = taskFromDataCase(okTask(
-                1,
-                List.of("## 任务类型", "P533-珠江旧城-PTN3900-23-TPA1EG24-1", "专线质差"),
-                null,
-                Map.of()));
+        NegotiationCase testCase = taskFromDataCase(
+                okTask(1, List.of("## 任务类型", "P533-珠江旧城-PTN3900-23-TPA1EG24-1", "专线质差"), null, Map.of()));
 
         CaseEngine.CaseOutcome outcome = engine.run(testCase);
 
@@ -524,9 +527,13 @@ class CaseEngineTest {
     @Test
     void validateTaskPromptReportsTheMissingParametersAsNullValuedParams() throws Exception {
         NegotiationCase testCase = taskValidateCase(
-                okTask(1, null, List.of("accessPort", "bizScenario"), Map.of(
-                        "faultTime", "2026-05-11T08:21:46Z",
-                        "eventSerialNo", "event-id-20260511-09013")),
+                okTask(
+                        1,
+                        null,
+                        List.of("accessPort", "bizScenario"),
+                        Map.of(
+                                "faultTime", "2026-05-11T08:21:46Z",
+                                "eventSerialNo", "event-id-20260511-09013")),
                 TASK_SEMANTIC_MISSING_PARAMS);
 
         CaseEngine.CaseOutcome outcome = engine.run(testCase);
@@ -536,7 +543,8 @@ class CaseEngineTest {
         assertEquals(1, outcome.llmCalls(), "the task validation pipeline makes exactly one semantic call");
         assertEquals("2026-05-11T08:21:46Z", filled.data().get("faultTime"));
         assertEquals("event-id-20260511-09013", filled.data().get("eventSerialNo"));
-        assertTrue(filled.data().containsKey("accessPort") && filled.data().get("accessPort") == null,
+        assertTrue(
+                filled.data().containsKey("accessPort") && filled.data().get("accessPort") == null,
                 "a missing parameter must surface as a null-valued entry, not as an absent key");
     }
 
@@ -557,7 +565,7 @@ class CaseEngineTest {
     @Test
     void taskValidateSemanticRejectionCarriesTheValidationCode() throws Exception {
         NegotiationCase testCase = taskValidateCase(
-                failed("ContentValidationException", "validation_semantic_rejected", 1, List.of(), List.of()),
+                failed("ContentValidationException", "negotiation.semantic_rejected", 1, List.of(), List.of()),
                 TASK_SEMANTIC_REJECTED);
 
         engine.run(testCase);
@@ -578,20 +586,21 @@ class CaseEngineTest {
                 PRIVATE_LINE_COMPLAINT_URI,
                 COMPLAINT_TEXT,
                 null,
-                new LlmScript(null, List.of(new LlmScriptStep.Payload(
-                        "{\"slots\": {\"任务对象\": \"\", \"任务上下文\": \"\"}, \"slot_errors\": []}"))),
+                new LlmScript(
+                        null,
+                        List.of(new LlmScriptStep.Payload(
+                                "{\"slots\": {\"任务对象\": \"\", \"任务上下文\": \"\"}, \"slot_errors\": []}"))),
                 null,
                 null,
                 null,
-                failed("PromptGenerationException", "slot_validation_error", 1, List.of(), List.of()));
+                failed("PromptGenerationException", "slot.not_provided", 1, List.of(), List.of()));
 
         engine.run(testCase);
     }
 
     @Test
     void taskPromptTextContainsFailsOnAnAbsentFragment() {
-        NegotiationCase testCase = taskFromTextCase(
-                okTask(1, List.of("## 不存在的节头"), null, Map.of()));
+        NegotiationCase testCase = taskFromTextCase(okTask(1, List.of("## 不存在的节头"), null, Map.of()));
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(testCase));
 
@@ -603,9 +612,7 @@ class CaseEngineTest {
 
     @Test
     void paramsFromStepIsReservedForTheScenarioEngine() throws Exception {
-        NegotiationCase testCase = taskValidateCase(
-                okTask(1, null, null, Map.of()),
-                TASK_SEMANTIC_MISSING_PARAMS);
+        NegotiationCase testCase = taskValidateCase(okTask(1, null, null, Map.of()), TASK_SEMANTIC_MISSING_PARAMS);
         NegotiationCase withFromStep = new NegotiationCase(
                 testCase.id(),
                 testCase.baseId(),
@@ -639,8 +646,7 @@ class CaseEngineTest {
                         testCase.expect().missingParams(),
                         1));
 
-        IllegalStateException failure =
-                assertThrows(IllegalStateException.class, () -> engine.run(withFromStep));
+        IllegalStateException failure = assertThrows(IllegalStateException.class, () -> engine.run(withFromStep));
 
         assertTrue(
                 failure.getMessage().contains("paramsFromStep 1")
@@ -672,14 +678,22 @@ class CaseEngineTest {
     private static Expectation okContracts(
             @Nullable Integer llmCalls, @Nullable String promptTextEqualsGolden, List<String> contracts) {
         return new Expectation(
-                true, null, null, List.of(), List.of(), llmCalls, promptTextEqualsGolden, null, Map.of(), contracts,
+                true,
+                null,
+                null,
+                List.of(),
+                List.of(),
+                llmCalls,
+                promptTextEqualsGolden,
+                null,
+                Map.of(),
+                contracts,
                 false);
     }
 
     private static Expectation okParams(
             @Nullable Integer llmCalls, Map<String, Object> params, List<String> contracts) {
-        return new Expectation(
-                true, null, null, List.of(), List.of(), llmCalls, null, null, params, contracts, false);
+        return new Expectation(true, null, null, List.of(), List.of(), llmCalls, null, null, params, contracts, false);
     }
 
     private static Expectation failed(
@@ -819,18 +833,16 @@ class CaseEngineTest {
                 null,
                 PRIVATE_LINE_COMPLAINT_URI,
                 null,
-                mapper.readTree(
-                        "{\"portName\": \"P533-珠江旧城-PTN3900-23-TPA1EG24-1\", \"complaintScenario\": \"专线质差\","
-                                + " \"faultStartTime\": \"2026-05-11T08:21:46Z\", \"ticketNo\":"
-                                + " \"event-id-20260511-09013\", \"faultDetailText\": \"深圳访问广州的响应时延从平均12ms"
-                                + "骤升至320ms\"}"),
+                mapper.readTree("{\"portName\": \"P533-珠江旧城-PTN3900-23-TPA1EG24-1\", \"complaintScenario\": \"专线质差\","
+                        + " \"faultStartTime\": \"2026-05-11T08:21:46Z\", \"ticketNo\":"
+                        + " \"event-id-20260511-09013\", \"faultDetailText\": \"深圳访问广州的响应时延从平均12ms"
+                        + "骤升至320ms\"}"),
                 new LlmScript(null, List.of(new LlmScriptStep.Payload(TASK_SLOTS_FILLED))),
                 null,
-                mapper.readTree(
-                        "{\"type\": \"object\", \"properties\": {\"portName\": {\"type\": \"string\"},"
-                                + " \"complaintScenario\": {\"type\": \"string\"}, \"faultStartTime\":"
-                                + " {\"type\": \"string\"}, \"ticketNo\": {\"type\": \"string\"},"
-                                + " \"faultDetailText\": {\"type\": \"string\"}}}"),
+                mapper.readTree("{\"type\": \"object\", \"properties\": {\"portName\": {\"type\": \"string\"},"
+                        + " \"complaintScenario\": {\"type\": \"string\"}, \"faultStartTime\":"
+                        + " {\"type\": \"string\"}, \"ticketNo\": {\"type\": \"string\"},"
+                        + " \"faultDetailText\": {\"type\": \"string\"}}}"),
                 null,
                 expect);
     }

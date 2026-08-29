@@ -19,18 +19,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Meta test of the negotiation test corpus (design document §6 Q6 and §7): the corpus is checked against its own
  * contracts instead of the production code, so a hole in the corpus is caught before it silently narrows the suites.
  *
  * <p>Checked today, in full strictness: global id uniqueness, expectation-block completeness, every expected error code
- * being one of the seven negotiation error codes, the seven-code failure coverage, the five mapCode mapping targets, the
- * four operational definitions of the bilingual parity (§7), and the per-record uniform language expansion. The
+ * being one of the content-layer error codes, the content-layer failure coverage, the validate-family code coverage,
+ * the four operational definitions of the bilingual parity (§7), and the per-record uniform language expansion. The
  * business-alignment decisions add three more (design §10): the three closed-loop task APIs are exercised by scenario
  * steps only and are role-bound (A=workbench generates, B=OMC validates), and every VAL-DRIFT drift probe is a
  * compliant peer text expecting success. The Q19 business-review soft gate (§8.7) is opt-in: P0 cases must be 100%
@@ -45,45 +45,43 @@ import org.jspecify.annotations.Nullable;
 class CorpusContractTest {
 
     /**
-     * Full strictness (design Q6/§8.4): every one of the seven negotiation error codes must be covered by at least one
+     * Full strictness (design Q6/§8.4): every one of the content-layer error codes must be covered by at least one
      * failure case of the corpus; a missing code fails the build.
      */
     private static final boolean REQUIRE_FULL_ERROR_CODE_COVERAGE = true;
 
     /**
-     * Full strictness (design Q6/§8.4): every one of the five mapCode mapping targets must be covered by at least one
-     * validate-family failure case (the VAL-MAP batch). The unknown-code passthrough (default branch) cannot be
-     * expressed through the public surface and stays a hand-written-suite concern (ParamExtractorTest).
+     * Full strictness (design Q6/§8.4): every code the validate family can fail with must be covered by at least one
+     * validate-family failure case (the VAL-MAP/VAL-RULE/VAL-RETRY batches). The unknown-code fallback of the LLM
+     * response parsing (negotiation.rule_violation / content.rule_violation) cannot be expressed through the public
+     * exception surface and stays a hand-written-suite concern (ParamExtractorTest).
      */
-    private static final boolean REQUIRE_FULL_MAP_CODE_COVERAGE = true;
+    private static final boolean REQUIRE_FULL_VALIDATE_CODE_COVERAGE = true;
 
-    /** The seven negotiation error codes of the production exception surface (design §7: 7, not 10). */
-    private static final List<String> NEGOTIATION_ERROR_CODES = List.of(
-            A2ATErrorCodes.NEGOTIATION_INVALID_INPUT,
-            A2ATErrorCodes.NEGOTIATION_SLOT_MISSING,
-            A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED,
-            A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR,
-            A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED,
-            A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION,
-            A2ATErrorCodes.TEMPLATE_NOT_FOUND);
+    /** The content-layer error codes of the production exception surface (ErrorCatalog codes). */
+    private static final List<String> CONTENT_LAYER_ERROR_CODES = List.of(
+            ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(),
+            ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+            ErrorCatalog.NEGOTIATION_FIELD_MISSING.getCode(),
+            ErrorCatalog.NEGOTIATION_CONTENT_EXTRACT_FAILED.getCode(),
+            ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode(),
+            ErrorCatalog.NEGOTIATION_CONTENT_INVALID.getCode(),
+            ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(),
+            ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(),
+            ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
+            ErrorCatalog.LLM_RESPONSE_INVALID.getCode());
 
     /**
-     * The five {@code ParamExtractor.mapCode()} mappings of the production code: internal {@code validation_*} codes to
-     * the public {@code negotiation_*} codes. Corpus cases carry the public code, so a mapping is covered when a
-     * validate-family failure case expects its target code. The unknown-code passthrough (default branch) cannot be
-     * expressed through the public surface and stays a hand-written-suite concern (ParamExtractorTest).
+     * The codes the validate family fails with: the pipeline surfaces these directly (there is no code mapping layer
+     * since the ErrorCatalog migration), so a validate-family failure case must expect each of them.
      */
-    private static final Map<String, String> MAP_CODE_TARGETS = Map.of(
-            A2ATErrorCodes.VALIDATION_INVALID_INPUT,
-            A2ATErrorCodes.NEGOTIATION_INVALID_INPUT,
-            A2ATErrorCodes.VALIDATION_RULE_VIOLATION,
-            A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION,
-            A2ATErrorCodes.VALIDATION_SEMANTIC_REJECTED,
-            A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED,
-            A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR,
-            A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR,
-            A2ATErrorCodes.VALIDATION_PROMPT_RESOURCE_NOT_FOUND,
-            A2ATErrorCodes.TEMPLATE_NOT_FOUND);
+    private static final List<String> VALIDATE_FAMILY_ERROR_CODES = List.of(
+            ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(),
+            ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+            ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(),
+            ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(),
+            ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
+            ErrorCatalog.LLM_RESPONSE_INVALID.getCode());
 
     private static final LoadedCorpus CORPUS = CorpusSuites.loadCorpus();
 
@@ -116,7 +114,9 @@ class CorpusContractTest {
             if (testCase.id().contains("#step-")) {
                 continue;
             }
-            caseGroups.computeIfAbsent(testCase.baseId(), key -> new ArrayList<>()).add(testCase);
+            caseGroups
+                    .computeIfAbsent(testCase.baseId(), key -> new ArrayList<>())
+                    .add(testCase);
         }
         for (List<NegotiationCase> group : caseGroups.values()) {
             Set<String> languages = new LinkedHashSet<>();
@@ -126,14 +126,14 @@ class CorpusContractTest {
                         sourceFile,
                         expansion.sourceFile(),
                         "the base id " + expansion.baseId() + " must belong to exactly one corpus file");
-                assertTrue(
-                        languages.add(expansion.language()),
-                        "duplicate language expansion " + expansion.id());
+                assertTrue(languages.add(expansion.language()), "duplicate language expansion " + expansion.id());
             }
         }
         Map<String, List<ScenarioCase>> scenarioGroups = new LinkedHashMap<>();
         for (ScenarioCase scenario : CORPUS.scenarios()) {
-            scenarioGroups.computeIfAbsent(scenario.baseId(), key -> new ArrayList<>()).add(scenario);
+            scenarioGroups
+                    .computeIfAbsent(scenario.baseId(), key -> new ArrayList<>())
+                    .add(scenario);
         }
         for (List<ScenarioCase> group : scenarioGroups.values()) {
             Set<String> languages = new LinkedHashSet<>();
@@ -148,7 +148,9 @@ class CorpusContractTest {
         }
         Map<String, List<LiveCase>> liveGroups = new LinkedHashMap<>();
         for (LiveCase liveCase : CORPUS.liveCases()) {
-            liveGroups.computeIfAbsent(liveCase.baseId(), key -> new ArrayList<>()).add(liveCase);
+            liveGroups
+                    .computeIfAbsent(liveCase.baseId(), key -> new ArrayList<>())
+                    .add(liveCase);
         }
         for (List<LiveCase> group : liveGroups.values()) {
             Set<String> languages = new LinkedHashSet<>();
@@ -170,7 +172,8 @@ class CorpusContractTest {
             if (expect.success()) {
                 assertTrue(
                         expect.exception() == null && expect.code() == null,
-                        testCase.errorPrefix() + ": a success expectation must not carry an exception or an error code");
+                        testCase.errorPrefix()
+                                + ": a success expectation must not carry an exception or an error code");
             } else {
                 assertTrue(
                         expect.exception() != null || expect.code() != null,
@@ -186,14 +189,14 @@ class CorpusContractTest {
             String code = testCase.expect().code();
             if (code != null) {
                 assertTrue(
-                        NEGOTIATION_ERROR_CODES.contains(code),
+                        CONTENT_LAYER_ERROR_CODES.contains(code),
                         testCase.errorPrefix() + ": the expected code '" + code
-                                + "' is not one of the seven negotiation error codes");
+                                + "' is not one of the content-layer error codes");
             }
         }
     }
 
-    // ------------------------------------------------------------------ error-code coverage (7 codes)
+    // ------------------------------------------------------------------ error-code coverage
 
     @Test
     void everyNegotiationErrorCodeIsCoveredByAFailureCase() {
@@ -204,7 +207,7 @@ class CorpusContractTest {
             }
         }
         List<String> missing = new ArrayList<>();
-        for (String code : NEGOTIATION_ERROR_CODES) {
+        for (String code : CONTENT_LAYER_ERROR_CODES) {
             if (covered.contains(code)) {
                 continue;
             }
@@ -218,10 +221,10 @@ class CorpusContractTest {
         }
     }
 
-    // ------------------------------------------------------------------ mapCode coverage (5 mappings)
+    // ------------------------------------------------------------------ validate-family code coverage
 
     @Test
-    void everyMapCodeTargetIsCoveredByAValidateFailureCase() {
+    void everyValidateFamilyCodeIsCoveredByAValidateFailureCase() {
         Set<String> covered = new LinkedHashSet<>();
         for (NegotiationCase testCase : allCaseRecords()) {
             if (testCase.api().family() == NegotiationApi.Family.VALIDATE
@@ -231,19 +234,17 @@ class CorpusContractTest {
             }
         }
         List<String> missing = new ArrayList<>();
-        for (Map.Entry<String, String> mapping : MAP_CODE_TARGETS.entrySet()) {
-            if (covered.contains(mapping.getValue())) {
+        for (String code : VALIDATE_FAMILY_ERROR_CODES) {
+            if (covered.contains(code)) {
                 continue;
             }
-            if (REQUIRE_FULL_MAP_CODE_COVERAGE) {
-                fail(
-                        "no validate-family failure case exercises the mapCode mapping " + mapping.getKey() + " -> "
-                        + mapping.getValue() + " yet");
+            if (REQUIRE_FULL_VALIDATE_CODE_COVERAGE) {
+                fail("no validate-family failure case expects the error code '" + code + "' yet");
             }
-            missing.add(mapping.getKey() + " -> " + mapping.getValue());
+            missing.add(code);
         }
         if (!missing.isEmpty()) {
-            System.out.println("mapCode mappings not yet covered by any validate failure case: " + missing);
+            System.out.println("validate-family codes not yet covered by any validate failure case: " + missing);
         }
     }
 
@@ -353,9 +354,7 @@ class CorpusContractTest {
                     liveCase.baseId().startsWith("LIVE-"),
                     liveCase.errorPrefix() + ": the live family ids carry the 'LIVE-' prefix");
             assertEquals(
-                    "zh-CN",
-                    liveCase.language(),
-                    liveCase.errorPrefix() + ": live phase 1 covers zh-CN only (Q6)");
+                    "zh-CN", liveCase.language(), liveCase.errorPrefix() + ": live phase 1 covers zh-CN only (Q6)");
             assertTrue(
                     liveCase.api() == NegotiationApi.GENERATE_TASK_PROMPT_FROM_TEXT
                             || liveCase.api() == NegotiationApi.VALIDATE_TASK_PROMPT_AND_DATA_FILLING,
@@ -376,15 +375,15 @@ class CorpusContractTest {
             for (Map.Entry<String, Object> entry : expect.paramsContains().entrySet()) {
                 assertTrue(
                         entry.getValue() != null,
-                        liveCase.errorPrefix() + ": paramsContains." + entry.getKey()
-                                + " must pin a non-null value");
+                        liveCase.errorPrefix() + ": paramsContains." + entry.getKey() + " must pin a non-null value");
             }
             for (String slot : expect.paramsAbsent()) {
                 assertFalse(slot.isBlank(), liveCase.errorPrefix() + ": paramsAbsent entries must not be blank");
             }
             for (String fragment : expect.promptTextContains()) {
                 assertFalse(
-                        fragment.isBlank(), liveCase.errorPrefix() + ": promptTextContains fragments must not be blank");
+                        fragment.isBlank(),
+                        liveCase.errorPrefix() + ": promptTextContains fragments must not be blank");
             }
             if (expect.maxLlmCalls() != null) {
                 assertTrue(
@@ -396,7 +395,9 @@ class CorpusContractTest {
 
     // ------------------------------------------------------------------ bilingual parity (§7, four definitions)
 
-    /** Parity ①: every happy case of the case files declares both languages, so both expansions run and must succeed. */
+    /**
+     * Parity ①: every happy case of the case files declares both languages, so both expansions run and must succeed.
+     */
     @Test
     void happyCasesDeclareBothLanguages() {
         for (List<NegotiationCase> group : caseFileGroupsByBaseId().values()) {
@@ -412,7 +413,9 @@ class CorpusContractTest {
         }
     }
 
-    /** Parity ②: all language expansions of one record share the identical expectation block, so a failure has one code. */
+    /**
+     * Parity ②: all language expansions of one record share the identical expectation block, so a failure has one code.
+     */
     @Test
     void failureCasesShareTheIdenticalExpectationAcrossLanguages() {
         for (List<NegotiationCase> group : caseFileGroupsByBaseId().values()) {
@@ -437,7 +440,9 @@ class CorpusContractTest {
                 "the golden fixtures must exist in equal numbers for zh-CN and en-US");
     }
 
-    /** Parity ④: every record expands exactly once per declared language — no language is silently dropped or doubled. */
+    /**
+     * Parity ④: every record expands exactly once per declared language — no language is silently dropped or doubled.
+     */
     @Test
     void recordsExpandExactlyOncePerDeclaredLanguage() {
         for (List<NegotiationCase> group : caseFileGroupsByBaseId().values()) {
@@ -449,14 +454,17 @@ class CorpusContractTest {
         }
         Map<String, List<ScenarioCase>> scenarioGroups = new LinkedHashMap<>();
         for (ScenarioCase scenario : CORPUS.scenarios()) {
-            scenarioGroups.computeIfAbsent(scenario.baseId(), key -> new ArrayList<>()).add(scenario);
+            scenarioGroups
+                    .computeIfAbsent(scenario.baseId(), key -> new ArrayList<>())
+                    .add(scenario);
         }
         for (List<ScenarioCase> group : scenarioGroups.values()) {
             Set<String> languages = new LinkedHashSet<>();
             for (ScenarioCase scenario : group) {
                 assertTrue(languages.add(scenario.language()), "duplicate language expansion of " + scenario.id());
             }
-            assertEquals(languages.size(), group.size(), "every declared language must expand into exactly one scenario");
+            assertEquals(
+                    languages.size(), group.size(), "every declared language must expand into exactly one scenario");
         }
     }
 
@@ -482,7 +490,8 @@ class CorpusContractTest {
                 statusFile != null,
                 "docs-local/review/review-status.json not found (run tools/corpus_review.py collect to produce it)");
 
-        JsonNode reviewedCases = new ObjectMapper().readTree(Files.readString(statusFile)).path("cases");
+        JsonNode reviewedCases =
+                new ObjectMapper().readTree(Files.readString(statusFile)).path("cases");
         List<String> notApproved = new ArrayList<>();
         for (List<NegotiationCase> group : caseFileGroupsByBaseId().values()) {
             if (!"P0".equals(group.get(0).priority())) {
@@ -502,7 +511,9 @@ class CorpusContractTest {
     /** The single review status that counts as approved ({@code tools/corpus_review.py}: 通过 / 有疑问 / 否决). */
     private static final String APPROVED_STATUS = "通过";
 
-    /** Locates {@code docs-local/review/review-status.json} by walking up from the working directory to the repo root. */
+    /**
+     * Locates {@code docs-local/review/review-status.json} by walking up from the working directory to the repo root.
+     */
     private static @Nullable Path findReviewStatusFile() {
         Path directory = Path.of(".").toAbsolutePath();
         while (directory != null) {
@@ -542,8 +553,7 @@ class CorpusContractTest {
         Set<String> languages = new LinkedHashSet<>();
         for (NegotiationCase expansion : group) {
             assertTrue(
-                    languages.add(expansion.language()),
-                    "duplicate language expansion of " + expansion.errorPrefix());
+                    languages.add(expansion.language()), "duplicate language expansion of " + expansion.errorPrefix());
         }
         return languages;
     }
@@ -556,7 +566,8 @@ class CorpusContractTest {
         try {
             Path directory = Path.of(url.toURI());
             try (Stream<Path> files = Files.list(directory)) {
-                return (int) files.filter(file -> file.getFileName().toString().endsWith(".md")).count();
+                return (int) files.filter(file -> file.getFileName().toString().endsWith(".md"))
+                        .count();
             }
         } catch (URISyntaxException | IOException exception) {
             throw new IllegalStateException("Failed to list the golden fixtures of " + language, exception);

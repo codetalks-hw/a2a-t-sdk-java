@@ -219,8 +219,8 @@
         "schema": { "$ref": "schemas/biz.complaint.params" },
         "expect": {
           "outcome": "failure",
-          "code": "negotiation_rule_violation",
-          "slotErrors": [ { "slot": "round", "code": "out_of_range" } ],
+          "code": "negotiation.rule_violation",
+          "slotErrors": [ { "slot": "round", "code": "negotiation.round_exceeded" } ],
           "llmCalls": 0
         }
       },
@@ -486,8 +486,8 @@
         "llm": { "script": [ { "$ref": "responses/semantic.information.reject" } ] },
         "expect": {
           "outcome": "failure",
-          "code": "negotiation_semantic_rejected",
-          "slotErrors": [ { "slot": "accessPort", "code": "missing" } ],
+          "code": "negotiation.semantic_rejected",
+          "slotErrors": [ { "slot": "accessPort", "code": "negotiation.field_missing" } ],
           "llmCalls": 1
         }
       },
@@ -709,15 +709,15 @@
         "schema": { "$ref": "schemas/biz.complaint.params" },
         "llm": {
           "script": [
-            "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"投诉分类\",\"code\":\"missing\",\"message\":\"The message is truncated and the item is missing.\"},{\"slot_name\":\"专线业务标识\",\"code\":\"missing\",\"message\":\"The message is truncated and the item is missing.\"}],\"params\":{}}"
+            "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"投诉分类\",\"code\":\"missing\",\"facts\":{\"section_label\":\"投诉分类\"}},{\"slot_name\":\"专线业务标识\",\"code\":\"missing\",\"facts\":{\"section_label\":\"专线业务标识\"}}],\"params\":{}}"
           ]
         },
         "expect": {
           "outcome": "failure",
-          "code": "negotiation_semantic_rejected",
+          "code": "negotiation.semantic_rejected",
           "slotErrors": [
-            { "slot": "投诉分类", "code": "missing" },
-            { "slot": "专线业务标识", "code": "missing" }
+            { "slot": "投诉分类", "code": "negotiation.rule_violation" },
+            { "slot": "专线业务标识", "code": "negotiation.rule_violation" }
           ],
           "llmCalls": 1
         }
@@ -815,15 +815,15 @@
         "schema": { "$ref": "schemas/biz.complaint.params" },
         "llm": {
           "script": [
-            "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"接入端口名称\",\"code\":\"unreadable\",\"message\":\"The item value is garbled and unreadable.\"},{\"slot_name\":\"投诉分类\",\"code\":\"unreadable\",\"message\":\"The item value is garbled and unreadable.\"}],\"params\":{}}"
+            "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":\"接入端口名称\",\"code\":\"unreadable\",\"facts\":{\"section_label\":\"接入端口名称\"}},{\"slot_name\":\"投诉分类\",\"code\":\"unreadable\",\"facts\":{\"section_label\":\"投诉分类\"}}],\"params\":{}}"
           ]
         },
         "expect": {
           "outcome": "failure",
-          "code": "negotiation_semantic_rejected",
+          "code": "negotiation.semantic_rejected",
           "slotErrors": [
-            { "slot": "接入端口名称", "code": "unreadable" },
-            { "slot": "投诉分类", "code": "unreadable" }
+            { "slot": "接入端口名称", "code": "negotiation.rule_violation" },
+            { "slot": "投诉分类", "code": "negotiation.rule_violation" }
           ],
           "llmCalls": 1
         }

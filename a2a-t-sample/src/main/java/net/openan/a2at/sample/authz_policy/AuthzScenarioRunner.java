@@ -9,7 +9,7 @@ import net.openan.a2at.sample.authz_policy.AuthzScenario.ClientExpected;
 import net.openan.a2at.sample.authz_policy.AuthzScenario.ServerExpected;
 import net.openan.a2at.sample.authz_policy.AuthzScenario.SlotErrorExpectation;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.PromptGenerationException;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
@@ -50,7 +50,7 @@ public final class AuthzScenarioRunner {
         } catch (A2ATError e) {
             return buildClientErrorOutcome(scenario, e, null);
         } catch (RuntimeException e) {
-            A2ATError wrapped = new A2ATError(A2ATErrorCodes.SDK_INTERNAL_ERROR, e.getMessage(), e);
+            A2ATError wrapped = new A2ATError(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), e.getMessage(), e);
             return buildClientErrorOutcome(scenario, wrapped, null);
         }
 
@@ -82,7 +82,7 @@ public final class AuthzScenarioRunner {
         } catch (A2ATError e) {
             return buildServerErrorOutcome(scenario, e, metadata, clientPromptMatch, warnings);
         } catch (RuntimeException e) {
-            A2ATError wrapped = new A2ATError(A2ATErrorCodes.SDK_INTERNAL_ERROR, e.getMessage(), e);
+            A2ATError wrapped = new A2ATError(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), e.getMessage(), e);
             return buildServerErrorOutcome(scenario, wrapped, metadata, clientPromptMatch, warnings);
         }
 
@@ -266,7 +266,7 @@ public final class AuthzScenarioRunner {
     /**
      * Result of one scenario run.
      *
-     * @param outcome actual outcome code ({@code success} or an {@code A2ATErrorCodes} value)
+     * @param outcome actual outcome code ({@code success} or an {@code ErrorCatalog} code)
      * @param match whether the actual behaviour satisfies all staged expectations
      * @param error the raised error, if any
      * @param slotErrors actual per-slot error details

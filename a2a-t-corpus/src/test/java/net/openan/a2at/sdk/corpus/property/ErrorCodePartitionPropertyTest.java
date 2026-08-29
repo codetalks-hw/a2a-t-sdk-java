@@ -6,25 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Set;
-import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Arbitraries;
+import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
-import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.corpus.LlmFailMarker;
+import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
-import net.openan.a2at.sdk.corpus.LlmFailMarker;
-import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
 
 /**
- * Error-code partition property layer (design §8.3): the public error-code universe partitions into exactly the seven
- * negotiation codes, and the retryable partition is exactly the two LLM-step codes.
+ * Error-code partition property layer (design §8.3): the public error-code universe partitions into exactly the
+ * content-layer {@link ErrorCatalog} codes, and the retryable partition is exactly the three retryable LLM-step codes.
  *
  * <p>Every trigger runs with the attempt limit fixed at {@link PropertyHarness#MAX_ATTEMPTS}, so the retryable
  * partition has an operational definition observable from the outside: a failure code is retryable if and only if the
@@ -35,30 +34,34 @@ import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
  */
 class ErrorCodePartitionPropertyTest {
 
-    /** The complete public negotiation error-code set of the content layer. */
-    private static final Set<String> NEGOTIATION_ERROR_CODES = Set.of(
-            A2ATErrorCodes.TEMPLATE_NOT_FOUND,
-            A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED,
-            A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED,
-            A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION,
-            A2ATErrorCodes.NEGOTIATION_SLOT_MISSING,
-            A2ATErrorCodes.NEGOTIATION_INVALID_INPUT,
-            A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR);
+    /** The complete public error-code set of the content layer (ErrorCatalog codes). */
+    private static final Set<String> CONTENT_LAYER_ERROR_CODES = Set.of(
+            ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(),
+            ErrorCatalog.NEGOTIATION_CONTENT_EXTRACT_FAILED.getCode(),
+            ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode(),
+            ErrorCatalog.NEGOTIATION_CONTENT_INVALID.getCode(),
+            ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(),
+            ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(),
+            ErrorCatalog.NEGOTIATION_FIELD_MISSING.getCode(),
+            ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+            ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
+            ErrorCatalog.LLM_RESPONSE_INVALID.getCode());
 
-    /** The retryable partition: exactly the two LLM-step codes of the design document. */
+    /** The retryable partition: exactly the three retryable LLM-step codes of the content layer. */
     private static final Set<String> RETRYABLE_ERROR_CODES = Set.of(
-            A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED,
-            A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR);
+            ErrorCatalog.NEGOTIATION_CONTENT_EXTRACT_FAILED.getCode(),
+            ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
+            ErrorCatalog.LLM_RESPONSE_INVALID.getCode());
 
     @Property(tries = 100, seed = "20260920")
-    void everyFailureCarriesACodeFromTheSevenCodeSet(
+    void everyFailureCarriesACodeFromTheContentLayerCodeSet(
             @ForAll("languages") String language,
             @ForAll("contexts") NegotiationContext context,
             @ForAll("failureTriggers") FailureTrigger trigger) {
         FailureOutcome outcome = trigger.run(language, context);
         assertTrue(
-                NEGOTIATION_ERROR_CODES.contains(outcome.code()),
-                "code '" + outcome.code() + "' is outside the seven negotiation error codes");
+                CONTENT_LAYER_ERROR_CODES.contains(outcome.code()),
+                "code '" + outcome.code() + "' is outside the content-layer error codes");
         assertEquals(trigger.expectedCode(), outcome.code());
         assertEquals(
                 RETRYABLE_ERROR_CODES.contains(outcome.code()),
@@ -75,7 +78,7 @@ class ErrorCodePartitionPropertyTest {
         BLANK_TEXT {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_INVALID_INPUT;
+                return ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode();
             }
 
             @Override
@@ -94,7 +97,7 @@ class ErrorCodePartitionPropertyTest {
         CONCLUSION_MISMATCH {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_INVALID_INPUT;
+                return ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode();
             }
 
             @Override
@@ -114,7 +117,7 @@ class ErrorCodePartitionPropertyTest {
         MISSING_REQUIRED_FIELD {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_SLOT_MISSING;
+                return ErrorCatalog.NEGOTIATION_FIELD_MISSING.getCode();
             }
 
             @Override
@@ -133,7 +136,7 @@ class ErrorCodePartitionPropertyTest {
         ROUND_ABOVE_BUDGET {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION;
+                return ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode();
             }
 
             @Override
@@ -156,15 +159,16 @@ class ErrorCodePartitionPropertyTest {
         SEMANTIC_REJECTED {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED;
+                return ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode();
             }
 
             @Override
             FailureOutcome run(String language, NegotiationContext context) {
-                ScriptedNegotiationLlmClient llm = PropertyHarness.scripted(
-                        "{\"semantic_verdict\":false,\"negotiation_type\":\"information\","
-                                + "\"errors\":[{\"slot_name\":\"region\",\"code\":\"missing\","
-                                + "\"message\":\"The region parameter is missing.\"}],\"params\":{}}");
+                ScriptedNegotiationLlmClient llm =
+                        PropertyHarness.scripted("{\"semantic_verdict\":false,\"negotiation_type\":\"information\","
+                                + "\"errors\":[{\"slot_name\":\"region\",\"code\":"
+                                + "\"negotiation.field_missing\",\"facts\":{\"field\":\"区域\"}}],"
+                                + "\"params\":{}}");
                 NegotiationContentService service = PropertyHarness.service(language, llm);
                 A2ATError error = assertThrows(
                         NegotiationParamExtractionException.class,
@@ -176,10 +180,10 @@ class ErrorCodePartitionPropertyTest {
                 return new FailureOutcome(error.getCode(), llm.callCount());
             }
         },
-        EXTRACT_FAILED {
+        RESPONSE_INVALID {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_CONTENT_EXTRACT_FAILED;
+                return ErrorCatalog.LLM_RESPONSE_INVALID.getCode();
             }
 
             @Override
@@ -198,7 +202,7 @@ class ErrorCodePartitionPropertyTest {
         LLM_INFRASTRUCTURE_ERROR {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR;
+                return ErrorCatalog.LLM_INVOCATION_FAILED.getCode();
             }
 
             @Override
@@ -217,14 +221,13 @@ class ErrorCodePartitionPropertyTest {
         TEMPLATE_NOT_FOUND {
             @Override
             String expectedCode() {
-                return A2ATErrorCodes.TEMPLATE_NOT_FOUND;
+                return ErrorCatalog.TEMPLATE_NOT_FOUND.getCode();
             }
 
             @Override
             FailureOutcome run(String language, NegotiationContext context) {
                 ScriptedNegotiationLlmClient llm = ScriptedNegotiationLlmClient.assertionOnly();
-                NegotiationContentService service =
-                        PropertyHarness.serviceWithFailingTemplateLoader(language, llm);
+                NegotiationContentService service = PropertyHarness.serviceWithFailingTemplateLoader(language, llm);
                 A2ATError error = assertThrows(
                         NegotiationGenerationException.class,
                         () -> service.generateProposeFromText(

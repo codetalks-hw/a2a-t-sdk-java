@@ -6,14 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.llm.LLMRuntimeError;
@@ -21,10 +21,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Offline unit tests of the {@link LiveCaseEngine} judging logic: a step-playing stub client drives the real
- * production assembly exactly the way a live endpoint would (the scripted responses reuse the response shapes the
- * offline task scenarios script), so the expectation assertions, the infra-only retry and the transcript verdicts are
- * verified without any endpoint.
+ * Offline unit tests of the {@link LiveCaseEngine} judging logic: a step-playing stub client drives the real production
+ * assembly exactly the way a live endpoint would (the scripted responses reuse the response shapes the offline task
+ * scenarios script), so the expectation assertions, the infra-only retry and the transcript verdicts are verified
+ * without any endpoint.
  *
  * @since 2026-08
  */
@@ -55,8 +55,8 @@ class LiveCaseEngineTest {
     /** Validate-step response of a semantically contradictory prompt (the semantic-reject probes). */
     private static final String VALIDATE_REJECT_RESPONSE =
             """
-            {"semantic_verdict":false,"errors":[{"slot_name":"bizScenario","code":"semantic_mismatch",\
-            "message":"投诉分类声明为专线质差，投诉详情却描述完全中断"}],"params":{}}""";
+            {"semantic_verdict":false,"errors":[{"slot_name":"bizScenario","code":"content.semantic_conflict",\
+            "facts":{"section_label":"投诉分类","reason":"投诉分类声明为专线质差，投诉详情却描述完全中断"}}],"params":{}}""";
 
     /** Hand-authored prompt following the Task-T private-line template structure (the validate family's input). */
     private static final String VALIDATE_PROMPT =
@@ -118,7 +118,8 @@ class LiveCaseEngineTest {
     @Test
     void validateCaseAssertsParamsContainsAndParamsAbsent() {
         LiveTranscript.Run run = LiveTranscript.createRun(tempDir);
-        LiveCaseEngine engine = new LiveCaseEngine(new StepStubClient(List.of(VALIDATE_PARTIAL_RESPONSE)), 2, null, run);
+        LiveCaseEngine engine =
+                new LiveCaseEngine(new StepStubClient(List.of(VALIDATE_PARTIAL_RESPONSE)), 2, null, run);
         LiveCase testCase = validateCase(new LiveExpectation(
                 true,
                 null,
@@ -156,12 +157,7 @@ class LiveCaseEngineTest {
         LiveCaseEngine engine = new LiveCaseEngine(
                 new StepStubClient(List.of(SLOT_EXTRACTION_RESPONSE, VALIDATE_PASS_RESPONSE)), 2, null, run);
         LiveCase testCase = generateCase(new LiveExpectation(
-                true,
-                null,
-                Map.of("accessPort", "P999-不存在-PTN0000-0-TPA1EG24-0"),
-                List.of(),
-                List.of(),
-                4));
+                true, null, Map.of("accessPort", "P999-不存在-PTN0000-0-TPA1EG24-0"), List.of(), List.of(), 4));
 
         AssertionError failure =
                 assertThrows(AssertionError.class, () -> engine.run(testCase), "a paramsContains mismatch is a red");
@@ -176,14 +172,12 @@ class LiveCaseEngineTest {
         LiveTranscript.Run run = LiveTranscript.createRun(tempDir);
         LiveCaseEngine engine = new LiveCaseEngine(
                 new StepStubClient(List.of(
-                        new LLMRuntimeError("endpoint unreachable"),
-                        SLOT_EXTRACTION_RESPONSE,
-                        VALIDATE_PASS_RESPONSE)),
+                        new LLMRuntimeError("endpoint unreachable"), SLOT_EXTRACTION_RESPONSE, VALIDATE_PASS_RESPONSE)),
                 2,
                 null,
                 run);
-        LiveCase testCase = generateCase(
-                new LiveExpectation(true, null, Map.of("bizScenario", "专线质差"), List.of(), List.of(), 4));
+        LiveCase testCase =
+                generateCase(new LiveExpectation(true, null, Map.of("bizScenario", "专线质差"), List.of(), List.of(), 4));
 
         LiveCaseResult result = engine.run(testCase);
 
@@ -197,10 +191,10 @@ class LiveCaseEngineTest {
     @Test
     void exhaustedInfrastructureRetriesRecordAnErrorAndStayRed() {
         LiveTranscript.Run run = LiveTranscript.createRun(tempDir);
-        LiveCaseEngine engine =
-                new LiveCaseEngine(new StepStubClient(List.of(new LLMRuntimeError("endpoint unreachable"))), 0, null, run);
-        LiveCase testCase = generateCase(
-                new LiveExpectation(true, null, Map.of("bizScenario", "专线质差"), List.of(), List.of(), 4));
+        LiveCaseEngine engine = new LiveCaseEngine(
+                new StepStubClient(List.of(new LLMRuntimeError("endpoint unreachable"))), 0, null, run);
+        LiveCase testCase =
+                generateCase(new LiveExpectation(true, null, Map.of("bizScenario", "专线质差"), List.of(), List.of(), 4));
 
         assertThrows(RuntimeException.class, () -> engine.run(testCase), "a surviving infra failure stays a red");
 
@@ -223,8 +217,7 @@ class LiveCaseEngineTest {
                 "engine test case of the generate API",
                 null,
                 "Task-T/network-layer/private-line-complaint/v1",
-                "深圳访问广州的政企专线自5月11日起时延骤升，柜面交易频繁超时。"
-                        + "接入端口名称：P533-珠江旧城-PTN3900-23-TPA1EG24-1；投诉分类：专线质差。",
+                "深圳访问广州的政企专线自5月11日起时延骤升，柜面交易频繁超时。" + "接入端口名称：P533-珠江旧城-PTN3900-23-TPA1EG24-1；投诉分类：专线质差。",
                 null,
                 complaintParamsSchema(),
                 expect);

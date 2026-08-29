@@ -18,8 +18,8 @@ language expansion is listed per record and totaled in the statistics.
 | Language-expanded units | 234 |
 | Shared LLM payloads | 35 |
 | Shared schema variants | 8 |
-| Error codes covered | 7 (negotiation_content_extract_failed, negotiation_invalid_input, negotiation_llm_infrastructure_error, negotiation_rule_violation, negotiation_semantic_rejected, negotiation_slot_missing, template_not_found) |
-| Exception-only failures | 33 (IllegalArgumentException, NullPointerException) |
+| Error codes covered | 10 (llm.invocation_failed, llm.response_invalid, negotiation.conclusion_mismatch, negotiation.content_extract_failed, negotiation.content_invalid, negotiation.field_missing, negotiation.invalid_input, negotiation.rule_violation, negotiation.semantic_rejected, template.not_found) |
+| Exception-only failures | 25 (IllegalArgumentException, NullPointerException) |
 
 Priority distribution (case records; scenarios carry no priority):
 
@@ -86,23 +86,23 @@ Cells count base records (case records plus scenario steps) per API and category
 
 Cells count base records per API and expectation; the `exception` column aggregates failures that assert only an exception type (failures carrying both an exception and a code are counted under their code).
 
-| API | `success` | `negotiation_content_extract_failed` | `negotiation_invalid_input` | `negotiation_llm_infrastructure_error` | `negotiation_rule_violation` | `negotiation_semantic_rejected` | `negotiation_slot_missing` | `template_not_found` | `exception` | Total |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `generateProposeFromText` | 32 | 7 | 3 | 1 | - | - | 1 | 1 | 2 | 47 |
-| `generateAcceptFromText` | 20 | 2 | 3 | 1 | - | - | 3 | 1 | 2 | 32 |
-| `generateRejectFromText` | 10 | - | 1 | 1 | - | - | 1 | 1 | 1 | 15 |
-| `generateAbortFromText` | 6 | - | - | - | - | - | 2 | 1 | 1 | 10 |
-| `generateProposeFromData` | 4 | - | - | - | - | - | - | - | 8 | 12 |
-| `generateAcceptFromData` | 3 | - | - | - | - | - | - | - | 4 | 7 |
-| `generateRejectFromData` | 3 | - | - | - | - | - | - | - | 2 | 5 |
-| `generateAbortFromData` | 1 | - | - | - | - | - | - | - | - | 1 |
-| `validateProposePromptAndDataFilling` | 17 | - | 3 | 3 | 7 | 10 | - | 1 | 4 | 45 |
-| `validateAcceptPromptAndDataFilling` | 23 | - | 2 | 3 | - | 2 | - | - | 3 | 33 |
-| `validateRejectPromptAndDataFilling` | 6 | - | 2 | - | - | 1 | - | - | 3 | 12 |
-| `validateAbortPromptAndDataFilling` | 6 | - | 2 | - | - | 1 | - | - | 3 | 12 |
-| `generateTaskPromptFromText` | 7 | - | - | - | - | - | - | - | - | 7 |
-| `generateTaskPromptFromDataWithSchema` | 1 | - | - | - | - | - | - | - | - | 1 |
-| `validateTaskPromptAndDataFilling` | 8 | - | - | - | - | - | - | - | - | 8 |
+| API | `success` | `llm.invocation_failed` | `llm.response_invalid` | `negotiation.conclusion_mismatch` | `negotiation.content_extract_failed` | `negotiation.content_invalid` | `negotiation.field_missing` | `negotiation.invalid_input` | `negotiation.rule_violation` | `negotiation.semantic_rejected` | `template.not_found` | `exception` | Total |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `generateProposeFromText` | 32 | 1 | 3 | - | 4 | - | 1 | 3 | - | - | 1 | 2 | 47 |
+| `generateAcceptFromText` | 20 | 1 | 1 | 2 | 1 | - | 3 | 1 | - | - | 1 | 2 | 32 |
+| `generateRejectFromText` | 10 | 1 | - | 1 | - | - | 1 | - | - | - | 1 | 1 | 15 |
+| `generateAbortFromText` | 6 | - | - | - | - | - | 2 | - | - | - | 1 | 1 | 10 |
+| `generateProposeFromData` | 4 | - | - | - | - | 2 | - | - | - | - | - | 6 | 12 |
+| `generateAcceptFromData` | 3 | - | - | 2 | - | 2 | - | - | - | - | - | - | 7 |
+| `generateRejectFromData` | 3 | - | - | 1 | - | 1 | - | - | - | - | - | - | 5 |
+| `generateAbortFromData` | 1 | - | - | - | - | - | - | - | - | - | - | - | 1 |
+| `validateProposePromptAndDataFilling` | 17 | 1 | 2 | - | - | - | - | 3 | 7 | 10 | 1 | 4 | 45 |
+| `validateAcceptPromptAndDataFilling` | 23 | 1 | 2 | - | - | - | - | 2 | - | 2 | - | 3 | 33 |
+| `validateRejectPromptAndDataFilling` | 6 | - | - | - | - | - | - | 2 | - | 1 | - | 3 | 12 |
+| `validateAbortPromptAndDataFilling` | 6 | - | - | - | - | - | - | 2 | - | 1 | - | 3 | 12 |
+| `generateTaskPromptFromText` | 7 | - | - | - | - | - | - | - | - | - | - | - | 7 |
+| `generateTaskPromptFromDataWithSchema` | 1 | - | - | - | - | - | - | - | - | - | - | - | 1 |
+| `validateTaskPromptAndDataFilling` | 8 | - | - | - | - | - | - | - | - | - | - | - | 8 |
 
 ## Case index
 
@@ -110,21 +110,21 @@ Cells count base records per API and expectation; the `exception` column aggrega
 
 | Id | API | Languages | Priority | Expectation | Summary |
 |---|---|---|---|---|---|
-| FT-EXTRACT-01 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_slot_missing) | 补数接受消息抽取结果缺少结论字段时生成失败并返回槽位缺失错误码，不发起重试 |
-| FT-EXTRACT-02 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_invalid_input) | 补数接受消息抽取出的结论为拒绝时判定为内容与阶段矛盾，立即失败并返回输入无效错误码 |
-| FT-EXTRACT-03 | `generateRejectFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_invalid_input) | 无法提供端口名的拒绝消息抽取出的结论为接受时判定为内容与阶段矛盾，立即失败并返回输入无效错误码 |
-| FT-EXTRACT-04 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_slot_missing) | 要数提议消息抽取结果缺少信息项列表时生成失败并返回槽位缺失错误码 |
-| FT-EXTRACT-05 | `generateProposeFromText` | en-US | P1 | (NegotiationGenerationException, negotiation_content_extract_failed) | 要数信息项列表被抽取为字符串而非数组时内容抽取失败，单次尝试额度即耗尽并返回抽取失败错误码 |
-| FT-EXTRACT-06 | `generateProposeFromText` | zh-CN | P2 | (NegotiationGenerationException, negotiation_content_extract_failed) | 要数信息项缺少名称字段时内容抽取失败，返回抽取失败错误码 |
-| FT-EXTRACT-07 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_content_extract_failed) | 结论字面量大小写错误（ACCEPT 而非 Accept）时内容抽取失败，返回抽取失败错误码 |
-| FT-EXTRACT-08 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_slot_missing) | 修复目标接受消息抽取结果缺少最终确认意图时生成失败并返回槽位缺失错误码 |
-| FT-EXTRACT-09 | `generateRejectFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_slot_missing) | 修复目标拒绝消息抽取结果缺少拒绝原因时生成失败并返回槽位缺失错误码 |
-| FT-EXTRACT-10 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_invalid_input) | 端口扩容可行性提议消息抽取结果缺少动作字段时判定为内容矛盾，立即失败并返回输入无效错误码 |
-| FT-EXTRACT-11 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_content_extract_failed) | 动作字段为未知枚举值时内容抽取失败，单次尝试额度即耗尽并返回抽取失败错误码 |
-| FT-EXTRACT-12 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_invalid_input) | 请求可行性评估却未抽取到任何待评估内容时判定为内容矛盾，立即失败并返回输入无效错误码 |
-| FT-EXTRACT-13 | `generateAbortFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_slot_missing) | 协商终止消息抽取结果缺少终止原因时生成失败并返回槽位缺失错误码 |
-| FT-EXTRACT-14 | `generateAbortFromText` | zh-CN | P2 | (NegotiationGenerationException, negotiation_slot_missing) | 终止原因为空白字符串时等同于缺失，生成失败并返回槽位缺失错误码 |
-| FT-EXTRACT-15 | `generateProposeFromText` | zh-CN | P2 | (NegotiationGenerationException, negotiation_content_extract_failed) | 信息项取值为数字而非字符串时内容抽取失败，返回抽取失败错误码 |
+| FT-EXTRACT-01 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.field_missing) | 补数接受消息抽取结果缺少结论字段时生成失败并返回槽位缺失错误码，不发起重试 |
+| FT-EXTRACT-02 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.conclusion_mismatch) | 补数接受消息抽取出的结论为拒绝时判定为结论与阶段不符，立即失败并返回结论不符错误码 |
+| FT-EXTRACT-03 | `generateRejectFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.conclusion_mismatch) | 无法提供端口名的拒绝消息抽取出的结论为接受时判定为结论与阶段不符，立即失败并返回结论不符错误码 |
+| FT-EXTRACT-04 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.field_missing) | 要数提议消息抽取结果缺少信息项列表时生成失败并返回槽位缺失错误码 |
+| FT-EXTRACT-05 | `generateProposeFromText` | en-US | P1 | (NegotiationGenerationException, negotiation.content_extract_failed) | 要数信息项列表被抽取为字符串而非数组时内容抽取失败，单次尝试额度即耗尽并返回抽取失败错误码 |
+| FT-EXTRACT-06 | `generateProposeFromText` | zh-CN | P2 | (NegotiationGenerationException, negotiation.content_extract_failed) | 要数信息项缺少名称字段时内容抽取失败，返回抽取失败错误码 |
+| FT-EXTRACT-07 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_extract_failed) | 结论字面量大小写错误（ACCEPT 而非 Accept）时内容抽取失败，返回抽取失败错误码 |
+| FT-EXTRACT-08 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.field_missing) | 修复目标接受消息抽取结果缺少最终确认意图时生成失败并返回槽位缺失错误码 |
+| FT-EXTRACT-09 | `generateRejectFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.field_missing) | 修复目标拒绝消息抽取结果缺少拒绝原因时生成失败并返回槽位缺失错误码 |
+| FT-EXTRACT-10 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.invalid_input) | 端口扩容可行性提议消息抽取结果缺少动作字段时判定为内容矛盾，立即失败并返回输入无效错误码 |
+| FT-EXTRACT-11 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_extract_failed) | 动作字段为未知枚举值时内容抽取失败，单次尝试额度即耗尽并返回抽取失败错误码 |
+| FT-EXTRACT-12 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.invalid_input) | 请求可行性评估却未抽取到任何待评估内容时判定为内容矛盾，立即失败并返回输入无效错误码 |
+| FT-EXTRACT-13 | `generateAbortFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.field_missing) | 协商终止消息抽取结果缺少终止原因时生成失败并返回槽位缺失错误码 |
+| FT-EXTRACT-14 | `generateAbortFromText` | zh-CN | P2 | (NegotiationGenerationException, negotiation.field_missing) | 终止原因为空白字符串时等同于缺失，生成失败并返回槽位缺失错误码 |
+| FT-EXTRACT-15 | `generateProposeFromText` | zh-CN | P2 | (NegotiationGenerationException, negotiation.content_extract_failed) | 信息项取值为数字而非字符串时内容抽取失败，返回抽取失败错误码 |
 
 ### FT-HAPPY -- from-text/happy.json
 
@@ -150,8 +150,8 @@ Cells count base records per API and expectation; the `exception` column aggrega
 |---|---|---|---|---|---|
 | FT-PROG-01 | `generateProposeFromText` | zh-CN | P0 | (NullPointerException) | 协商上下文缺失时生成投诉诊断的信息协商提议在管线入口直接失败，抛出空指针异常且不发起任何大模型调用 |
 | FT-PROG-02 | `generateAcceptFromText` | zh-CN | P0 | (NullPointerException) | 模板地址缺失时生成信息协商接受消息在地址解析入口直接失败，抛出空指针异常且不发起任何大模型调用 |
-| FT-PROG-03 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_invalid_input) | 调用方未传入任何投诉诊断自然语言内容时生成提议消息被拒绝，返回无效输入错误码且不发起任何大模型调用 |
-| FT-PROG-04 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_invalid_input) | 投诉诊断补充内容仅含空白字符时生成接受消息被拒绝，返回无效输入错误码且不发起任何大模型调用 |
+| FT-PROG-03 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.invalid_input) | 调用方未传入任何投诉诊断自然语言内容时生成提议消息被拒绝，返回无效输入错误码且不发起任何大模型调用 |
+| FT-PROG-04 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation.invalid_input) | 投诉诊断补充内容仅含空白字符时生成接受消息被拒绝，返回无效输入错误码且不发起任何大模型调用 |
 | FT-PROG-05 | `generateProposeFromText` | zh-CN | P1 | (IllegalArgumentException) | 模板地址误用未发布的 v2 版本段时生成信息协商提议在地址校验即被拒绝，抛出参数异常且不发起任何大模型调用 |
 | FT-PROG-06 | `generateAcceptFromText` | zh-CN | P1 | (IllegalArgumentException) | 模板地址误用 Task-T 扩展名时生成信息协商接受消息在地址校验即被拒绝，抛出参数异常且不发起任何大模型调用 |
 | FT-PROG-07 | `generateRejectFromText` | zh-CN | P1 | (IllegalArgumentException) | 模板地址中协商类型拼写错误时生成信息协商拒绝消息在地址校验即被拒绝，抛出参数异常且不发起任何大模型调用 |
@@ -161,28 +161,28 @@ Cells count base records per API and expectation; the `exception` column aggrega
 
 | Id | API | Languages | Priority | Expectation | Summary |
 |---|---|---|---|---|---|
-| FT-RETRY-01 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_content_extract_failed) | 最大尝试次数为1时大模型返回不可解析内容，不发起任何重试即以抽取失败错误码失败 |
-| FT-RETRY-02 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_content_extract_failed) | 最大尝试次数为2时大模型连续返回空响应与空白内容，尝试耗尽后仍以原始的抽取失败错误码失败 |
-| FT-RETRY-03 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_content_extract_failed) | 最大尝试次数为3时三种不可解析形态依次出现，三次尝试耗尽后以抽取失败错误码失败 |
-| FT-RETRY-04 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_llm_infrastructure_error) | 最大尝试次数为1时底层通道抛出运行时异常，不重试即以基础设施错误码失败且异常细节不外泄 |
-| FT-RETRY-05 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_llm_infrastructure_error) | 最大尝试次数为2时底层先后出现传输异常与错误响应，尝试耗尽后仍以基础设施错误码失败 |
-| FT-RETRY-06 | `generateRejectFromText` | zh-CN | P1 | (NegotiationGenerationException, negotiation_llm_infrastructure_error) | 最大尝试次数为3时基础设施错误持续出现，三次尝试耗尽后以基础设施错误码失败 |
+| FT-RETRY-01 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, llm.response_invalid) | 最大尝试次数为1时大模型返回不可解析内容，不发起任何重试即以 LLM 响应无效错误码失败 |
+| FT-RETRY-02 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, llm.response_invalid) | 最大尝试次数为2时大模型连续返回空响应与空白内容，尝试耗尽后仍以原始的 LLM 响应无效错误码失败 |
+| FT-RETRY-03 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, llm.response_invalid) | 最大尝试次数为3时三种不可解析形态依次出现，三次尝试耗尽后以 LLM 响应无效错误码失败 |
+| FT-RETRY-04 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, llm.invocation_failed) | 最大尝试次数为1时底层通道抛出运行时异常，不重试即以 llm.invocation_failed 失败 |
+| FT-RETRY-05 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, llm.invocation_failed) | 最大尝试次数为2时底层先后出现传输异常与错误响应，尝试耗尽后仍以 llm.invocation_failed 失败 |
+| FT-RETRY-06 | `generateRejectFromText` | zh-CN | P1 | (NegotiationGenerationException, llm.invocation_failed) | 最大尝试次数为3时基础设施错误持续出现，三次尝试耗尽后以 llm.invocation_failed 失败 |
 | FT-RETRY-07 | `generateAcceptFromText` | en-US, zh-CN | P0 | success | 首次返回不可解析内容后第二次返回合法补数接受内容，重试后成功生成携带接入端口名称与投诉分类的接受消息（共享应答单一语种，双语 golden 等值断言降级为内容包含） |
 | FT-RETRY-08 | `generateProposeFromText` | en-US, zh-CN | P0 | success | 首次底层传输异常后第二次抽取成功，重试后生成向工作台补充三项缺失信息的要数提议消息且异常细节不外泄（共享应答单一语种，双语 golden 等值断言降级为内容包含） |
 | FT-RETRY-09 | `generateAcceptFromText` | en-US, zh-CN | P1 | success | 前两次分别出现基础设施错误与不可解析内容，第三次抽取成功，在最后一次尝试额度内恢复生成修复目标接受消息（共享应答单一语种，双语 golden 等值断言降级为内容包含） |
 | FT-RETRY-10 | `generateAbortFromText` | en-US, zh-CN | P1 | success | 协商终止消息首次抽取到空白内容后第二次成功，重试后生成含终止原因的协商终止消息（共享应答单一语种，双语 golden 等值断言降级为内容包含） |
-| FT-RETRY-11 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_slot_missing) | 抽取结果缺少结论字段属于不可重试错误，即使还有三次尝试额度也只调用一次大模型即失败 |
-| FT-RETRY-12 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_invalid_input) | 结论与阶段矛盾属于不可重试错误，即使还有三次尝试额度也只调用一次大模型即失败 |
-| FT-RETRY-13 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation_content_extract_failed) | 两次失败形态不同（基础设施错误后接不可解析内容）时，耗尽后重抛最后一次失败的原始错误码而非统一的耗尽错误码 |
+| FT-RETRY-11 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.field_missing) | 抽取结果缺少结论字段属于不可重试错误，即使还有三次尝试额度也只调用一次大模型即失败 |
+| FT-RETRY-12 | `generateAcceptFromText` | zh-CN | P0 | (NegotiationGenerationException, negotiation.conclusion_mismatch) | 结论与阶段矛盾属于不可重试错误，即使还有三次尝试额度也只调用一次大模型即失败 |
+| FT-RETRY-13 | `generateProposeFromText` | zh-CN | P0 | (NegotiationGenerationException, llm.response_invalid) | 两次失败形态不同（基础设施错误后接不可解析内容）时，耗尽后重抛最后一次失败的原始错误码（llm.response_invalid）而非统一的耗尽错误码 |
 
 ### FT-TPL -- from-text/template-resolution.json
 
 | Id | API | Languages | Priority | Expectation | Summary |
 |---|---|---|---|---|---|
-| FT-TPL-01 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, template_not_found) | 模板加载器不可用时生成投诉诊断信息协商接受消息失败并返回 template_not_found 错误码，且不发起任何 LLM 调用 |
-| FT-TPL-02 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, template_not_found) | 模板加载器不可用时生成要数提议消息失败并返回 template_not_found 错误码，模板加载发生在重试循环之外，即使配置了重试次数也不重试且不发起任何 LLM 调用 |
-| FT-TPL-03 | `generateRejectFromText` | zh-CN | P1 | (NegotiationGenerationException, template_not_found) | 模板加载器不可用时生成信息协商拒绝消息失败并返回 template_not_found 错误码，且不发起任何 LLM 调用 |
-| FT-TPL-04 | `generateAbortFromText` | zh-CN | P1 | (NegotiationGenerationException, template_not_found) | 模板加载器不可用时生成协商终止消息失败并返回 template_not_found 错误码，通用终止模板同样无法加载且不发起任何 LLM 调用 |
+| FT-TPL-01 | `generateAcceptFromText` | zh-CN | P1 | (NegotiationGenerationException, template.not_found) | 模板加载器不可用时生成投诉诊断信息协商接受消息失败并返回 template.not_found 错误码，且不发起任何 LLM 调用 |
+| FT-TPL-02 | `generateProposeFromText` | zh-CN | P1 | (NegotiationGenerationException, template.not_found) | 模板加载器不可用时生成要数提议消息失败并返回 template.not_found 错误码，模板加载发生在重试循环之外，即使配置了重试次数也不重试且不发起任何 LLM 调用 |
+| FT-TPL-03 | `generateRejectFromText` | zh-CN | P1 | (NegotiationGenerationException, template.not_found) | 模板加载器不可用时生成信息协商拒绝消息失败并返回 template.not_found 错误码，且不发起任何 LLM 调用 |
+| FT-TPL-04 | `generateAbortFromText` | zh-CN | P1 | (NegotiationGenerationException, template.not_found) | 模板加载器不可用时生成协商终止消息失败并返回 template.not_found 错误码，通用终止模板同样无法加载且不发起任何 LLM 调用 |
 
 ### FD-HAPPY -- from-data/happy.json
 
@@ -205,14 +205,14 @@ Cells count base records per API and expectation; the `exception` column aggrega
 | Id | API | Languages | Priority | Expectation | Summary |
 |---|---|---|---|---|---|
 | FD-PROG-01 | `generateProposeFromData` | zh-CN | P1 | (NullPointerException) | 结构化提议数据缺少协商上下文时生成立即以空指针异常失败，提示上下文必填且不发起任何 LLM 调用 |
-| FD-PROG-02 | `generateAcceptFromData` | zh-CN | P1 | (IllegalArgumentException) | 接受方法收到携带 Reject 结论的结构化数据时生成以参数异常失败，提示结论与接受阶段不符且不发起任何 LLM 调用 |
-| FD-PROG-03 | `generateRejectFromData` | zh-CN | P1 | (IllegalArgumentException) | 拒绝方法收到携带 Accept 结论的结构化数据时生成以参数异常失败，提示结论与拒绝阶段不符且不发起任何 LLM 调用 |
-| FD-PROG-04 | `generateAcceptFromData` | zh-CN | P1 | (IllegalArgumentException) | 接受方法收到携带 Abort 结论的结构化数据时生成以参数异常失败，提示终止结论不属于类型化模板且不发起任何 LLM 调用 |
-| FD-PROG-05 | `generateAcceptFromData` | zh-CN | P1 | (IllegalArgumentException) | 目标协商接受数据缺少最终确认意图时生成以参数异常失败，提示接受消息必须携带确认意图且不发起任何 LLM 调用 |
-| FD-PROG-06 | `generateAcceptFromData` | zh-CN | P1 | (IllegalArgumentException) | 目标协商接受数据的最终确认意图为空白字符串时生成以参数异常失败，提示确认意图不能为空白且不发起任何 LLM 调用 |
-| FD-PROG-07 | `generateRejectFromData` | zh-CN | P1 | (IllegalArgumentException) | 目标协商拒绝数据缺少拒绝原因时生成以参数异常失败，提示拒绝消息必须携带失败原因且不发起任何 LLM 调用 |
-| FD-PROG-08 | `generateProposeFromData` | zh-CN | P1 | (IllegalArgumentException) | 可行性评估请求的结构化提议数据缺少待评估内容时生成以参数异常失败，提示至少需要一条评估项且不发起任何 LLM 调用 |
-| FD-PROG-09 | `generateProposeFromData` | zh-CN | P1 | (IllegalArgumentException) | 不可行替代方案的结构化提议数据缺少不可行细节与方案时生成以参数异常失败，提示至少需要一条方案项且不发起任何 LLM 调用 |
+| FD-PROG-02 | `generateAcceptFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.conclusion_mismatch) | 接受方法收到携带 Reject 结论的结构化数据时生成以结论不符错误码失败，提示结论与接受方法预期不符且不发起任何 LLM 调用 |
+| FD-PROG-03 | `generateRejectFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.conclusion_mismatch) | 拒绝方法收到携带 Accept 结论的结构化数据时生成以结论不符错误码失败，提示结论与拒绝方法预期不符且不发起任何 LLM 调用 |
+| FD-PROG-04 | `generateAcceptFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.conclusion_mismatch) | 接受方法收到携带 Abort 结论的结构化数据时生成以结论不符错误码失败，提示终止结论不属于类型化模板且不发起任何 LLM 调用 |
+| FD-PROG-05 | `generateAcceptFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_invalid) | 目标协商接受数据缺少最终确认意图时生成以协商内容无效错误码失败，提示接受消息必须携带确认意图且不发起任何 LLM 调用 |
+| FD-PROG-06 | `generateAcceptFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_invalid) | 目标协商接受数据的最终确认意图为空白字符串时生成以协商内容无效错误码失败，提示确认意图不能为空白且不发起任何 LLM 调用 |
+| FD-PROG-07 | `generateRejectFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_invalid) | 目标协商拒绝数据缺少拒绝原因时生成以协商内容无效错误码失败，提示拒绝消息必须携带失败原因且不发起任何 LLM 调用 |
+| FD-PROG-08 | `generateProposeFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_invalid) | 可行性评估请求的结构化提议数据缺少待评估内容时生成以协商内容无效错误码失败，提示至少需要一条评估项且不发起任何 LLM 调用 |
+| FD-PROG-09 | `generateProposeFromData` | zh-CN | P1 | (NegotiationGenerationException, negotiation.content_invalid) | 不可行替代方案的结构化提议数据缺少不可行细节与方案时生成以协商内容无效错误码失败，提示至少需要一条方案项且不发起任何 LLM 调用 |
 | FD-PROG-10 | `generateProposeFromData` | zh-CN | P1 | (IllegalArgumentException) | 模板 URI 前缀指向 Task-T 而非 Negotiation-T 时生成以参数异常失败，提示 URI 未指向期望阶段的协商模板且不发起任何 LLM 调用 |
 | FD-PROG-11 | `generateProposeFromData` | zh-CN | P1 | (IllegalArgumentException) | 模板 URI 版本段为 v2 而非内置 v1 时生成以参数异常失败，提示 URI 未指向期望阶段的协商模板且不发起任何 LLM 调用 |
 | FD-PROG-12 | `generateProposeFromData` | zh-CN | P1 | (IllegalArgumentException) | 模板 URI 类型段使用下划线拼写 information_negotiation 时生成以参数异常失败，提示 URI 未指向期望阶段的协商模板且不发起任何 LLM 调用 |
@@ -247,11 +247,11 @@ Cells count base records per API and expectation; the `exception` column aggrega
 
 | Id | API | Languages | Priority | Expectation | Summary |
 |---|---|---|---|---|---|
-| VAL-MAP-01 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_invalid_input) | 消息未携带协商上下文元数据时校验判定其不是协商消息，内部无效输入错误码对外映射为协商无效输入错误且不发起任何大模型调用 |
-| VAL-MAP-02 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_rule_violation) | 协商轮次超限触发的内部规则违反错误码对外映射为协商规则违反错误码，并保留轮次越界槽位错误 |
-| VAL-MAP-03 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 大模型语义校验否决要数提议消息时内部语义拒绝错误码对外映射为协商语义拒绝错误码，并保留大模型报告的接入端口缺失槽位错误 |
-| VAL-MAP-04 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_llm_infrastructure_error) | 大模型服务连续两次不可用并耗尽重试后，内部基础设施错误码对外映射为协商大模型基础设施错误码，错误详情以 _llm 伪槽位保留内部错误码 |
-| VAL-MAP-05 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, template_not_found) | 语义校验提示词资源缺失时内部资源未找到错误码对外映射为 template_not_found 错误码，原始资源异常不透出且不发起任何大模型调用 |
+| VAL-MAP-01 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.invalid_input) | 消息未携带协商上下文元数据时校验判定其不是协商消息，按非协商消息拒绝并返回协商无效输入错误码且不发起任何大模型调用 |
+| VAL-MAP-02 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.rule_violation) | 协商轮次超限触发协商规则违反错误码，并保留轮次越界槽位错误 |
+| VAL-MAP-03 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 大模型语义校验否决要数提议消息时返回协商语义拒绝错误码，并保留大模型报告的接入端口缺失槽位错误 |
+| VAL-MAP-04 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, llm.invocation_failed) | 大模型服务连续两次不可用并耗尽重试后，以 llm.invocation_failed 错误码失败，错误以 _llm 伪槽位保留 |
+| VAL-MAP-05 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, template.not_found) | 语义校验提示词资源缺失时映射为 template.not_found 错误码，原始资源异常不透出且不发起任何大模型调用 |
 
 ### VAL-MERGE -- validate/merge-and-schema.json
 
@@ -259,10 +259,10 @@ Cells count base records per API and expectation; the `exception` column aggrega
 |---|---|---|---|---|---|
 | VAL-MERGE-01 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P1 | success | 业务参数与上下文 id、round 键冲突时上下文参数优先，大模型提取的错误取值不覆盖规则层结果 |
 | VAL-MERGE-02 | `validateAcceptPromptAndDataFilling` | en-US, zh-CN | P1 | success | 调用方未声明 type 关键字的参数 schema 被自动包装为对象 schema，补数接受报文的语义校验与投诉参数提取不受影响 |
-| VAL-MERGE-03 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验要数提议消息时未携带协商上下文，判定为非协商消息并以 negotiation_invalid_input 失败，不发起 LLM 调用 |
-| VAL-MERGE-04 | `validateAcceptPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验补数接受消息时未携带协商上下文，判定为非协商消息并以 negotiation_invalid_input 失败，不发起 LLM 调用 |
-| VAL-MERGE-05 | `validateRejectPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验拒绝消息时未携带协商上下文，判定为非协商消息并以 negotiation_invalid_input 失败，不发起 LLM 调用 |
-| VAL-MERGE-06 | `validateAbortPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验终止消息时未携带协商上下文，判定为非协商消息并以 negotiation_invalid_input 失败，不发起 LLM 调用 |
+| VAL-MERGE-03 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验要数提议消息时未携带协商上下文，判定为非协商消息并以 negotiation.invalid_input 失败，不发起 LLM 调用 |
+| VAL-MERGE-04 | `validateAcceptPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验补数接受消息时未携带协商上下文，判定为非协商消息并以 negotiation.invalid_input 失败，不发起 LLM 调用 |
+| VAL-MERGE-05 | `validateRejectPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验拒绝消息时未携带协商上下文，判定为非协商消息并以 negotiation.invalid_input 失败，不发起 LLM 调用 |
+| VAL-MERGE-06 | `validateAbortPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验终止消息时未携带协商上下文，判定为非协商消息并以 negotiation.invalid_input 失败，不发起 LLM 调用 |
 
 ### VAL-PROG -- validate/programming-errors.json
 
@@ -276,10 +276,10 @@ Cells count base records per API and expectation; the `exception` column aggrega
 | VAL-PROG-06 | `validateRejectPromptAndDataFilling` | zh-CN | P1 | (IllegalArgumentException) | 校验修复目标拒绝消息时消息文本为空白，抛出参数异常（文档声明未验证，doc-gap 探针） |
 | VAL-PROG-07 | `validateAbortPromptAndDataFilling` | zh-CN | P0 | (NullPointerException) | 校验终止消息时未传入消息文本，直接抛出空指针异常且不调用大模型 |
 | VAL-PROG-08 | `validateAbortPromptAndDataFilling` | zh-CN | P1 | (IllegalArgumentException) | 校验终止消息时消息文本为空白，抛出参数异常（abort 方法的 javadoc 未声明该行为，doc-gap 探针） |
-| VAL-PROG-09 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验要数提议消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input |
-| VAL-PROG-10 | `validateAcceptPromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验补数接受消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input |
-| VAL-PROG-11 | `validateRejectPromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验修复目标拒绝消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input |
-| VAL-PROG-12 | `validateAbortPromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_invalid_input) | 校验终止消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input |
+| VAL-PROG-09 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验要数提议消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input |
+| VAL-PROG-10 | `validateAcceptPromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验补数接受消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input |
+| VAL-PROG-11 | `validateRejectPromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验修复目标拒绝消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input |
+| VAL-PROG-12 | `validateAbortPromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.invalid_input) | 校验终止消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input |
 | VAL-PROG-13 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (IllegalArgumentException) | 校验要数提议消息时模板 URI 声明的是接受-拒绝阶段，阶段不匹配抛出参数异常且不调用大模型 |
 | VAL-PROG-14 | `validateAcceptPromptAndDataFilling` | zh-CN | P0 | (IllegalArgumentException) | 校验补数接受消息时模板 URI 声明的是提议阶段，阶段不匹配抛出参数异常且不调用大模型 |
 | VAL-PROG-15 | `validateRejectPromptAndDataFilling` | zh-CN | P0 | (IllegalArgumentException) | 校验修复目标拒绝消息时模板 URI 声明的是提议阶段，阶段不匹配抛出参数异常且不调用大模型 |
@@ -292,24 +292,24 @@ Cells count base records per API and expectation; the `exception` column aggrega
 |---|---|---|---|---|---|
 | VAL-RETRY-01 | `validateAcceptPromptAndDataFilling` | en-US, zh-CN | P1 | success | 工作台补数接受报文的语义校验第一次遭遇 LLM 基础设施错误后自动重试，第二次返回合法判定并成功提取投诉参数 |
 | VAL-RETRY-02 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P1 | success | 要数提议报文的语义返回缺少 negotiation_type 键的无效结构时触发重试，第二次结构合法并成功提取投诉参数 |
-| VAL-RETRY-03 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_llm_infrastructure_error) | 语义返回连续三种无效结构时重试至耗尽，最终携带 _llm 伪槽位以 LLM 基础设施错误失败 |
-| VAL-RETRY-04 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_llm_infrastructure_error) | maxAttempts 配置为 1 时语义结构错误不获重试机会，单次调用即以 LLM 基础设施错误失败 |
-| VAL-RETRY-05 | `validateAcceptPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_llm_infrastructure_error) | LLM 基础设施错误连续出现时按 maxAttempts=2 重试两次后耗尽，携带 _llm 伪槽位失败 |
+| VAL-RETRY-03 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, llm.response_invalid) | 语义返回连续三种无效结构时重试至耗尽，最终携带 _llm 伪槽位以 llm.response_invalid 错误失败 |
+| VAL-RETRY-04 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, llm.response_invalid) | maxAttempts 配置为 1 时语义结构错误不获重试机会，单次调用即以 llm.response_invalid 错误失败 |
+| VAL-RETRY-05 | `validateAcceptPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, llm.invocation_failed) | LLM 传输错误连续出现时按 maxAttempts=2 重试两次后耗尽，携带 _llm 伪槽位以 llm.invocation_failed 失败 |
 | VAL-RETRY-06 | `validateRejectPromptAndDataFilling` | en-US, zh-CN | P1 | success | 工作台拒绝报文的语义返回无法解析的非 JSON 内容后按 maxAttempts=2 重试，第二次返回合法判定并成功 |
 | VAL-RETRY-07 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P1 | success | 要数提议报文的语义连续两次空内容与非 JSON 应答后第三次成功，重试预算 maxAttempts=3 恰好用满 |
-| VAL-RETRY-08 | `validateAcceptPromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation_llm_infrastructure_error) | 语义步骤抛出非 LLMError 的原始运行时异常时不重试，单次调用即包装为 LLM 基础设施错误失败 |
-| VAL-RETRY-09 | `validateAcceptPromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation_llm_infrastructure_error) | 语义步骤返回空响应（null）时不重试，单次调用即包装为 LLM 基础设施错误失败 |
+| VAL-RETRY-08 | `validateAcceptPromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, llm.response_invalid) | 语义步骤抛出非 LLMError 的原始运行时异常时以 llm.response_invalid 错误失败（原始运行时异常现已与其他 LLM 步骤失败一样按预算重试，本探针以 maxAttempts=1 固化单次调用形态） |
+| VAL-RETRY-09 | `validateAcceptPromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, llm.response_invalid) | 语义步骤返回空响应（null）时以 llm.response_invalid 错误失败（空响应现已按预算重试，本探针以 maxAttempts=1 固化单次调用形态） |
 
 ### VAL-RULE -- validate/rule-gate.json
 
 | Id | API | Languages | Priority | Expectation | Summary |
 |---|---|---|---|---|---|
-| VAL-RULE-01 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_rule_violation) | 协商会话标识仅 8 位而非 36 位 UUID 时，消息在规则校验阶段即被拒绝并报告标识格式槽位错误，不发起任何大模型调用 |
-| VAL-RULE-02 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_rule_violation) | 协商会话标识为 35 位（末段缺少一位十六进制位）时同样被规则门拒绝，UUID 长度边界从严执行 |
-| VAL-RULE-03 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation_rule_violation) | 协商会话标识长度与 8-4-4-4-12 分段均正确但首段含非十六进制字符 g 时，规则门仍按 UUID 格式拒绝 |
+| VAL-RULE-01 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.rule_violation) | 协商会话标识仅 8 位而非 36 位 UUID 时，消息在规则校验阶段即被拒绝并报告标识格式槽位错误，不发起任何大模型调用 |
+| VAL-RULE-02 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.rule_violation) | 协商会话标识为 35 位（末段缺少一位十六进制位）时同样被规则门拒绝，UUID 长度边界从严执行 |
+| VAL-RULE-03 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation.rule_violation) | 协商会话标识长度与 8-4-4-4-12 分段均正确但首段含非十六进制字符 g 时，规则门仍按 UUID 格式拒绝 |
 | VAL-RULE-04 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P0 | success | 当前轮次等于最大轮次预算（第 5 轮即最后一轮）时OMC要数提议报文仍可通过规则校验并正常提取投诉参数，只有超出预算才被拒绝 |
-| VAL-RULE-05 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_rule_violation) | 协商轮次超出最大轮次预算（第 6 轮对 5 轮上限）时规则门拒绝消息并报告轮次越界槽位错误，不发起任何大模型调用 |
-| VAL-RULE-06 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_rule_violation) | 会话标识非法且轮次超限同时发生时，规则门一次性报告标识格式与轮次越界两条槽位错误，不发起任何大模型调用 |
+| VAL-RULE-05 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.rule_violation) | 协商轮次超出最大轮次预算（第 6 轮对 5 轮上限）时规则门拒绝消息并报告轮次越界槽位错误，不发起任何大模型调用 |
+| VAL-RULE-06 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.rule_violation) | 会话标识非法且轮次超限同时发生时，规则门一次性报告标识格式与轮次越界两条槽位错误，不发起任何大模型调用 |
 | VAL-RULE-07 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P1 | success | 单轮预算（最大轮次为 1）的第 1 轮要数提议报文可通过规则校验并正常提取投诉参数，轮次下限边界同样放行 |
 | VAL-RULE-08 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P2 | success | 协商会话标识使用大写十六进制 UUID 时规则门同样放行，要数提议报文正常校验并提取投诉参数，合并结果原样保留大写标识 |
 
@@ -323,16 +323,16 @@ Cells count base records per API and expectation; the `exception` column aggrega
 | VAL-SEM-04 | `validateAbortPromptAndDataFilling` | en-US, zh-CN | P0 | success | 轮次耗尽终止报文语义判定通过且未上报协商类型时校验成功，合并出终止原因参数 |
 | VAL-SEM-05 | `validateRejectPromptAndDataFilling` | en-US, zh-CN | P1 | success | 工作台无法提供端口名的拒绝报文语义判定通过且类型一致时校验成功，类型一致性不区分接受或拒绝动作 |
 | VAL-SEM-06 | `validateAbortPromptAndDataFilling` | en-US, zh-CN | P2 | success | 公共终止模板未声明协商类型，判定通过时即使大模型上报了类型也照常校验成功 |
-| VAL-SEM-07 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 大模型判定通过但上报成目标协商类型时，信息协商要数提议被语义拒绝并指出类型不一致 |
-| VAL-SEM-08 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 大模型判定通过但未上报协商类型时，信息协商要数提议被语义拒绝并按模板类型报类型不一致 |
-| VAL-SEM-09 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 大模型判定通过但上报未知协商类型字符串时，信息协商要数提议被语义拒绝 |
-| VAL-SEM-10 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 大模型上报的协商类型仅大小写不同也被视为类型不一致，信息协商要数提议被语义拒绝 |
-| VAL-SEM-11 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 大模型语义判定不通过时，信息协商要数提议被拒绝并返回缺失的接入端口参数槽位错误 |
-| VAL-SEM-12 | `validateRejectPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 语义判定不通过时不再核对协商类型，拒绝侧消息只返回大模型报告的槽位错误 |
-| VAL-SEM-13 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 语义判定不通过且未报告任何槽位错误时，校验仍以语义拒绝失败且槽位错误为空 |
-| VAL-SEM-14 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 语义判定不通过时已提取的投诉参数被丢弃，校验以语义拒绝失败且不合并任何业务参数 |
-| VAL-SEM-15 | `validateAbortPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 终止消息语义判定不通过时被拒绝并返回缺失终止原因的槽位错误 |
-| VAL-SEM-16 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation_semantic_rejected) | 语义拒绝不触发重试：脚本备有第二次通过的应答也不会被消费，LLM 调用数恒为 1 |
+| VAL-SEM-07 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 大模型判定通过但上报成目标协商类型时，信息协商要数提议被语义拒绝并指出类型不一致 |
+| VAL-SEM-08 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 大模型判定通过但未上报协商类型时，信息协商要数提议被语义拒绝并按模板类型报类型不一致 |
+| VAL-SEM-09 | `validateProposePromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 大模型判定通过但上报未知协商类型字符串时，信息协商要数提议被语义拒绝 |
+| VAL-SEM-10 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 大模型上报的协商类型仅大小写不同也被视为类型不一致，信息协商要数提议被语义拒绝 |
+| VAL-SEM-11 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 大模型语义判定不通过时，信息协商要数提议被拒绝并返回缺失的接入端口参数槽位错误 |
+| VAL-SEM-12 | `validateRejectPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 语义判定不通过时不再核对协商类型，拒绝侧消息只返回大模型报告的槽位错误 |
+| VAL-SEM-13 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 语义判定不通过且未报告任何槽位错误时，校验仍以语义拒绝失败且槽位错误为空 |
+| VAL-SEM-14 | `validateProposePromptAndDataFilling` | zh-CN | P2 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 语义判定不通过时已提取的投诉参数被丢弃，校验以语义拒绝失败且不合并任何业务参数 |
+| VAL-SEM-15 | `validateAbortPromptAndDataFilling` | zh-CN | P1 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 终止消息语义判定不通过时被拒绝并返回缺失终止原因的槽位错误 |
+| VAL-SEM-16 | `validateProposePromptAndDataFilling` | zh-CN | P0 | (NegotiationParamExtractionException, negotiation.semantic_rejected) | 语义拒绝不触发重试：脚本备有第二次通过的应答也不会被消费，LLM 调用数恒为 1 |
 | VAL-SEM-17 | `validateProposePromptAndDataFilling` | en-US, zh-CN | P2 | success | 语义判定通过时大模型附带的槽位错误被忽略，要数提议报文校验成功且只合并上下文三键 |
 
 ## Scenario index
@@ -342,11 +342,11 @@ Cells count base records per API and expectation; the `exception` column aggrega
 | Id | Step APIs | Languages | Priority | Flow expectation | Step failures | Summary |
 |---|---|---|---|---|---|---|
 | SC-ERR-01 | `generateTaskPromptFromText`, `validateTaskPromptAndDataFilling`, `generateProposeFromText`, `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2, distinct-messages | - | 闭环中错误恢复：工作台首次生成任务报文成功，OMC 校验任务报文时语义校验首次返回不可解析内容，重试第二次成功后闭环继续推进，直至缺参被补齐且接受报文提取成功（不可解析探针挂语义校验步骤：任务槽位抽取路径无重试，maxAttempts 仅作用于语义校验） |
-| SC-ERR-02 | `generateTaskPromptFromText`, `validateTaskPromptAndDataFilling`, `generateProposeFromText`, `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2, distinct-messages | (negotiation_semantic_rejected) | 闭环中错误恢复：工作台首轮补数仅提供投诉分类缺接入端口名称，被 OMC 语义校验拒绝，第2轮补充端口名后重新接受并提取成功，缺参最终补齐 |
+| SC-ERR-02 | `generateTaskPromptFromText`, `validateTaskPromptAndDataFilling`, `generateProposeFromText`, `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2, distinct-messages | (negotiation.semantic_rejected) | 闭环中错误恢复：工作台首轮补数仅提供投诉分类缺接入端口名称，被 OMC 语义校验拒绝，第2轮补充端口名后重新接受并提取成功，缺参最终补齐 |
 | SC-ERR-03 | `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2 | - | 重传幂等：同一条接受补数报文被 OMC 重复校验两次，两次提取的 FilledParamData（接入端口名称与投诉分类）完全一致，重传不产生副作用 |
 | SC-ERR-04 | `generateProposeFromText`, `validateProposePromptAndDataFilling` | zh-CN | - | rounds=2 | - | 乱序失同步探针：工作台以滞后的 round 1 上下文校验 OMC 在 round 2 生成的要数提议，规则门不拦截失同步（doc-gap 探针） |
-| SC-ERR-05 | `generateProposeFromText`, `validateProposePromptAndDataFilling` | zh-CN | - | rounds=1 | (negotiation_semantic_rejected) | 截断消息探针：传输中被截断的要数提议缺失后两项信息，工作台侧语义校验以槽位缺失为由拒绝 |
-| SC-ERR-06 | `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2 | (negotiation_semantic_rejected) | 编码边界探针：带 UTF-8 BOM 前缀或全角标点的接受补数报文可正常校验提取，GBK 乱码形态的报文被语义校验拒绝 |
+| SC-ERR-05 | `generateProposeFromText`, `validateProposePromptAndDataFilling` | zh-CN | - | rounds=1 | (negotiation.semantic_rejected) | 截断消息探针：传输中被截断的要数提议缺失后两项信息，工作台侧语义校验以槽位缺失为由拒绝 |
+| SC-ERR-06 | `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2 | (negotiation.semantic_rejected) | 编码边界探针：带 UTF-8 BOM 前缀或全角标点的接受补数报文可正常校验提取，GBK 乱码形态的报文被语义校验拒绝 |
 | SC-ERR-07 | `generateTaskPromptFromText`, `validateTaskPromptAndDataFilling`, `generateProposeFromText`, `generateAcceptFromText`, `validateAcceptPromptAndDataFilling` | zh-CN | - | accept, rounds=2, distinct-messages | - | 双会话交错：event-id-20260511-09013 与 fault-id-1-017-20260516-11234 两条投诉工单的缺参协商闭环步骤交替执行，各自提取的上下文与业务参数互不串扰 |
 
 ### SC-EXH -- scenarios/boundary-flows.json
@@ -354,7 +354,7 @@ Cells count base records per API and expectation; the `exception` column aggrega
 | Id | Step APIs | Languages | Priority | Flow expectation | Step failures | Summary |
 |---|---|---|---|---|---|---|
 | SC-EXH-01 | `generateTaskPromptFromText`, `validateTaskPromptAndDataFilling`, `generateProposeFromText`, `generateRejectFromText`, `generateAbortFromText`, `validateAbortPromptAndDataFilling` | zh-CN | - | exhausted, rounds=3 | - | 轮次预算耗尽闭环：投诉诊断任务缺参后两轮要数均因工作台端口台账不可查被拒，round 3 达到 maxRounds 上限后 OMC 生成终止消息结束协商 |
-| SC-EXH-02 | `generateProposeFromText`, `validateProposePromptAndDataFilling` | zh-CN | - | rounds=6 | (negotiation_rule_violation) | 过期重放边界：工作台以 round 6 超出轮次预算的上下文重放校验 OMC 的要数提议，被规则门直接拦截且不调用大模型，修正为 round 5 后重放校验通过 |
+| SC-EXH-02 | `generateProposeFromText`, `validateProposePromptAndDataFilling` | zh-CN | - | rounds=6 | (negotiation.rule_violation) | 过期重放边界：工作台以 round 6 超出轮次预算的上下文重放校验 OMC 的要数提议，被规则门直接拦截且不调用大模型，修正为 round 5 后重放校验通过 |
 
 ### SC-FSB -- scenarios/feasibility-flows.json
 

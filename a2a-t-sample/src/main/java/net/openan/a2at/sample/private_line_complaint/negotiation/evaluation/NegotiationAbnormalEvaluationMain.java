@@ -44,13 +44,14 @@ public final class NegotiationAbnormalEvaluationMain {
             new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static final DateTimeFormatter FILE_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final List<String> NEGOTIATION_ERROR_CODES = List.of(
-            "template_not_found",
-            "negotiation_content_extract_failed",
-            "negotiation_semantic_rejected",
-            "negotiation_slot_missing",
-            "negotiation_invalid_input",
-            "negotiation_rule_violation",
-            "negotiation_llm_infrastructure_error");
+            "template.not_found",
+            "negotiation.semantic_rejected",
+            "negotiation.field_missing",
+            "negotiation.invalid_input",
+            "negotiation.invalid_context_id",
+            "negotiation.round_exceeded",
+            "llm.invocation_failed",
+            "llm.response_invalid");
 
     private NegotiationAbnormalEvaluationMain() {
     }
@@ -186,34 +187,35 @@ public final class NegotiationAbnormalEvaluationMain {
         return List.of(
                 new ScriptedAbnormalCase("G-PROPOSE-LLM-MALFORMED", "generate_propose",
                         "请补充接入端口名称和投诉分类。", "not-json", false,
-                        "NegotiationGenerationException", "negotiation_content_extract_failed"),
+                        "NegotiationGenerationException", "llm.response_invalid"),
                 new ScriptedAbnormalCase("G-ACCEPT-LLM-INFRA", "generate_accept",
                         "接受协商，端口为 PE1-GZ-ETH-0/0/0.200，投诉分类为专线中断。", "throw", false,
-                        "NegotiationGenerationException", "negotiation_llm_infrastructure_error"),
+                        "NegotiationGenerationException", "llm.invocation_failed"),
                 new ScriptedAbnormalCase("G-REJECT-SLOT-MISSING", "generate_reject",
                         "拒绝协商，原因是资源系统暂时无法查询。", "{\"conclusion\":\"Reject\",\"items\":null}", false,
-                        "NegotiationGenerationException", "negotiation_slot_missing"),
+                        "NegotiationGenerationException", "negotiation.field_missing"),
                 new ScriptedAbnormalCase("V-PROPOSE-SEMANTIC-REJECTED", "validate_propose",
                         "## 信息协商\n请根据<所需信息项>补充相关内容。", semanticRejectedPayload(), false,
-                        "NegotiationParamExtractionException", "negotiation_semantic_rejected"),
+                        "NegotiationParamExtractionException", "negotiation.semantic_rejected"),
                 new ScriptedAbnormalCase("V-ACCEPT-LLM-INFRA", "validate_accept",
                         "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n1. 接入端口名称：PE1-GZ-ETH-0/0/0.200\n2. 投诉分类：专线中断", "throw", false,
-                        "NegotiationParamExtractionException", "negotiation_llm_infrastructure_error"),
+                        "NegotiationParamExtractionException", "llm.invocation_failed"),
                 new ScriptedAbnormalCase("V-REJECT-SEMANTIC-REJECTED", "validate_reject",
                         "## 信息协商结果\nReject\n\n## 信息协商结果内容\n1. 接入端口名称：无法提供，原因：资源系统暂时无法查询\n2. 投诉分类：无法提供，原因：资源系统暂时无法查询", semanticRejectedPayload(), false,
-                        "NegotiationParamExtractionException", "negotiation_semantic_rejected"),
+                        "NegotiationParamExtractionException", "negotiation.semantic_rejected"),
                 new ScriptedAbnormalCase("G-PROPOSE-TEMPLATE-NOT-FOUND", "generate_propose",
                         "请补充接入端口名称和投诉分类。", "unused", true,
-                        "NegotiationGenerationException", "template_not_found"),
+                        "NegotiationGenerationException", "template.not_found"),
                 new ScriptedAbnormalCase("V-PROPOSE-TEMPLATE-NOT-FOUND", "validate_propose",
                         "## 信息协商\n请根据<所需信息项>补充相关内容。", "unused", true,
-                        "NegotiationParamExtractionException", "template_not_found"));
+                        "NegotiationParamExtractionException", "template.not_found"));
     }
 
     private static String semanticRejectedPayload() {
         return "{\"semantic_verdict\":false,\"negotiation_type\":\"information\","
                 + "\"errors\":[{\"slot_name\":\"section.info_result_content\","
-                + "\"code\":\"missing_result_content\",\"message\":\"The information result content is missing.\"}],"
+                + "\"code\":\"negotiation.missing_result_content\","
+                + "\"facts\":{\"section_label\":\"信息协商结果内容\"}}],"
                 + "\"params\":{}}";
     }
 

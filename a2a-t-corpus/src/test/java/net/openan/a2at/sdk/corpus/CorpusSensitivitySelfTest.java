@@ -4,13 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.List;
-import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Meta-meta test of the corpus engine (design document §8.6, Q16): it guards against the deadliest failure mode of a
@@ -39,18 +39,15 @@ class CorpusSensitivitySelfTest {
     private static final String INFORMATION_ACCEPT_REJECT_URI =
             "Negotiation-T/information-negotiation/accept-reject/v1";
 
-    private static final String PRIVATE_LINE_COMPLAINT_URI =
-            "Task-T/network-layer/private-line-complaint/v1";
+    private static final String PRIVATE_LINE_COMPLAINT_URI = "Task-T/network-layer/private-line-complaint/v1";
 
     /** The workbench raw complaint of the closed loop (样例步骤1): no port name and no complaint category. */
     private static final String COMPLAINT_TEXT =
-            "深圳访问广州的专线从5月11号早上8点半开始响应时延从平均12ms骤升至320ms，柜面和手机银行的交易接口频繁报"
-                    + "“连接超时”。OSS侧事件流水号：event-id-20260511-09013。";
+            "深圳访问广州的专线从5月11号早上8点半开始响应时延从平均12ms骤升至320ms，柜面和手机银行的交易接口频繁报" + "“连接超时”。OSS侧事件流水号：event-id-20260511-09013。";
 
     /**
-     * Slot-extraction payload of the closed loop's step 1 since the task_object slot became required upstream: the
-     * task object carries what the raw text names (the circuit) but no port name, so the rendered prompt stays
-     * portless.
+     * Slot-extraction payload of the closed loop's step 1 since the task_object slot became required upstream: the task
+     * object carries what the raw text names (the circuit) but no port name, so the rendered prompt stays portless.
      */
     private static final String TASK_SLOTS_OBJECT_PORTLESS =
             "{\"slots\": {\"任务对象\": \"深圳访问广州的专线\", \"任务上下文\": \"投诉分类：待补充；问题发生时间：2026-05-11T08:21:46Z；"
@@ -63,7 +60,8 @@ class CorpusSensitivitySelfTest {
                     + "\"faultTime\":\"2026-05-11T08:21:46Z\",\"eventSerialNo\":\"event-id-20260511-09013\"}}";
 
     /** The rendered task prompt the OMC receives (样例步骤1, shortened): the negotiation-causing message. */
-    private static final String TASK_PROMPT_MISSING_PARAMS = """
+    private static final String TASK_PROMPT_MISSING_PARAMS =
+            """
             ## 任务类型(Task Type)
             传输专线业务投诉诊断
 
@@ -88,7 +86,7 @@ class CorpusSensitivitySelfTest {
             "{\"conclusion\":\"Accept\",\"items\":[{\"name\":\"接入端口名称\",\"value\":\"P533-珠江旧城"
                     + "-PTN3900-23-TPA1EG24-1\"},{\"name\":\"投诉分类\",\"value\":\"专线质差\"}]}";
 
-    /** Extraction payload whose mapped content lacks every required slot (fails with negotiation_slot_missing). */
+    /** Extraction payload whose mapped content lacks every required slot (fails with negotiation.field_missing). */
     private static final String SLOTS_MISSING_PAYLOAD = "{\"relationship\":null}";
 
     /** Semantic verdict payload of a successful validation carrying one business parameter. */
@@ -99,9 +97,10 @@ class CorpusSensitivitySelfTest {
     /** Semantic verdict payload rejecting the message with two slot errors. */
     private static final String SEMANTIC_REJECT_PAYLOAD_TWO_ERRORS =
             "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":[{\"slot_name\":"
-                    + "\"accessPort\",\"code\":\"missing\",\"message\":\"The access port parameter is"
-                    + " missing.\"},{\"slot_name\":\"latency_target\",\"code\":\"out_of_range\",\"message\":"
-                    + "\"The latency target parameter is out of range.\"}],\"params\":{}}";
+                    + "\"accessPort\",\"code\":\"negotiation.field_missing\",\"facts\":{\"field\":"
+                    + "\"接入端口名称\"}},{\"slot_name\":\"latency_target\",\"code\":"
+                    + "\"negotiation.constraint_conflict\",\"facts\":{\"section_label\":\"时延目标\","
+                    + "\"reason\":\"latency target is out of range\"}}],\"params\":{}}";
 
     private final CaseEngine engine = new CaseEngine();
 
@@ -118,21 +117,18 @@ class CorpusSensitivitySelfTest {
 
     @Test
     void flippedErrorCodeMustFailTheEngine() {
-        NegotiationCase trueExpectation = fromTextCase(
-                "FT-SENS-CODE",
-                SLOTS_MISSING_PAYLOAD,
-                failed("negotiation_slot_missing", 1, null, null));
+        NegotiationCase trueExpectation =
+                fromTextCase("FT-SENS-CODE", SLOTS_MISSING_PAYLOAD, failed("negotiation.field_missing", 1, null, null));
         engine.run(trueExpectation);
 
         NegotiationCase flipped = fromTextCase(
-                "FT-SENS-CODE-FLIP",
-                SLOTS_MISSING_PAYLOAD,
-                failed("negotiation_invalid_input", 1, null, null));
+                "FT-SENS-CODE-FLIP", SLOTS_MISSING_PAYLOAD, failed("negotiation.invalid_input", 1, null, null));
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(flipped));
 
         assertTrue(
-                failure.getMessage().contains("FT-SENS-CODE-FLIP") && failure.getMessage().contains("$.expect.code"),
+                failure.getMessage().contains("FT-SENS-CODE-FLIP")
+                        && failure.getMessage().contains("$.expect.code"),
                 "a swapped error code must fail with the case id and the JSON path but was: " + failure.getMessage());
     }
 
@@ -152,7 +148,8 @@ class CorpusSensitivitySelfTest {
                 AssertionError.class,
                 () -> engine.run(fromTextCase("FT-SENS-CALLS-LOW", ACCEPT_PAYLOAD, ok(0, "information_accept"))));
         assertTrue(
-                tooLow.getMessage().contains("FT-SENS-CALLS-LOW") && tooLow.getMessage().contains("$.expect.llmCalls"),
+                tooLow.getMessage().contains("FT-SENS-CALLS-LOW")
+                        && tooLow.getMessage().contains("$.expect.llmCalls"),
                 "llmCalls - 1 must fail but was: " + tooLow.getMessage());
     }
 
@@ -160,8 +157,7 @@ class CorpusSensitivitySelfTest {
     void flippedGoldenNameMustFailTheEngine() {
         engine.run(fromTextCase("FT-SENS-GOLDEN", ACCEPT_PAYLOAD, ok(1, "information_accept")));
 
-        NegotiationCase flipped =
-                fromTextCase("FT-SENS-GOLDEN-FLIP", ACCEPT_PAYLOAD, ok(1, "information_reject"));
+        NegotiationCase flipped = fromTextCase("FT-SENS-GOLDEN-FLIP", ACCEPT_PAYLOAD, ok(1, "information_reject"));
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(flipped));
 
@@ -174,7 +170,8 @@ class CorpusSensitivitySelfTest {
     @Test
     void tamperedParamsMustFailTheEngine() {
         engine.run(validateCase(
-                "VAL-SENS-PARAMS", Map.of("id", SESSION_ID, "round", 2, "maxRounds", 5, "accessPort", "P533-珠江旧城-PTN3900-23-TPA1EG24-1")));
+                "VAL-SENS-PARAMS",
+                Map.of("id", SESSION_ID, "round", 2, "maxRounds", 5, "accessPort", "P533-珠江旧城-PTN3900-23-TPA1EG24-1")));
 
         NegotiationCase tampered = validateCase(
                 "VAL-SENS-PARAMS-FLIP",
@@ -191,21 +188,15 @@ class CorpusSensitivitySelfTest {
 
     @Test
     void flippedOutcomeMustFailTheEngine() {
-        NegotiationCase successReadAsFailure = fromTextCase(
-                "FT-SENS-OUTCOME-SF",
-                ACCEPT_PAYLOAD,
-                failed("negotiation_invalid_input", 1, null, null));
-        AssertionError successFlipped = assertThrows(
-                AssertionError.class, () -> engine.run(successReadAsFailure));
+        NegotiationCase successReadAsFailure =
+                fromTextCase("FT-SENS-OUTCOME-SF", ACCEPT_PAYLOAD, failed("negotiation.invalid_input", 1, null, null));
+        AssertionError successFlipped = assertThrows(AssertionError.class, () -> engine.run(successReadAsFailure));
         assertTrue(
                 successFlipped.getMessage().contains("FT-SENS-OUTCOME-SF")
                         && successFlipped.getMessage().contains("$.expect.outcome"),
                 "a success run expected to fail must be red but was: " + successFlipped.getMessage());
 
-        NegotiationCase failureReadAsSuccess = fromTextCase(
-                "FT-SENS-OUTCOME-FS",
-                null,
-                ok(1, "information_accept"));
+        NegotiationCase failureReadAsSuccess = fromTextCase("FT-SENS-OUTCOME-FS", null, ok(1, "information_accept"));
         AssertionError failureFlipped = assertThrows(AssertionError.class, () -> engine.run(failureReadAsSuccess));
         assertTrue(
                 failureFlipped.getMessage().contains("FT-SENS-OUTCOME-FS")
@@ -216,12 +207,14 @@ class CorpusSensitivitySelfTest {
     @Test
     void flippedSlotErrorsMustFailTheEngine() {
         List<Expectation.SlotError> both = List.of(
-                new Expectation.SlotError("accessPort", "missing"),
-                new Expectation.SlotError("latency_target", "out_of_range"));
+                new Expectation.SlotError("accessPort", "negotiation.field_missing"),
+                new Expectation.SlotError("latency_target", "negotiation.constraint_conflict"));
         engine.run(validateCase("VAL-SENS-SLOTS", null, both));
 
         NegotiationCase removed = validateCase(
-                "VAL-SENS-SLOTS-DEL", null, List.of(new Expectation.SlotError("accessPort", "missing")));
+                "VAL-SENS-SLOTS-DEL",
+                null,
+                List.of(new Expectation.SlotError("accessPort", "negotiation.field_missing")));
         AssertionError removalFailure = assertThrows(AssertionError.class, () -> engine.run(removed));
         assertTrue(
                 removalFailure.getMessage().contains("VAL-SENS-SLOTS-DEL")
@@ -229,9 +222,9 @@ class CorpusSensitivitySelfTest {
                 "a removed slot error must fail but was: " + removalFailure.getMessage());
 
         List<Expectation.SlotError> three = List.of(
-                new Expectation.SlotError("accessPort", "missing"),
-                new Expectation.SlotError("latency_target", "out_of_range"),
-                new Expectation.SlotError("round", "out_of_range"));
+                new Expectation.SlotError("accessPort", "negotiation.field_missing"),
+                new Expectation.SlotError("latency_target", "negotiation.constraint_conflict"),
+                new Expectation.SlotError("round", "negotiation.round_exceeded"));
         NegotiationCase added = validateCase("VAL-SENS-SLOTS-ADD", null, three);
         AssertionError additionFailure = assertThrows(AssertionError.class, () -> engine.run(added));
         assertTrue(
@@ -270,8 +263,8 @@ class CorpusSensitivitySelfTest {
                 taskFromTextCase("VAL-SENS-HEADERS", taskOk(1, List.of("## 任务类型"), null, Map.of()));
         engine.run(trueExpectation);
 
-        NegotiationCase flipped = taskFromTextCase(
-                "VAL-SENS-HEADERS-FLIP", taskOk(1, List.of("## 所需信息项"), null, Map.of()));
+        NegotiationCase flipped =
+                taskFromTextCase("VAL-SENS-HEADERS-FLIP", taskOk(1, List.of("## 所需信息项"), null, Map.of()));
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.run(flipped));
 
@@ -310,13 +303,13 @@ class CorpusSensitivitySelfTest {
 
     // ------------------------------------------------------------------ inline sample cases
 
-    private NegotiationCase fromTextCase(
-            String id, @Nullable String payload, Expectation expect) {
+    private NegotiationCase fromTextCase(String id, @Nullable String payload, Expectation expect) {
         LlmScript script = new LlmScript(
                 null,
-                List.of(payload == null
-                        ? new LlmScriptStep.Fail(LlmFailMarker.NON_JSON)
-                        : new LlmScriptStep.Payload(payload)));
+                List.of(
+                        payload == null
+                                ? new LlmScriptStep.Fail(LlmFailMarker.NON_JSON)
+                                : new LlmScriptStep.Payload(payload)));
         return new NegotiationCase(
                 id + "/zh-CN",
                 id,
@@ -348,7 +341,7 @@ class CorpusSensitivitySelfTest {
             expect = new Expectation(
                     false,
                     null,
-                    "negotiation_semantic_rejected",
+                    "negotiation.semantic_rejected",
                     List.of(),
                     slotErrors == null ? List.of() : slotErrors,
                     1,
@@ -358,8 +351,7 @@ class CorpusSensitivitySelfTest {
                     List.of(),
                     false);
         } else {
-            expect = new Expectation(
-                    true, null, null, List.of(), List.of(), 1, null, null, params, List.of(), false);
+            expect = new Expectation(true, null, null, List.of(), List.of(), 1, null, null, params, List.of(), false);
         }
         String payload = params == null ? SEMANTIC_REJECT_PAYLOAD_TWO_ERRORS : SEMANTIC_ACCEPT_PAYLOAD_WITH_PARAMS;
         return new NegotiationCase(
@@ -384,7 +376,16 @@ class CorpusSensitivitySelfTest {
 
     private static Expectation ok(@Nullable Integer llmCalls, @Nullable String promptTextEqualsGolden) {
         return new Expectation(
-                true, null, null, List.of(), List.of(), llmCalls, promptTextEqualsGolden, null, Map.of(), List.of(),
+                true,
+                null,
+                null,
+                List.of(),
+                List.of(),
+                llmCalls,
+                promptTextEqualsGolden,
+                null,
+                Map.of(),
+                List.of(),
                 false);
     }
 
@@ -432,8 +433,7 @@ class CorpusSensitivitySelfTest {
                 expect);
     }
 
-    private NegotiationCase taskValidateCase(String id, Expectation expect, String semanticPayload)
-            throws Exception {
+    private NegotiationCase taskValidateCase(String id, Expectation expect, String semanticPayload) throws Exception {
         return new NegotiationCase(
                 id + "/zh-CN",
                 id,

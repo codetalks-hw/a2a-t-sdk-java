@@ -82,23 +82,19 @@ SCHEMA_ZH = {
 }
 
 ERROR_CODE_ZH = {
-    "negotiation_invalid_input": "协商输入无效（如消息不是协商消息、缺少协商上下文）",
-    "negotiation_slot_missing": "协商消息缺少必填槽位",
-    "negotiation_content_extract_failed": "大模型返回内容无法解析为协商结构",
-    "negotiation_llm_infrastructure_error": "大模型基础设施错误（调用失败）",
-    "negotiation_semantic_rejected": "语义校验判定不通过",
-    "negotiation_rule_violation": "协商上下文违反规则（如轮次超限、标识格式非法）",
-    "template_not_found": "协商模板不存在或不可用",
-    # internal validation_* codes and slot-level codes surfaced through slotErrors
-    "validation_invalid_input": "（内部码）校验输入无效",
-    "validation_rule_violation": "（内部码）校验规则违反",
-    "validation_semantic_rejected": "（内部码）语义判定不通过",
-    "validation_llm_infrastructure_error": "（内部码）大模型基础设施错误",
-    "validation_prompt_resource_not_found": "（内部码）模板资源不存在",
-    "invalid_uuid": "会话标识不是合法 UUID",
-    "missing": "槽位缺失",
-    "out_of_range": "数值超出允许范围",
-    "template_type_mismatch": "模板类型不匹配",
+    "negotiation.invalid_input": "协商输入无效（如消息不是协商消息、缺少协商上下文）",
+    "negotiation.field_missing": "协商消息缺少必填字段",
+    "negotiation.content_extract_failed": "无法从文本提取协商内容",
+    "negotiation.content_invalid": "from-data 协商内容字段无效（如空列表、空白描述）",
+    "negotiation.conclusion_mismatch": "报文结论与该方法预期不符",
+    "negotiation.semantic_rejected": "语义校验判定不通过",
+    "negotiation.rule_violation": "协商报文违反校验规则（未知码兜底，含轮次超限、标识格式非法）",
+    "negotiation.invalid_context_id": "协商上下文标识不是合法 UUID",
+    "negotiation.round_exceeded": "协商轮次超过上限",
+    "negotiation.type_mismatch": "报文内容与声明的模板类型不符",
+    "template.not_found": "协商模板不存在或不可用",
+    "llm.invocation_failed": "大模型调用失败（传输/网络层）",
+    "llm.response_invalid": "大模型返回内容不符合要求（响应契约违反）",
 }
 
 EXCEPTION_ZH = {
@@ -519,10 +515,9 @@ def render_html(records: list[dict], statuses: dict) -> str:
         w(f"<tr><td><b>{esc(domain)}</b></td><td>{gen}</td><td>{val}</td><td>{e2e}</td><td>{len(subset)}</td></tr>")
     w("</table>")
 
-    w("<h3>协商错误码覆盖（7 个，CorpusContractTest 全量严格模式）</h3><table><tr><th>错误码</th><th>业务含义</th><th>失败用例数</th></tr>")
+    w(f"<h3>协商错误码覆盖（{len(ERROR_CODE_ZH)} 个，CorpusContractTest 全量严格模式）</h3>"
+    "<table><tr><th>错误码</th><th>业务含义</th><th>失败用例数</th></tr>")
     for code, zh in ERROR_CODE_ZH.items():
-        if code.startswith("validation_"):
-            continue
         count = sum(1 for r in records if (r.get("expect") or {}).get("code") == code)
         marker = " style='color:#b3261e;font-weight:700'" if count == 0 else ""
         w(f"<tr><td><code>{esc(code)}</code></td><td>{esc(zh)}</td><td{marker}>{count}</td></tr>")

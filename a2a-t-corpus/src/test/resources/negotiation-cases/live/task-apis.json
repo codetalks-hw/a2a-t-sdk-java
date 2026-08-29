@@ -185,7 +185,7 @@
       "task",
       "from-text"
     ],
-    "summary": "槽位值归一化探针：问题发生时间以口语化中文（“5月16日上午10点20分左右”）给出，同时提供了归一化后的 ISO-8601 时间字段锚点；qwen3-32b 对 faultTime 的提取不稳定，validate 步骤可能因 format_error 拒绝，期望 success=false 时仅断言结果成败",
+    "summary": "槽位值归一化探针：问题发生时间以口语化中文（“5月16日上午10点20分左右”）给出，同时提供了归一化后的 ISO-8601 时间字段锚点；qwen3-32b 对 faultTime 的提取不稳定，validate 步骤可能因 content.format_error 拒绝，期望 success=false 时仅断言结果成败",
     "templateUri": "Task-T/network-layer/private-line-complaint/v1",
     "input": {
       "text": {

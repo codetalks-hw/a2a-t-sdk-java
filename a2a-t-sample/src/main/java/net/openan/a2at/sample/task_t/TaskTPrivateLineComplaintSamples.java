@@ -120,7 +120,7 @@ public final class TaskTPrivateLineComplaintSamples {
      * {@code enum}. Time and serial are <em>optional</em> slots and are deliberately not used as rejection criteria —
      * their absence is exercised by the positive samples {@code text-optional-slots-missing} /
      * {@code data-optional-slots-missing} instead. The server-side semantic validation is expected to reject these
-     * samples with {@code validation_semantic_rejected}; they are scored separately from the accuracy samples and are
+     * samples with {@code negotiation.semantic_rejected}; they are scored separately from the accuracy samples and are
      * never fed into the field-accuracy evaluation.
      *
      * @return immutable rejection sample list

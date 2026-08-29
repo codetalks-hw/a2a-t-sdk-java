@@ -8,11 +8,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -26,11 +26,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -44,11 +44,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -62,11 +62,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -80,11 +80,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -98,11 +98,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -116,11 +116,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -134,11 +134,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -152,11 +152,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -170,11 +170,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -188,11 +188,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -206,11 +206,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -224,11 +224,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -242,11 +242,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -260,11 +260,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -278,11 +278,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -296,11 +296,11 @@
       },
       "expected": {
         "client": {
-          "outcome": "slot_validation_error",
+          "outcome": "slot.not_provided",
           "slot_errors": [
             {
               "slot_name": "授权策略的操作类型",
-              "code": "missing_required"
+              "code": "slot.not_provided"
             }
           ]
         }
@@ -317,11 +317,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是专线保障，处置类型是紧急扩容，操作名称是故障切换\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -338,11 +338,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是物联监测，处置类型是降级服务，操作名称是流量调度\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -359,11 +359,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是应急广播，处置类型是优先保障，操作名称是参数核查\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -380,11 +380,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是卫星回传，处置类型是现场处理，操作名称是故障切换\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -401,11 +401,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是远程医疗，处置类型是紧急扩容，操作名称是流量调度\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -457,11 +457,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是智慧港口，处置类型是降级服务，操作名称是故障切换\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -520,12 +520,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是远程医疗，处置类型是紧急扩容，操作名称是天线校准\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "动网操作的授权策略列表",
-              "code": "missing_required",
-              "message": "新增条目缺少必填的有效期"
+              "code": "content.entry_field_missing"
             }
           ],
           "params": {}
@@ -583,12 +582,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是智能电网\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "动网操作的授权策略列表",
-              "code": "missing_required",
-              "message": "新增条目缺少必填的处置类型、操作名称、有效期"
+              "code": "content.entry_field_missing"
             }
           ],
           "params": {}
@@ -606,11 +604,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是专线保障，处置类型是紧急扩容，操作名称是故障切换，有效期是2026-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -627,11 +625,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是智能电网，处置类型是优先保障，操作名称是流量调度，有效期是2030-01-01~2026-01-01\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -648,11 +646,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是智慧港口，处置类型是降级服务，操作名称是路由调优，有效期是2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -705,11 +703,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是远程医疗，处置类型是紧急扩容，操作名称是流量调度，有效期是2026-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -752,11 +750,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，有效期是###~###\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -773,11 +771,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是智慧工厂专网，处置类型是重路由收敛，操作名称是载波重配置，有效期是2026-13-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -794,11 +792,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，业务场景改成专线保障\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "invalid_value"
+              "code": "content.value_not_allowed"
             }
           ],
           "params": {
@@ -824,11 +822,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d，处置类型改为紧急扩容\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "invalid_value"
+              "code": "content.value_not_allowed"
             }
           ],
           "params": {
@@ -854,11 +852,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是f9e8d7c6-b5a4-3210-fedc-ba9876543210，操作名称改成故障切换\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "invalid_value"
+              "code": "content.value_not_allowed"
             }
           ],
           "params": {
@@ -884,11 +882,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，业务场景更新为物联监测\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "invalid_value"
+              "code": "content.value_not_allowed"
             }
           ],
           "params": {
@@ -990,11 +988,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "missing_required"
+              "code": "content.entry_field_missing"
             }
           ]
         }
@@ -1011,11 +1009,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是专线保障，处置类型是紧急扩容，操作名称是故障切换，有效期是永久生效，到2030-12-31为止\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "semantic_mismatch"
+              "code": "content.semantic_conflict"
             }
           ]
         }
@@ -1059,11 +1057,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是专线保障，处置类型是出问题了得马上处理恢复业务，操作名称是流量调度，有效期是2026-01-01~2030-12-31\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "invalid_value"
+              "code": "content.value_not_allowed"
             }
           ]
         }
@@ -1083,7 +1081,7 @@
           },
           "策略列表": {
             "type": "array",
-            "description": "动网操作的授权策略列表，按输入中的出现顺序排列。参数值中每条条目以编号加'.'开头（如'1.'），条目内各字段以'字段名是值'形式表达并用逗号分隔，多个条目各自独立成行（换行分隔）。该参数未提供时输出空数组 []。各操作类型对每条的字段要求不同：新增条目须包含业务场景、处置类型、操作名称、有效期；删除条目可为策略标识，也可仅为条件字段（业务场景、处置类型、操作名称之一或多个），无需其他字段，不得按新增的必填字段要求检查删除条目。修改授权策略时，每条须包含策略标识与新有效期，缺少新有效期判 missing_required。查询条件须带字段标签，格式为'字段名是值'（如'业务场景是信号覆盖优化'），带标签时按标签归因字段。",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列。参数值中每条条目以编号加'.'开头（如'1.'），条目内各字段以'字段名是值'形式表达并用逗号分隔，多个条目各自独立成行（换行分隔）。该参数未提供时输出空数组 []。各操作类型对每条的字段要求不同：新增条目须包含业务场景、处置类型、操作名称、有效期；删除条目可为策略标识，也可仅为条件字段（业务场景、处置类型、操作名称之一或多个），无需其他字段，不得按新增的必填字段要求检查删除条目。修改授权策略时，每条须包含策略标识与新有效期，缺少新有效期判 content.entry_field_missing。查询条件须带字段标签，格式为'字段名是值'（如'业务场景是信号覆盖优化'），带标签时按标签归因字段。",
             "items": {
               "type": "object",
               "properties": {
@@ -1097,7 +1095,7 @@
                 },
                 "处置类型": {
                   "type": "string",
-                  "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 invalid_value"
+                  "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 content.value_not_allowed"
                 },
                 "操作名称": {
                   "type": "string",
@@ -1154,7 +1152,7 @@
           },
           "策略列表": {
             "type": "array",
-            "description": "动网操作的授权策略列表，按输入中的出现顺序排列。参数值中每条条目以编号加'.'开头（如'1.'），条目内各字段以'字段名是值'形式表达并用逗号分隔，多个条目各自独立成行（换行分隔）。该参数未提供时输出空数组 []。各操作类型对每条的字段要求不同：新增条目须包含业务场景、处置类型、操作名称、有效期；删除条目可为策略标识，也可仅为条件字段（业务场景、处置类型、操作名称之一或多个），无需其他字段，不得按新增的必填字段要求检查删除条目。修改授权策略时，每条须包含策略标识与新有效期，缺少新有效期判 missing_required。查询条件须带字段标签，格式为'字段名是值'（如'业务场景是信号覆盖优化'），带标签时按标签归因字段。",
+            "description": "动网操作的授权策略列表，按输入中的出现顺序排列。参数值中每条条目以编号加'.'开头（如'1.'），条目内各字段以'字段名是值'形式表达并用逗号分隔，多个条目各自独立成行（换行分隔）。该参数未提供时输出空数组 []。各操作类型对每条的字段要求不同：新增条目须包含业务场景、处置类型、操作名称、有效期；删除条目可为策略标识，也可仅为条件字段（业务场景、处置类型、操作名称之一或多个），无需其他字段，不得按新增的必填字段要求检查删除条目。修改授权策略时，每条须包含策略标识与新有效期，缺少新有效期判 content.entry_field_missing。查询条件须带字段标签，格式为'字段名是值'（如'业务场景是信号覆盖优化'），带标签时按标签归因字段。",
             "items": {
               "type": "object",
               "properties": {
@@ -1168,7 +1166,7 @@
                 },
                 "处置类型": {
                   "type": "string",
-                  "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 invalid_value"
+                  "description": "动网操作的处置类型，应为简短的处置动作短语（如业务抢通、业务优化、路由调整），非短语式的整句描述判 content.value_not_allowed"
                 },
                 "操作名称": {
                   "type": "string",
@@ -3536,11 +3534,11 @@
           "promptText": "## 授权策略的操作类型\n新增授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 业务场景是专线保障，处置类型是紧急扩容，操作名称是故障切换，有效期是永久生效\n2. 业务场景是物联监测，处置类型是降级服务，操作名称是流量调度，有效期是2026-13-01~2030-12-31\n3. 业务场景是应急广播，处置类型是优先保障，操作名称是参数核查，有效期是2027-03-15~2029-09-30\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "策略列表",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }
@@ -3600,11 +3598,11 @@
           "promptText": "## 授权策略的操作类型\n修改授权策略\n\n## 授权策略的操作描述\n请根据<授权策略的操作类型>和<动网操作的授权策略列表>完成相应的授权操作，按照<预期输出>中定义的结构返回授权策略的操作执行结果。<预期输出>表示预期返回内容。\n\n## 动网操作的授权策略列表\n1. 策略标识是f9e8d7c6-b5a4-3210-fedc-ba9876543210，有效期是永久生效\n2. 策略标识是7d8c7b00-3c8c-4f8e-9b1e-9b17b6a3e5c3，有效期是到2028-12-31为止\n\n## 预期输出\n1. 授权操作执行结果，取值范围： 成功、失败、部分成功；\n2. 授权操作执行成功时，返回执行成功的<动网操作的授权策略列表>；\n3. 授权操作执行失败或部分成功时，返回失败列表，包含授权策略和失败原因；"
         },
         "server": {
-          "outcome": "validation_semantic_rejected",
+          "outcome": "negotiation.semantic_rejected",
           "slot_errors": [
             {
               "slot_name": "有效期",
-              "code": "format_error"
+              "code": "content.format_error"
             }
           ]
         }

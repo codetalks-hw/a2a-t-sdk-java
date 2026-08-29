@@ -1,5 +1,8 @@
 package net.openan.a2at.sdk.corpus;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -10,9 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.A2ATParamExtractionError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
@@ -25,6 +25,7 @@ import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
+import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
@@ -39,21 +40,21 @@ import org.jspecify.annotations.Nullable;
  * block.
  *
  * <p>Everything except the LLM client is production assembly: the case engine builds a real
- * {@link NegotiationGenerationOrchestrator} through {@link NegotiationGenerationOrchestratorBuilder} for the language of
- * the case, wires the {@code inject} hooks onto their real builder injection points ({@code failingTemplateLoader} for
- * the generation template-not-found matrix, {@code failingSemanticValidator} for the validate-family
- * prompt-resource-not-found mapping) and dispatches on the {@link NegotiationApi} enum at compile time, so a misspelled API
- * name fails at corpus load time and a renamed service method fails this compilation. The three task-family APIs run
- * through the {@link TaskApiAssembler}, the real facade builders' assembly of the closed loop (Q21) with the scripted LLM
- * client injected at the builders' LLM seam.
+ * {@link NegotiationGenerationOrchestrator} through {@link NegotiationGenerationOrchestratorBuilder} for the language
+ * of the case, wires the {@code inject} hooks onto their real builder injection points ({@code failingTemplateLoader}
+ * for the generation template-not-found matrix, {@code failingSemanticValidator} for the validate-family
+ * prompt-resource-not-found mapping) and dispatches on the {@link NegotiationApi} enum at compile time, so a misspelled
+ * API name fails at corpus load time and a renamed service method fails this compilation. The three task-family APIs
+ * run through the {@link TaskApiAssembler}, the real facade builders' assembly of the closed loop (Q21) with the
+ * scripted LLM client injected at the builders' LLM seam.
  *
  * <p>Result normalization: a success run returns the produced {@link MetadataContent} or {@link FilledParamData}, a
  * failure run captures the thrown exception. The expectation comparison covers outcome, exception name, error code,
  * message fragments, slot errors (slot plus code pairs, exact but order-insensitive), the exact LLM call count, the
  * golden fixture text (per language, byte equality after CRLF normalization), the metadata echoes, the expected merged
- * parameter map, the P0 behavior contracts and the Q17 C+ differential double run
- * (fromText == fromData == golden, from-data side proven zero-call with an assertion-only client). Every mismatch fails
- * with the case id, the JSON path of the expectation and the expected-versus-actual pair.
+ * parameter map, the P0 behavior contracts and the Q17 C+ differential double run (fromText == fromData == golden,
+ * from-data side proven zero-call with an assertion-only client). Every mismatch fails with the case id, the JSON path
+ * of the expectation and the expected-versus-actual pair.
  *
  * @since 2026-08
  */
@@ -94,8 +95,8 @@ public final class CaseEngine {
     }
 
     /**
-     * Runs one case, optionally overriding the prompt input of the validate family and optionally running as a
-     * scenario step.
+     * Runs one case, optionally overriding the prompt input of the validate family and optionally running as a scenario
+     * step.
      *
      * <p>The {@link ScenarioEngine} resolves {@code prompt.fromStep} references into prompt texts and hands them in
      * through the prompt parameter; a standalone validate case resolves its golden or inline prompt itself. Scenario
@@ -183,11 +184,7 @@ public final class CaseEngine {
             assertFailureFields(outcome);
         }
         if (expect.llmCalls() != null && expect.llmCalls() != outcome.llmCalls()) {
-            fail(
-                    testCase,
-                    "$.expect.llmCalls",
-                    String.valueOf(expect.llmCalls()),
-                    String.valueOf(outcome.llmCalls()));
+            fail(testCase, "$.expect.llmCalls", String.valueOf(expect.llmCalls()), String.valueOf(outcome.llmCalls()));
         }
         for (String contractName : expect.contracts()) {
             assertContract(outcome, contractName);
@@ -221,8 +218,7 @@ public final class CaseEngine {
         }
         for (String fragment : expect.messageContains()) {
             String message = failure.getMessage();
-            if (message == null
-                    || !(message.contains(fragment) || message.contains(performativeWording(fragment)))) {
+            if (message == null || !(message.contains(fragment) || message.contains(performativeWording(fragment)))) {
                 fail(
                         testCase,
                         "$.expect.messageContains",
@@ -231,15 +227,36 @@ public final class CaseEngine {
             }
         }
         if (!expect.slotErrors().isEmpty()) {
-            if (!(failure instanceof A2ATParamExtractionError extraction)) {
+            List<SlotValidationError> slotErrors = slotErrorsOf(failure);
+            if (slotErrors == null) {
                 throw fail(
                         testCase,
                         "$.expect.slotErrors",
                         renderSlotErrors(expect.slotErrors()),
                         "exception " + failure.getClass().getSimpleName() + " carries no slot errors");
             }
-            assertSlotErrors(testCase, expect.slotErrors(), extraction.getErrors());
+            assertSlotErrors(testCase, expect.slotErrors(), slotErrors);
         }
+    }
+
+    /**
+     * Returns the slot errors the failure carries, or null when the failure type carries none.
+     *
+     * <p>The negotiation content layer surfaces its failures as {@link NegotiationParamExtractionException} (an
+     * {@code A2ATBusinessException} subtype since the ErrorCatalog migration) while the prompt families still use
+     * {@link A2ATParamExtractionError}; the engine accepts both carriers.
+     *
+     * @param failure captured failure of the run
+     * @return the slot validation errors of the failure, or null when the failure carries none
+     */
+    private static @Nullable List<SlotValidationError> slotErrorsOf(Throwable failure) {
+        if (failure instanceof A2ATParamExtractionError extraction) {
+            return extraction.getErrors();
+        }
+        if (failure instanceof NegotiationParamExtractionException negotiation) {
+            return negotiation.getErrors();
+        }
+        return null;
     }
 
     private void assertSlotErrors(
@@ -354,10 +371,9 @@ public final class CaseEngine {
             }
         }
         if (expect.paramsFromStep() != null && !inScenario) {
-            throw new IllegalStateException(
-                    testCase.errorPrefix() + " expect.paramsFromStep " + expect.paramsFromStep()
-                            + " is resolved by the ScenarioEngine; run the enclosing scenario through the"
-                            + " ScenarioEngine");
+            throw new IllegalStateException(testCase.errorPrefix() + " expect.paramsFromStep " + expect.paramsFromStep()
+                    + " is resolved by the ScenarioEngine; run the enclosing scenario through the"
+                    + " ScenarioEngine");
         }
     }
 
@@ -395,12 +411,13 @@ public final class CaseEngine {
 
     private void assertConclusionLiteralPresent(CaseOutcome outcome) {
         NegotiationCase testCase = outcome.testCase();
-        String literal = switch (testCase.api()) {
-            case GENERATE_ACCEPT_FROM_TEXT, GENERATE_ACCEPT_FROM_DATA -> "Accept";
-            case GENERATE_REJECT_FROM_TEXT, GENERATE_REJECT_FROM_DATA -> "Reject";
-            case GENERATE_ABORT_FROM_TEXT, GENERATE_ABORT_FROM_DATA -> "Abort";
-            default -> null;
-        };
+        String literal =
+                switch (testCase.api()) {
+                    case GENERATE_ACCEPT_FROM_TEXT, GENERATE_ACCEPT_FROM_DATA -> "Accept";
+                    case GENERATE_REJECT_FROM_TEXT, GENERATE_REJECT_FROM_DATA -> "Reject";
+                    case GENERATE_ABORT_FROM_TEXT, GENERATE_ABORT_FROM_DATA -> "Abort";
+                    default -> null;
+                };
         if (literal == null) {
             fail(
                     testCase,
@@ -524,11 +541,7 @@ public final class CaseEngine {
         try {
             fromData = generateFromData(service, testCase);
         } catch (RuntimeException | AssertionError error) {
-            fail(
-                    testCase,
-                    "$.expect.differential",
-                    "a successful from-data message",
-                    "failure (" + error + ")");
+            fail(testCase, "$.expect.differential", "a successful from-data message", "failure (" + error + ")");
             return;
         }
         if (!Objects.equals(fromText.promptText(), fromData.promptText())) {
@@ -623,7 +636,8 @@ public final class CaseEngine {
         return new TaskApiAssembler(testCase.language(), maxAttempts, llmClient);
     }
 
-    private static NegotiationTemplateLoader failingTemplateLoader() {        return new NegotiationTemplateLoader() {
+    private static NegotiationTemplateLoader failingTemplateLoader() {
+        return new NegotiationTemplateLoader() {
             @Override
             public PromptTemplate load(NegotiationReference reference) {
                 throw new ResourceNotFoundException("Negotiation template does not exist.", reference.uri());
@@ -633,8 +647,8 @@ public final class CaseEngine {
 
     /**
      * Replays the semantic validator of a language without bundled semantic validation prompt resources: the pipeline
-     * maps the resource failure onto the public {@code template_not_found} code without bubbling the raw exception
-     * (the validate-family leg of the mapCode matrix; mirrors the hand-written pipeline suite).
+     * maps the resource failure onto the public {@code template.not_found} code without bubbling the raw exception (the
+     * validate-family leg of the template-resolution matrix; mirrors the hand-written pipeline suite).
      *
      * @return semantic validator failing every call with a resource-not-found exception
      */
@@ -644,8 +658,7 @@ public final class CaseEngine {
                     "Negotiation semantic validation prompt resource does not exist for language "
                             + reference.language()
                             + "; set A2AT_LANGUAGE to a language with bundled prompt resources (zh-CN or en-US).",
-                    "prompt_resources/prompts/negotiation_semantic_validation/" + reference.language()
-                            + "/system.md");
+                    "prompt_resources/prompts/negotiation_semantic_validation/" + reference.language() + "/system.md");
         };
     }
 
@@ -659,32 +672,43 @@ public final class CaseEngine {
         TemplateUri templateUri = parseTemplateUri(testCase);
         NegotiationContext context = toContext(testCase.context(), testCase.api());
         return switch (testCase.api()) {
-            case GENERATE_PROPOSE_FROM_TEXT ->
-                service.generateProposeFromText(testCase.inputText(), context, templateUri);
-            case GENERATE_ACCEPT_FROM_TEXT ->
-                service.generateAcceptFromText(testCase.inputText(), context, templateUri);
-            case GENERATE_REJECT_FROM_TEXT ->
-                service.generateRejectFromText(testCase.inputText(), context, templateUri);
-            case GENERATE_ABORT_FROM_TEXT ->
-                service.generateAbortFromText(testCase.inputText(), context, templateUri);
+            case GENERATE_PROPOSE_FROM_TEXT -> service.generateProposeFromText(
+                    testCase.inputText(), context, templateUri);
+            case GENERATE_ACCEPT_FROM_TEXT -> service.generateAcceptFromText(
+                    testCase.inputText(), context, templateUri);
+            case GENERATE_REJECT_FROM_TEXT -> service.generateRejectFromText(
+                    testCase.inputText(), context, templateUri);
+            case GENERATE_ABORT_FROM_TEXT -> service.generateAbortFromText(testCase.inputText(), context, templateUri);
             case GENERATE_PROPOSE_FROM_DATA -> service.generateProposeFromData(
                     (NegotiationProposeData) TypedInputAssembler.assemble(
-                            requireInputData(testCase), context, templateUri, NegotiationPerformative.PROPOSE,
+                            requireInputData(testCase),
+                            context,
+                            templateUri,
+                            NegotiationPerformative.PROPOSE,
                             testCase.language()),
                     templateUri);
             case GENERATE_ACCEPT_FROM_DATA -> service.generateAcceptFromData(
                     (NegotiationEndingData) TypedInputAssembler.assemble(
-                            requireInputData(testCase), context, templateUri, NegotiationPerformative.ACCEPT,
+                            requireInputData(testCase),
+                            context,
+                            templateUri,
+                            NegotiationPerformative.ACCEPT,
                             testCase.language()),
                     templateUri);
             case GENERATE_REJECT_FROM_DATA -> service.generateRejectFromData(
                     (NegotiationEndingData) TypedInputAssembler.assemble(
-                            requireInputData(testCase), context, templateUri, NegotiationPerformative.REJECT,
+                            requireInputData(testCase),
+                            context,
+                            templateUri,
+                            NegotiationPerformative.REJECT,
                             testCase.language()),
                     templateUri);
             case GENERATE_ABORT_FROM_DATA -> service.generateAbortFromData(
                     (NegotiationAbortData) TypedInputAssembler.assemble(
-                            requireInputData(testCase), context, templateUri, NegotiationPerformative.ABORT,
+                            requireInputData(testCase),
+                            context,
+                            templateUri,
+                            NegotiationPerformative.ABORT,
                             testCase.language()),
                     templateUri);
             case VALIDATE_PROPOSE_PROMPT_AND_DATA_FILLING -> service.validateProposePromptAndDataFilling(
@@ -695,20 +719,17 @@ public final class CaseEngine {
                     promptOf(testCase, promptOverride), context, schemaOf(testCase), templateUri);
             case VALIDATE_ABORT_PROMPT_AND_DATA_FILLING -> service.validateAbortPromptAndDataFilling(
                     promptOf(testCase, promptOverride), context, schemaOf(testCase), templateUri);
-            case GENERATE_TASK_PROMPT_FROM_TEXT ->
-                requireTaskApi(taskApi, testCase).generateTaskPromptFromText(
-                        requireInputText(testCase), templateUri);
-            case GENERATE_TASK_PROMPT_FROM_DATA_WITH_SCHEMA ->
-                requireTaskApi(taskApi, testCase).generateTaskPromptFromDataWithSchema(
-                        dataOf(testCase), requireSchema(testCase), templateUri);
-            case VALIDATE_TASK_PROMPT_AND_DATA_FILLING ->
-                requireTaskApi(taskApi, testCase).validateTaskPromptAndDataFilling(
-                        promptOf(testCase, promptOverride), requireSchema(testCase), templateUri);
+            case GENERATE_TASK_PROMPT_FROM_TEXT -> requireTaskApi(taskApi, testCase)
+                    .generateTaskPromptFromText(requireInputText(testCase), templateUri);
+            case GENERATE_TASK_PROMPT_FROM_DATA_WITH_SCHEMA -> requireTaskApi(taskApi, testCase)
+                    .generateTaskPromptFromDataWithSchema(dataOf(testCase), requireSchema(testCase), templateUri);
+            case VALIDATE_TASK_PROMPT_AND_DATA_FILLING -> requireTaskApi(taskApi, testCase)
+                    .validateTaskPromptAndDataFilling(
+                            promptOf(testCase, promptOverride), requireSchema(testCase), templateUri);
         };
     }
 
-    private static TaskApiAssembler requireTaskApi(
-            @Nullable TaskApiAssembler taskApi, NegotiationCase testCase) {
+    private static TaskApiAssembler requireTaskApi(@Nullable TaskApiAssembler taskApi, NegotiationCase testCase) {
         if (taskApi == null) {
             throw new IllegalStateException(
                     testCase.errorPrefix() + " the task API assembly is only wired for the task family but got "
@@ -776,9 +797,8 @@ public final class CaseEngine {
             return readGoldenFixture(testCase, golden.golden());
         }
         PromptSource.FromStep fromStep = (PromptSource.FromStep) source;
-        throw new IllegalStateException(
-                testCase.errorPrefix() + " prompt.fromStep " + fromStep.step()
-                        + " is resolved by the ScenarioEngine; run the enclosing scenario through the ScenarioEngine");
+        throw new IllegalStateException(testCase.errorPrefix() + " prompt.fromStep " + fromStep.step()
+                + " is resolved by the ScenarioEngine; run the enclosing scenario through the ScenarioEngine");
     }
 
     private static @Nullable Map<String, Object> schemaOf(NegotiationCase testCase) {
@@ -798,8 +818,8 @@ public final class CaseEngine {
      *
      * @param spec context spec of the case, or null
      * @param api API of the case
-     * @return the negotiation context of the spec stamped with the API's performative, or null when the case carries
-     *     no context spec or the task-family API takes no negotiation context
+     * @return the negotiation context of the spec stamped with the API's performative, or null when the case carries no
+     *     context spec or the task-family API takes no negotiation context
      */
     private static @Nullable NegotiationContext toContext(@Nullable ContextSpec spec, NegotiationApi api) {
         NegotiationPerformative performative = performativeOf(api);
@@ -818,23 +838,27 @@ public final class CaseEngine {
      */
     private static @Nullable NegotiationPerformative performativeOf(NegotiationApi api) {
         return switch (api) {
-            case GENERATE_PROPOSE_FROM_TEXT, GENERATE_PROPOSE_FROM_DATA, VALIDATE_PROPOSE_PROMPT_AND_DATA_FILLING ->
-                NegotiationPerformative.PROPOSE;
-            case GENERATE_ACCEPT_FROM_TEXT, GENERATE_ACCEPT_FROM_DATA, VALIDATE_ACCEPT_PROMPT_AND_DATA_FILLING ->
-                NegotiationPerformative.ACCEPT;
-            case GENERATE_REJECT_FROM_TEXT, GENERATE_REJECT_FROM_DATA, VALIDATE_REJECT_PROMPT_AND_DATA_FILLING ->
-                NegotiationPerformative.REJECT;
-            case GENERATE_ABORT_FROM_TEXT, GENERATE_ABORT_FROM_DATA, VALIDATE_ABORT_PROMPT_AND_DATA_FILLING ->
-                NegotiationPerformative.ABORT;
+            case GENERATE_PROPOSE_FROM_TEXT,
+                    GENERATE_PROPOSE_FROM_DATA,
+                    VALIDATE_PROPOSE_PROMPT_AND_DATA_FILLING -> NegotiationPerformative.PROPOSE;
+            case GENERATE_ACCEPT_FROM_TEXT,
+                    GENERATE_ACCEPT_FROM_DATA,
+                    VALIDATE_ACCEPT_PROMPT_AND_DATA_FILLING -> NegotiationPerformative.ACCEPT;
+            case GENERATE_REJECT_FROM_TEXT,
+                    GENERATE_REJECT_FROM_DATA,
+                    VALIDATE_REJECT_PROMPT_AND_DATA_FILLING -> NegotiationPerformative.REJECT;
+            case GENERATE_ABORT_FROM_TEXT,
+                    GENERATE_ABORT_FROM_DATA,
+                    VALIDATE_ABORT_PROMPT_AND_DATA_FILLING -> NegotiationPerformative.ABORT;
             default -> null;
         };
     }
 
     /**
-     * Rewrites the pre-rename wording of the frozen corpus fixtures: the case JSON files still say
-     * {@code expected phase}, while the orchestrator's reference-resolution error has said
-     * {@code expected performative} since the {@code phase} to {@code performative} rename. The corpus case JSON
-     * files are frozen by policy, so the harness translates the legacy fragment instead of the fixtures.
+     * Rewrites the pre-rename wording of the frozen corpus fixtures: the case JSON files still say {@code expected
+     * phase}, while the orchestrator's reference-resolution error has said {@code expected performative} since the
+     * {@code phase} to {@code performative} rename. The corpus case JSON files are frozen by policy, so the harness
+     * translates the legacy fragment instead of the fixtures.
      *
      * @param fragment message fragment declared by a frozen case fixture
      * @return the fragment with the legacy wording translated to the current one
@@ -862,9 +886,8 @@ public final class CaseEngine {
         String resourcePath = "/golden/" + testCase.language() + "/" + goldenName + ".md";
         InputStream stream = CaseEngine.class.getResourceAsStream(resourcePath);
         if (stream == null) {
-            throw new AssertionError(
-                    testCase.errorPrefix() + " golden fixture '" + goldenName + "' does not exist on the test"
-                            + " classpath: " + resourcePath);
+            throw new AssertionError(testCase.errorPrefix() + " golden fixture '" + goldenName
+                    + "' does not exist on the test" + " classpath: " + resourcePath);
         }
         try (stream) {
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n");

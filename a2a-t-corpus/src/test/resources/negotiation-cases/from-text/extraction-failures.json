@@ -13,7 +13,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -23,7 +23,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["extraction-failure", "information", "accept", "conclusion-mismatch"],
-    "summary": "补数接受消息抽取出的结论为拒绝时判定为内容与阶段矛盾，立即失败并返回输入无效错误码",
+    "summary": "补数接受消息抽取出的结论为拒绝时判定为结论与阶段不符，立即失败并返回结论不符错误码",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": { "text": { "zh-CN": "确认补充投诉诊断信息：接入端口名称为P533-珠江旧城-PTN3900-23-TPA1EG24-1，投诉分类为专线质差。" } },
@@ -31,7 +31,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.conclusion_mismatch",
       "llmCalls": 1
     }
   },
@@ -41,7 +41,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["extraction-failure", "information", "reject", "conclusion-mismatch"],
-    "summary": "无法提供端口名的拒绝消息抽取出的结论为接受时判定为内容与阶段矛盾，立即失败并返回输入无效错误码",
+    "summary": "无法提供端口名的拒绝消息抽取出的结论为接受时判定为结论与阶段不符，立即失败并返回结论不符错误码",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": { "text": { "zh-CN": "无法提供接入端口名称：工作台侧端口资源台账暂不可查，本轮协商拒绝。" } },
@@ -49,7 +49,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.conclusion_mismatch",
       "llmCalls": 1
     }
   },
@@ -67,7 +67,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -85,7 +85,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "negotiation.content_extract_failed",
       "llmCalls": 1
     }
   },
@@ -103,7 +103,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "negotiation.content_extract_failed",
       "llmCalls": 1
     }
   },
@@ -121,7 +121,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "negotiation.content_extract_failed",
       "llmCalls": 1
     }
   },
@@ -139,7 +139,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -157,7 +157,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -175,7 +175,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "llmCalls": 1
     }
   },
@@ -193,7 +193,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "negotiation.content_extract_failed",
       "llmCalls": 1
     }
   },
@@ -211,7 +211,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "llmCalls": 1
     }
   },
@@ -229,7 +229,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -247,7 +247,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -265,7 +265,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "negotiation.content_extract_failed",
       "llmCalls": 1
     }
   }

@@ -40,7 +40,7 @@
     },
     "inject": {
       "title": "Harness injection hook",
-      "description": "Maps a corpus case onto a real builder injection point; failingTemplateLoader triggers template_not_found on the generation family, failingSemanticValidator replays the missing semantic validation prompt resources of the validate family (mapped onto template_not_found by the validation pipeline).",
+      "description": "Maps a corpus case onto a real builder injection point; failingTemplateLoader triggers template.not_found on the generation family, failingSemanticValidator replays the missing semantic validation prompt resources of the validate family (mapped onto template.not_found by the validation pipeline).",
       "type": "string",
       "enum": ["failingTemplateLoader", "failingSemanticValidator"]
     },

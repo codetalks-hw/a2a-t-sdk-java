@@ -3,14 +3,14 @@ package net.openan.a2at.sdk.corpus;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import java.util.List;
+import java.util.Map;
 import net.openan.a2at.sdk.corpus.ScenarioCase.ExpectFlow;
-import org.junit.jupiter.api.Test;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Direct unit tests of the {@link ScenarioEngine} against inline scenario objects: the {@code prompt.fromStep}
@@ -40,21 +40,19 @@ class ScenarioEngineTest {
     private static final String SEMANTIC_ACCEPT_PAYLOAD =
             "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[],\"params\":{}}";
 
-    private static final String PRIVATE_LINE_COMPLAINT_URI =
-            "Task-T/network-layer/private-line-complaint/v1";
+    private static final String PRIVATE_LINE_COMPLAINT_URI = "Task-T/network-layer/private-line-complaint/v1";
 
-    private static final Map<String, String> CLOSED_LOOP_ROLES = Map.of(
-            "A", "工作台（client，任务发起/补数方）", "B", "OMC（server，执行/要数方，协商发起方）");
+    private static final Map<String, String> CLOSED_LOOP_ROLES =
+            Map.of("A", "工作台（client，任务发起/补数方）", "B", "OMC（server，执行/要数方，协商发起方）");
 
     /** The workbench raw complaint (样例步骤1): no access port name and no complaint category in the text. */
     private static final String COMPLAINT_TEXT =
-            "深圳访问广州的专线从5月11号早上8点半开始响应时延从平均12ms骤升至320ms，柜面和手机银行的交易接口频繁报"
-                    + "“连接超时”。OSS侧事件流水号：event-id-20260511-09013。";
+            "深圳访问广州的专线从5月11号早上8点半开始响应时延从平均12ms骤升至320ms，柜面和手机银行的交易接口频繁报" + "“连接超时”。OSS侧事件流水号：event-id-20260511-09013。";
 
     /**
-     * Slot-extraction payload of the closed loop's step 1 since the task_object slot became required upstream: the
-     * task object carries what the raw text names (the circuit) but no port name, so the rendered prompt stays
-     * portless and the two schema parameters stay missing for the negotiation to fill.
+     * Slot-extraction payload of the closed loop's step 1 since the task_object slot became required upstream: the task
+     * object carries what the raw text names (the circuit) but no port name, so the rendered prompt stays portless and
+     * the two schema parameters stay missing for the negotiation to fill.
      */
     private static final String TASK_SLOTS_OBJECT_PORTLESS =
             "{\"slots\": {\"任务对象\": \"深圳访问广州的专线\", \"任务上下文\": \"投诉分类：待补充；问题发生时间：2026-05-11T08:21:46Z；"
@@ -103,13 +101,7 @@ class ScenarioEngineTest {
                 "SC-INFO-01",
                 List.of(
                         step(1, "A", acceptStep("SC-INFO-01", ok(1, "information_accept"))),
-                        step(
-                                2,
-                                "B",
-                                validateAcceptStep(
-                                        "SC-INFO-01",
-                                        1,
-                                        ok(1, null)))),
+                        step(2, "B", validateAcceptStep("SC-INFO-01", 1, ok(1, null)))),
                 new ScenarioCase.ExpectFlow("accept", 2, null));
 
         engine.runScenario(scenario);
@@ -117,10 +109,8 @@ class ScenarioEngineTest {
 
     @Test
     void failsWhenAFromStepReferencesAnUnknownStep() {
-        ScenarioCase scenario = scenario(
-                "SC-INFO-02",
-                List.of(step(1, "A", validateAcceptStep("SC-INFO-02", 3, ok(1, null)))),
-                null);
+        ScenarioCase scenario =
+                scenario("SC-INFO-02", List.of(step(1, "A", validateAcceptStep("SC-INFO-02", 3, ok(1, null)))), null);
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.runScenario(scenario));
 
@@ -146,12 +136,10 @@ class ScenarioEngineTest {
                 new LlmScript(null, List.of(new LlmScriptStep.Fail(LlmFailMarker.NON_JSON))),
                 null,
                 null,
-                failed("NegotiationGenerationException", "negotiation_invalid_input", null));
+                failed("NegotiationGenerationException", "llm.response_invalid", null));
         ScenarioCase scenario = scenario(
                 "SC-ERR-01",
-                List.of(
-                        step(1, "A", failingStep),
-                        step(2, "B", validateAcceptStep("SC-ERR-01", 1, ok(1, null)))),
+                List.of(step(1, "A", failingStep), step(2, "B", validateAcceptStep("SC-ERR-01", 1, ok(1, null)))),
                 null);
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.runScenario(scenario));
@@ -215,19 +203,14 @@ class ScenarioEngineTest {
     @Test
     void runsTheClosedLoopScenarioLinkingMissingParamsToTheFilledParams() throws Exception {
         ScenarioCase scenario = closedLoopScenario(
-                SEMANTIC_ACCEPT_WITH_FILLED_PARAMS,
-                new ScenarioCase.ExpectFlow("accept", 2, Boolean.TRUE, 2),
-                2);
+                SEMANTIC_ACCEPT_WITH_FILLED_PARAMS, new ScenarioCase.ExpectFlow("accept", 2, Boolean.TRUE, 2), 2);
 
         engine.runScenario(scenario);
     }
 
     @Test
     void paramsFromStepFailsWhenTheReferencedStepProducedNoFilledParams() throws Exception {
-        ScenarioCase scenario = closedLoopScenario(
-                SEMANTIC_ACCEPT_WITH_FILLED_PARAMS,
-                null,
-                1);
+        ScenarioCase scenario = closedLoopScenario(SEMANTIC_ACCEPT_WITH_FILLED_PARAMS, null, 1);
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.runScenario(scenario));
 
@@ -235,16 +218,12 @@ class ScenarioEngineTest {
                 failure.getMessage().contains("expect.paramsFromStep 1")
                         && failure.getMessage().contains("produced no filled parameter data")
                         && failure.getMessage().contains("B=OMC（server，执行/要数方，协商发起方）"),
-                "the dangling paramsFromStep reference must fail with role semantics but was: "
-                        + failure.getMessage());
+                "the dangling paramsFromStep reference must fail with role semantics but was: " + failure.getMessage());
     }
 
     @Test
     void paramsFromStepFailsWhenAParameterStaysUnfilled() throws Exception {
-        ScenarioCase scenario = closedLoopScenario(
-                SEMANTIC_ACCEPT_PARTIALLY_FILLED,
-                null,
-                2);
+        ScenarioCase scenario = closedLoopScenario(SEMANTIC_ACCEPT_PARTIALLY_FILLED, null, 2);
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.runScenario(scenario));
 
@@ -258,9 +237,7 @@ class ScenarioEngineTest {
     @Test
     void missingParamsFilledFailsWhenNoLaterStepFillsTheParameters() throws Exception {
         ScenarioCase scenario = closedLoopScenario(
-                SEMANTIC_ACCEPT_PARTIALLY_FILLED,
-                new ScenarioCase.ExpectFlow("accept", 2, Boolean.TRUE, 2),
-                null);
+                SEMANTIC_ACCEPT_PARTIALLY_FILLED, new ScenarioCase.ExpectFlow("accept", 2, Boolean.TRUE, 2), null);
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.runScenario(scenario));
 
@@ -274,9 +251,7 @@ class ScenarioEngineTest {
     @Test
     void missingParamsFilledFailsWhenTheReferencedStepFoundNothingMissing() throws Exception {
         ScenarioCase scenario = closedLoopScenario(
-                SEMANTIC_ACCEPT_WITH_FILLED_PARAMS,
-                new ScenarioCase.ExpectFlow("accept", 2, Boolean.TRUE, 4),
-                2);
+                SEMANTIC_ACCEPT_WITH_FILLED_PARAMS, new ScenarioCase.ExpectFlow("accept", 2, Boolean.TRUE, 4), 2);
 
         AssertionError failure = assertThrows(AssertionError.class, () -> engine.runScenario(scenario));
 
@@ -292,7 +267,13 @@ class ScenarioEngineTest {
     private static ScenarioCase scenario(
             String id, List<ScenarioCase.ScenarioStep> steps, @Nullable ExpectFlow expectFlow) {
         return new ScenarioCase(
-                id + "/zh-CN", id, "scenarios/information-flows.json", ZH_CN, null, List.of("A", "B"), steps,
+                id + "/zh-CN",
+                id,
+                "scenarios/information-flows.json",
+                ZH_CN,
+                null,
+                List.of("A", "B"),
+                steps,
                 expectFlow);
     }
 
@@ -326,11 +307,7 @@ class ScenarioEngineTest {
                 script(TASK_SEMANTIC_MISSING_PARAMS),
                 new PromptSource.FromStep(1),
                 mapper.readTree(TASK_PARAM_SCHEMA),
-                okTask(
-                        1,
-                        null,
-                        List.of("accessPort", "bizScenario"),
-                        Map.of("faultTime", "2026-05-11T08:21:46Z")));
+                okTask(1, null, List.of("accessPort", "bizScenario"), Map.of("faultTime", "2026-05-11T08:21:46Z")));
         NegotiationCase acceptGeneration = stepCase(
                 "SC-TASK-01",
                 3,
@@ -483,7 +460,16 @@ class ScenarioEngineTest {
 
     private static Expectation failed(String exception, String code, @Nullable Integer llmCalls) {
         return new Expectation(
-                false, exception, code, List.of(), List.of(), llmCalls, null, null, java.util.Map.of(), List.of(),
+                false,
+                exception,
+                code,
+                List.of(),
+                List.of(),
+                llmCalls,
+                null,
+                null,
+                java.util.Map.of(),
+                List.of(),
                 false);
     }
 

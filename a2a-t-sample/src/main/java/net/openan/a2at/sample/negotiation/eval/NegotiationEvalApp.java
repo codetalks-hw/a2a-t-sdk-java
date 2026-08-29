@@ -46,7 +46,7 @@ import net.openan.a2at.sdk.server.A2ATServer;
  *       ({@code generateTaskPromptFromDataWithSchema}: every data key maps to one slot value, the schema is passed
  *       as a call parameter) or natural language ({@code generateTaskPromptFromText}, LLM slot extraction);
  *   <li>server validation — {@code validateTaskPromptAndDataFilling} extracts the parameters against the passed
- *       JSON schema; the missing-slot set (blank slots plus semantic {@code missing_required} errors) decides
+ *       JSON schema; the missing-slot set (blank slots plus semantic {@code content.param_missing} errors) decides
  *       whether negotiation is triggered;
  *   <li>propose generation — for the detected missing slots, {@code generateNegotiationProposePromptFromData} /
  *       {@code FromText} renders the Negotiation-T information-propose message;

@@ -30,7 +30,7 @@ class AuthzSampleMainTest {
     private static final ScenarioResult MATCH_RESULT =
             new ScenarioResult("success", true, null, List.of(), true, true, true, List.of());
     private static final ScenarioResult MISMATCH_RESULT =
-            new ScenarioResult("slot_validation_error", false, null, List.of(), null, null, null, List.of());
+            new ScenarioResult("slot.rule_violation", false, null, List.of(), null, null, null, List.of());
 
     private PrintStream originalOut;
     private ByteArrayOutputStream outContent;
@@ -127,7 +127,7 @@ class AuthzSampleMainTest {
         String output = outContent.toString();
         assertTrue(output.contains("--- Scenario: test ---"));
         assertTrue(output.contains("[Client]"));
-        assertTrue(output.contains("slot_validation_error"));
+        assertTrue(output.contains("slot.rule_violation"));
         assertTrue(output.contains("(跳过 - 客户端生成失败)"));
     }
 
@@ -136,12 +136,12 @@ class AuthzSampleMainTest {
         AuthzScenario scenario = new AuthzScenario("test", "from_text", Map.of("text", "hello"), SUCCESS);
         MetadataContent metadata = new MetadataContent("template-uri", "prompt text", "extension-uri");
         ScenarioResult result = new ScenarioResult(
-                "validation_semantic_rejected", false, null, List.of(), true, false, null, List.of());
+                "negotiation.semantic_rejected", false, null, List.of(), true, false, null, List.of());
         ScenarioOutcome outcome = new ScenarioOutcome(result, metadata, null);
         AuthzSampleMain.printScenarioReport(scenario, outcome);
         String output = outContent.toString();
         assertTrue(output.contains("[Server]"));
-        assertTrue(output.contains("validation_semantic_rejected"));
+        assertTrue(output.contains("negotiation.semantic_rejected"));
         assertTrue(output.contains("校验结果"));
     }
 
@@ -170,7 +170,14 @@ class AuthzSampleMainTest {
                 new net.openan.a2at.sdk.core.model.FilledParamData(Map.of("slot1", "actual_value")));
 
         Path reportPath = AuthzSampleMain.writeReport(
-                List.of(scenario), List.of(outcome), tempDir, 8, 12.5, "sample/authz-policy/scenarios.json", false, null);
+                List.of(scenario),
+                List.of(outcome),
+                tempDir,
+                8,
+                12.5,
+                "sample/authz-policy/scenarios.json",
+                false,
+                null);
 
         assertTrue(Files.exists(reportPath));
         String content = Files.readString(reportPath);
@@ -196,16 +203,16 @@ class AuthzSampleMainTest {
                 Map.of("text", "hello"),
                 new AuthzExpected(
                         new ClientExpected(
-                                "slot_validation_error",
+                                "slot.not_provided",
                                 null,
-                                List.of(new AuthzScenario.SlotErrorExpectation("授权策略的操作类型", "missing_required"))),
+                                List.of(new AuthzScenario.SlotErrorExpectation("授权策略的操作类型", "slot.not_provided"))),
                         null));
         ScenarioResult result = new ScenarioResult(
-                "slot_validation_error",
+                "slot.not_provided",
                 true,
                 null,
                 List.of(new net.openan.a2at.sdk.core.model.SlotValidationError(
-                        "授权策略的操作类型", "missing_required", "Required slot is missing or empty")),
+                        "授权策略的操作类型", "slot.not_provided", "输入中未提供「授权策略的操作类型」。")),
                 null,
                 null,
                 null,
@@ -213,11 +220,18 @@ class AuthzSampleMainTest {
         ScenarioOutcome outcome = new ScenarioOutcome(result, null, null);
 
         Path reportPath = AuthzSampleMain.writeReport(
-                List.of(scenario), List.of(outcome), tempDir, 8, 12.5, "sample/authz-policy/scenarios.json", false, null);
+                List.of(scenario),
+                List.of(outcome),
+                tempDir,
+                8,
+                12.5,
+                "sample/authz-policy/scenarios.json",
+                false,
+                null);
 
         String content = Files.readString(reportPath);
         assertTrue(content.contains("授权策略的操作类型"));
-        assertTrue(content.contains("missing_required"));
-        assertTrue(content.contains("Required slot is missing or empty"));
+        assertTrue(content.contains("slot.not_provided"));
+        assertTrue(content.contains("输入中未提供「授权策略的操作类型」。"));
     }
 }

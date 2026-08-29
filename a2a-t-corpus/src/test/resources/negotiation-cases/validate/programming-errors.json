@@ -5,7 +5,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-prompt", "propose"],
-    "summary": "校验要数提议消息时未传入消息文本，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验要数提议消息时未传入消息文本，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "schema": { "$ref": "schemas/biz.complaint.params" },
@@ -13,7 +13,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "llmCalls": 0
     }
   },
@@ -23,7 +23,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "blank-prompt", "propose"],
-    "summary": "校验要数提议消息时消息文本为空白，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验要数提议消息时消息文本为空白，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "prompt": { "text": "   " },
@@ -32,7 +32,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "messageContains": ["Prompt must not be null or blank."],
       "llmCalls": 0
     }
@@ -43,7 +43,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-prompt", "accept"],
-    "summary": "校验补数接受消息时未传入消息文本，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验补数接受消息时未传入消息文本，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "7f3c9a2e-1b4d-4e8f-9c2a-5d6b7e8f9a01", "round": 3, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "schema": { "$ref": "schemas/biz.complaint.params" },
@@ -51,7 +51,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "llmCalls": 0
     }
   },
@@ -61,7 +61,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "blank-prompt", "accept"],
-    "summary": "校验补数接受消息时消息文本为空白，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验补数接受消息时消息文本为空白，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "7f3c9a2e-1b4d-4e8f-9c2a-5d6b7e8f9a01", "round": 3, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "prompt": { "text": "   " },
@@ -70,7 +70,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "messageContains": ["Prompt must not be null or blank."],
       "llmCalls": 0
     }
@@ -81,7 +81,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-prompt", "reject"],
-    "summary": "校验修复目标拒绝消息时未传入消息文本，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验修复目标拒绝消息时未传入消息文本，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "round": 2, "maxRounds": 3 },
     "templateUri": "Negotiation-T/target-negotiation/accept-reject/v1",
     "schema": { "$ref": "schemas/empty" },
@@ -89,7 +89,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "llmCalls": 0
     }
   },
@@ -99,7 +99,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "blank-prompt", "reject"],
-    "summary": "校验修复目标拒绝消息时消息文本为空白，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验修复目标拒绝消息时消息文本为空白，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "round": 2, "maxRounds": 3 },
     "templateUri": "Negotiation-T/target-negotiation/accept-reject/v1",
     "prompt": { "text": "   " },
@@ -108,7 +108,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "messageContains": ["Prompt must not be null or blank."],
       "llmCalls": 0
     }
@@ -119,7 +119,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-prompt", "abort"],
-    "summary": "校验终止消息时未传入消息文本，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验终止消息时未传入消息文本，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "5d7e9f1a-3b4c-4d5e-8f7a-1b8c2d3e4f5a", "round": 5, "maxRounds": 5 },
     "templateUri": "Negotiation-T/common/abort/v1",
     "schema": { "$ref": "schemas/empty" },
@@ -127,7 +127,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "llmCalls": 0
     }
   },
@@ -137,7 +137,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "blank-prompt", "abort"],
-    "summary": "校验终止消息时消息文本为空白，按无效输入拒绝并返回 negotiation_invalid_input，不调用大模型",
+    "summary": "校验终止消息时消息文本为空白，按无效输入拒绝并返回 negotiation.invalid_input，不调用大模型",
     "context": { "id": "5d7e9f1a-3b4c-4d5e-8f7a-1b8c2d3e4f5a", "round": 5, "maxRounds": 5 },
     "templateUri": "Negotiation-T/common/abort/v1",
     "prompt": { "text": "   " },
@@ -146,7 +146,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "messageContains": ["Prompt must not be null or blank."],
       "llmCalls": 0
     }
@@ -157,7 +157,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-context", "propose"],
-    "summary": "校验要数提议消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input",
+    "summary": "校验要数提议消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input",
     "context": null,
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "prompt": { "golden": "information_propose" },
@@ -166,8 +166,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
-      "messageContains": ["missing negotiation context"],
+      "code": "negotiation.invalid_input",
+      "messageContains": ["缺少协商上下文"],
       "llmCalls": 0
     }
   },
@@ -177,7 +177,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-context", "accept"],
-    "summary": "校验补数接受消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input",
+    "summary": "校验补数接受消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input",
     "context": null,
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "prompt": { "golden": "information_accept" },
@@ -186,8 +186,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
-      "messageContains": ["missing negotiation context"],
+      "code": "negotiation.invalid_input",
+      "messageContains": ["缺少协商上下文"],
       "llmCalls": 0
     }
   },
@@ -197,7 +197,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-context", "reject"],
-    "summary": "校验修复目标拒绝消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input",
+    "summary": "校验修复目标拒绝消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input",
     "context": null,
     "templateUri": "Negotiation-T/target-negotiation/accept-reject/v1",
     "prompt": { "golden": "target_reject" },
@@ -206,8 +206,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
-      "messageContains": ["missing negotiation context"],
+      "code": "negotiation.invalid_input",
+      "messageContains": ["缺少协商上下文"],
       "llmCalls": 0
     }
   },
@@ -217,7 +217,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["programming-error", "null-context", "abort"],
-    "summary": "校验终止消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation_invalid_input",
+    "summary": "校验终止消息时未携带协商上下文，按非协商消息拒绝并返回 negotiation.invalid_input",
     "context": null,
     "templateUri": "Negotiation-T/common/abort/v1",
     "prompt": { "golden": "abort" },
@@ -226,8 +226,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_invalid_input",
-      "messageContains": ["missing negotiation context"],
+      "code": "negotiation.invalid_input",
+      "messageContains": ["缺少协商上下文"],
       "llmCalls": 0
     }
   },

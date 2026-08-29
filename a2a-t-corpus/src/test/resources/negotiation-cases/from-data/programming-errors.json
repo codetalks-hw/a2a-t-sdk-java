@@ -29,7 +29,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "conclusion-mismatch", "information", "accept"],
-    "summary": "接受方法收到携带 Reject 结论的结构化数据时生成以参数异常失败，提示结论与接受阶段不符且不发起任何 LLM 调用",
+    "summary": "接受方法收到携带 Reject 结论的结构化数据时生成以结论不符错误码失败，提示结论与接受方法预期不符且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": {
@@ -42,8 +42,9 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
-      "messageContains": ["The ACCEPT phase requires conclusion Accept but the content carries Reject."],
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.conclusion_mismatch",
+      "messageContains": ["与该方法的预期"],
       "llmCalls": 0
     }
   },
@@ -53,7 +54,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "conclusion-mismatch", "information", "reject"],
-    "summary": "拒绝方法收到携带 Accept 结论的结构化数据时生成以参数异常失败，提示结论与拒绝阶段不符且不发起任何 LLM 调用",
+    "summary": "拒绝方法收到携带 Accept 结论的结构化数据时生成以结论不符错误码失败，提示结论与拒绝方法预期不符且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": {
@@ -66,8 +67,9 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
-      "messageContains": ["The REJECT phase requires conclusion Reject but the content carries Accept."],
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.conclusion_mismatch",
+      "messageContains": ["与该方法的预期"],
       "llmCalls": 0
     }
   },
@@ -77,7 +79,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "conclusion-mismatch", "information", "accept", "abort-conclusion"],
-    "summary": "接受方法收到携带 Abort 结论的结构化数据时生成以参数异常失败，提示终止结论不属于类型化模板且不发起任何 LLM 调用",
+    "summary": "接受方法收到携带 Abort 结论的结构化数据时生成以结论不符错误码失败，提示终止结论不属于类型化模板且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": {
@@ -90,8 +92,9 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
-      "messageContains": ["The ACCEPT phase requires conclusion Accept but the content carries Abort."],
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.conclusion_mismatch",
+      "messageContains": ["与该方法的预期"],
       "llmCalls": 0
     }
   },
@@ -101,7 +104,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "missing-field", "target", "accept"],
-    "summary": "目标协商接受数据缺少最终确认意图时生成以参数异常失败，提示接受消息必须携带确认意图且不发起任何 LLM 调用",
+    "summary": "目标协商接受数据缺少最终确认意图时生成以协商内容无效错误码失败，提示接受消息必须携带确认意图且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/target-negotiation/accept-reject/v1",
     "input": {
@@ -113,7 +116,8 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.content_invalid",
       "messageContains": ["Confirmed intent of an accepting target negotiation message must not be blank."],
       "llmCalls": 0
     }
@@ -124,7 +128,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "blank-field", "target", "accept"],
-    "summary": "目标协商接受数据的最终确认意图为空白字符串时生成以参数异常失败，提示确认意图不能为空白且不发起任何 LLM 调用",
+    "summary": "目标协商接受数据的最终确认意图为空白字符串时生成以协商内容无效错误码失败，提示确认意图不能为空白且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/target-negotiation/accept-reject/v1",
     "input": {
@@ -136,7 +140,8 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.content_invalid",
       "messageContains": ["Confirmed intent of an accepting target negotiation message must not be blank."],
       "llmCalls": 0
     }
@@ -147,7 +152,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "missing-field", "target", "reject"],
-    "summary": "目标协商拒绝数据缺少拒绝原因时生成以参数异常失败，提示拒绝消息必须携带失败原因且不发起任何 LLM 调用",
+    "summary": "目标协商拒绝数据缺少拒绝原因时生成以协商内容无效错误码失败，提示拒绝消息必须携带失败原因且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/target-negotiation/accept-reject/v1",
     "input": {
@@ -159,7 +164,8 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.content_invalid",
       "messageContains": ["Failure reason of a rejecting target negotiation message must not be blank."],
       "llmCalls": 0
     }
@@ -170,7 +176,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "missing-field", "feasibility", "propose", "evaluation-request"],
-    "summary": "可行性评估请求的结构化提议数据缺少待评估内容时生成以参数异常失败，提示至少需要一条评估项且不发起任何 LLM 调用",
+    "summary": "可行性评估请求的结构化提议数据缺少待评估内容时生成以协商内容无效错误码失败，提示至少需要一条评估项且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1",
     "input": {
@@ -183,7 +189,8 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.content_invalid",
       "messageContains": ["Contents to evaluate of a feasibility evaluation request must contain at least one item."],
       "llmCalls": 0
     }
@@ -194,7 +201,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["programming-error", "missing-field", "feasibility", "propose", "alternative-proposal"],
-    "summary": "不可行替代方案的结构化提议数据缺少不可行细节与方案时生成以参数异常失败，提示至少需要一条方案项且不发起任何 LLM 调用",
+    "summary": "不可行替代方案的结构化提议数据缺少不可行细节与方案时生成以协商内容无效错误码失败，提示至少需要一条方案项且不发起任何 LLM 调用",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/feasibility-negotiation/propose/v1",
     "input": {
@@ -207,7 +214,8 @@
     },
     "expect": {
       "outcome": "failure",
-      "exception": "IllegalArgumentException",
+      "exception": "NegotiationGenerationException",
+      "code": "negotiation.content_invalid",
       "messageContains": [
         "Infeasibility details and proposal of an alternative proposal must contain at least one item."
       ],

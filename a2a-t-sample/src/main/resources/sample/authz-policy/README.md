@@ -83,12 +83,12 @@ scenarios[]:
     client_prompt          # 客户端 promptText 比对：true/false=DRIFT（漂移，不计分）/null=客户端失败路径
     server_outcome         # 服务端 outcome 断言（null=未到服务端）
     server_params          # 服务端 params 子集断言
-  actual_outcome           # 实际结果码（success / slot_validation_error / validation_semantic_rejected / ...）
-  actual_slot_errors[]     # 服务端实际错误明细（slot_name + code + message）
+  actual_outcome           # 实际结果码（success / slot.not_provided / negotiation.semantic_rejected / ...）
+  actual_slot_errors[]     # 服务端实际错误明细（slot_name + code + message + facts，message 由 SDK 按码模板渲染）
   actual_params            # 服务端实际提取参数
   prompt_text              # 客户端渲染产物（DRIFT 判读依据）
   warnings[]               # 结构性告警（如 empty_policy_list_section：增删改操作下策略列表章节为空），不计分
-  error                    # 异常信息 {code, message}（失败归因用，如 sdk_internal_error）
+  error                    # 异常信息 {code, message}（失败归因用，如 infra.internal_error）
 ```
 
 **断言语义（重要）**：`match` 仅由客户端 outcome+错误码、服务端 outcome+错误码、params 子集匹配决定；
@@ -147,7 +147,7 @@ for c in cs:
 
 | 模式 | 题集 | 通过线 |
 |---|---|---|
-| 冒烟 | `scenarios.json`（15 例） | ≥ 13/15，且无 `sdk_internal_error` 类异常 |
+| 冒烟 | `scenarios.json`（15 例） | ≥ 13/15，且无 `infra.internal_error` 类异常 |
 | 全量 | `scenarios-100.json`（100 例） | 记录基线分数，失败例逐例归因（LLM 概率性 / 判据缺口 / 题集期望错误） |
 | 留出集 | `scenarios-holdout-100.json`（100 例） | 与全量分差 ≤5 视为无过拟合；分差扩大时优先排查 prompt/约束对原题集的过拟合 |
 

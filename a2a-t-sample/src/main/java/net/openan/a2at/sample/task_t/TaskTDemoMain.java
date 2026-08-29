@@ -192,7 +192,7 @@ public final class TaskTDemoMain {
     /**
      * Runs the rejection case over {@link TaskTPrivateLineComplaintSamples#rejectionSamples()}: each sample
      * deliberately omits one or more key slots (or carries an invalid slot value), so the server-side semantic
-     * validation is expected to fail with {@code validation_semantic_rejected}. The sample set mixes a text variant
+     * validation is expected to fail with {@code negotiation.semantic_rejected}. The sample set mixes a text variant
      * (fed to {@code generateTaskPromptFromText}) and a data variant (fed to
      * {@code generateTaskPromptFromDataWithSchema}); a sample is counted as "server-rejected" only when the
      * validation throws {@link ContentValidationException} — the structured slot errors are printed per sample — while

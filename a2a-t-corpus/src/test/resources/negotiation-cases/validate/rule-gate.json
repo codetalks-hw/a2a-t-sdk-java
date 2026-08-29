@@ -14,8 +14,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_rule_violation",
-      "slotErrors": [ { "slot": "id", "code": "invalid_uuid" } ],
+      "code": "negotiation.rule_violation",
+      "slotErrors": [ { "slot": "id", "code": "negotiation.invalid_context_id" } ],
       "llmCalls": 0
     }
   },
@@ -34,8 +34,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_rule_violation",
-      "slotErrors": [ { "slot": "id", "code": "invalid_uuid" } ],
+      "code": "negotiation.rule_violation",
+      "slotErrors": [ { "slot": "id", "code": "negotiation.invalid_context_id" } ],
       "llmCalls": 0
     }
   },
@@ -54,8 +54,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_rule_violation",
-      "slotErrors": [ { "slot": "id", "code": "invalid_uuid" } ],
+      "code": "negotiation.rule_violation",
+      "slotErrors": [ { "slot": "id", "code": "negotiation.invalid_context_id" } ],
       "llmCalls": 0
     }
   },
@@ -99,8 +99,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_rule_violation",
-      "slotErrors": [ { "slot": "round", "code": "out_of_range" } ],
+      "code": "negotiation.rule_violation",
+      "slotErrors": [ { "slot": "round", "code": "negotiation.round_exceeded" } ],
       "llmCalls": 0
     }
   },
@@ -119,10 +119,10 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_rule_violation",
+      "code": "negotiation.rule_violation",
       "slotErrors": [
-        { "slot": "id", "code": "invalid_uuid" },
-        { "slot": "round", "code": "out_of_range" }
+        { "slot": "id", "code": "negotiation.invalid_context_id" },
+        { "slot": "round", "code": "negotiation.round_exceeded" }
       ],
       "llmCalls": 0
     }

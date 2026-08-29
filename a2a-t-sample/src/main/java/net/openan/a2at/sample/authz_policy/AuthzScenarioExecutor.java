@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.openan.a2at.sample.authz_policy.AuthzScenarioRunner.ScenarioOutcome;
 import net.openan.a2at.sample.authz_policy.AuthzScenarioRunner.ScenarioResult;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 
@@ -21,7 +21,7 @@ import net.openan.a2at.sdk.core.model.TemplateUri;
  * using a fixed thread pool, while preserving input order in the returned result list.
  *
  * <p>Each task runs the complete client→server flow for a single scenario. Internal failures
- * are caught per-task and converted to {@code sdk_internal_error} outcomes, isolating the
+ * are caught per-task and converted to {@code infra.internal_error} outcomes, isolating the
  * remaining scenarios from a single failure.
  *
  * <p>An optional {@link ProgressListener} receives per-completion callbacks (synchronized,
@@ -203,11 +203,11 @@ public final class AuthzScenarioExecutor {
     private ScenarioOutcome buildInternalErrorOutcome(AuthzScenario scenario, Throwable t) {
         return new ScenarioOutcome(
                 new ScenarioResult(
-                        A2ATErrorCodes.SDK_INTERNAL_ERROR,
+                        ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(),
                         false,
-                        new A2ATError(A2ATErrorCodes.SDK_INTERNAL_ERROR, t.getMessage(), t),
+                        new A2ATError(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), t.getMessage(), t),
                         List.of(new SlotValidationError(
-                                "_llm", A2ATErrorCodes.SDK_INTERNAL_ERROR, t.getMessage())),
+                                "_llm", ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), t.getMessage())),
                         null,
                         null,
                         null,
