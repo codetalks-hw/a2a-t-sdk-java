@@ -49,7 +49,7 @@ class DefaultContentValidatorTest {
                         Map.of("type", "object"),
                         TemplateUri.of("Notification-T", "network-layer", "service-recovery")));
 
-        assertEquals("validation_invalid_input", exception.getCode());
+        assertEquals("negotiation.invalid_input", exception.getCode());
     }
 
     @Test
@@ -57,14 +57,13 @@ class DefaultContentValidatorTest {
         DefaultContentValidator validator =
                 new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
 
-        TemplateUri unsupportedVersion =
-                TemplateUri.of("Task-T", List.of("network-layer", "ran-energy-saving"), "v2");
+        TemplateUri unsupportedVersion = TemplateUri.of("Task-T", List.of("network-layer", "ran-energy-saving"), "v2");
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate("task prompt", Map.of("type", "object"), unsupportedVersion));
 
-        assertEquals("validation_invalid_input", exception.getCode());
+        assertEquals("negotiation.invalid_input", exception.getCode());
     }
 
     @Test
@@ -76,18 +75,18 @@ class DefaultContentValidatorTest {
                 ContentValidationException.class,
                 () -> validator.validate("task prompt", Map.of("type", "object"), null));
 
-        assertEquals("validation_invalid_input", exception.getCode());
+        assertEquals("negotiation.invalid_input", exception.getCode());
     }
 
     @Test
-    void unsupportedLanguageFailsAtConstructionWithValidationPromptResourceNotFound() {
+    void unsupportedLanguageFailsAtConstructionWithTemplateNotFound() {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> new DefaultContentValidator("Task-T", "fr-FR", 3, new StubClient(), STUB_LOADER));
 
-        assertEquals("validation_prompt_resource_not_found", exception.getCode());
+        assertEquals("template.not_found", exception.getCode());
         assertInstanceOf(ResourceNotFoundException.class, exception.getCause());
-        assertTrue(exception.getMessage().contains("zh-CN or en-US"));
+        assertTrue(exception.getCause().getMessage().contains("zh-CN or en-US"));
     }
 
     @Test
@@ -101,7 +100,7 @@ class DefaultContentValidatorTest {
     }
 
     @Test
-    void retryableFailureAfterResourceLoadStillMapsLlmInfrastructureError() {
+    void retryableFailureAfterResourceLoadMapsLlmInvocationFailed() {
         DefaultContentValidator validator =
                 new DefaultContentValidator("Task-T", "zh-CN", 1, new FailingClient(), STUB_LOADER);
 
@@ -109,7 +108,7 @@ class DefaultContentValidatorTest {
                 ContentValidationException.class,
                 () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
 
-        assertEquals("validation_llm_infrastructure_error", exception.getCode());
+        assertEquals("llm.invocation_failed", exception.getCode());
     }
 
     @Test
@@ -124,7 +123,7 @@ class DefaultContentValidatorTest {
                 ContentValidationException.class,
                 () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
 
-        assertEquals("template_not_found", exception.getCode());
+        assertEquals("template.not_found", exception.getCode());
         assertInstanceOf(ResourceNotFoundException.class, exception.getCause());
     }
 

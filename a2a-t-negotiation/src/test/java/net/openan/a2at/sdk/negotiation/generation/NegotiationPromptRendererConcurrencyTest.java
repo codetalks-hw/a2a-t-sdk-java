@@ -31,8 +31,11 @@ class NegotiationPromptRendererConcurrencyTest {
                         net.openan.a2at.sdk.core.model.NegotiationPerformative.PROPOSE,
                         "zh-CN"))
                 .content();
-        Map<String, String> slots =
-                Map.of("协商上下文", "- id: 3dbc13b5-bd57-4c2b-b503-24e381b6c8d3\n- round: 1\n- maxRounds: 5", "所需信息项", "1. 节能区域：松山湖");
+        Map<String, String> slots = Map.of(
+                "协商上下文",
+                "- id: 3dbc13b5-bd57-4c2b-b503-24e381b6c8d3\n- round: 1\n- maxRounds: 5",
+                "所需信息项",
+                "1. 节能区域：松山湖");
         NegotiationPromptRenderer renderer = new NegotiationPromptRenderer();
         String baseline = renderer.render(template, slots);
 

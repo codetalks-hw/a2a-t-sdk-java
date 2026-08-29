@@ -3,6 +3,7 @@ package net.openan.a2at.sdk.server.validation;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -60,9 +61,10 @@ class LlmBackedPromptSemanticValidatorTest {
     }
 
     @Test
-    void validateReturnsSlotValidationErrorWhenSemanticValidatorRejectsSlots() {
+    void validateReturnsCatalogCodeWhenSemanticValidatorRejectsSlots() {
         LLMClient llmClient = new RecordingClient("{\"passed\":false,\"errors\":[{\"slot_name\":\"notification_topic\","
-                + "\"code\":\"semantic_mismatch\",\"message\":\"topic does not match\"}]}");
+                + "\"code\":\"slot.semantic_conflict\","
+                + "\"facts\":{\"slot_label\":\"notification_topic\",\"reason\":\"topic does not match\"}}]}");
         LlmBackedPromptSemanticValidator validator =
                 new LlmBackedPromptSemanticValidator(llmClient, SLOT_SCHEMA_LOADER, "semantic system", "semantic user");
 
@@ -76,14 +78,41 @@ class LlmBackedPromptSemanticValidatorTest {
                                 "## notification_topic\n{{notification_topic}}\n",
                                 Map.of(SLOT_NAME, "Incident"))));
 
-        assertEquals("slot_validation_error", error.getCode());
+        assertEquals("slot.semantic_conflict", error.getCode());
         assertEquals("slot_validation", error.getStage());
+        assertTrue(error.getMessage().contains("notification_topic"), "message must render the slot label");
+        assertTrue(error.getMessage().contains("topic does not match"), "message must render the conflict reason");
+        assertEquals(Map.of("slot_label", "notification_topic", "reason", "topic does not match"), error.getFacts());
+    }
+
+    @Test
+    void validateMapsUnknownCodeToSlotRuleViolationFallback() {
+        LLMClient llmClient = new RecordingClient("{\"passed\":false,\"errors\":[{\"slot_name\":\"notification_topic\","
+                + "\"code\":\"data_problem\","
+                + "\"facts\":{\"slot_label\":\"notification_topic\"}}]}");
+        LlmBackedPromptSemanticValidator validator =
+                new LlmBackedPromptSemanticValidator(llmClient, SLOT_SCHEMA_LOADER, "semantic system", "semantic user");
+
+        PromptComplianceCheckException error = assertThrows(
+                PromptComplianceCheckException.class,
+                () -> validator.validate(
+                        "## notification_topic\nIncident\n",
+                        new ProcessedPromptMetadata(
+                                "subscribe-incident",
+                                "zh-CN",
+                                "## notification_topic\n{{notification_topic}}\n",
+                                Map.of(SLOT_NAME, "Incident"))));
+
+        assertEquals("slot.rule_violation", error.getCode());
+        assertEquals("slot_validation", error.getStage());
+        assertTrue(error.getMessage().contains("notification_topic"), "message must render the slot label");
     }
 
     @Test
     void validateRejectsWhenPassedTrueButErrorsNonEmpty() {
         LLMClient llmClient = new RecordingClient("{\"passed\":true,\"errors\":[{\"slot_name\":\"notification_topic\","
-                + "\"code\":\"semantic_mismatch\",\"message\":\"topic does not match\"}]}");
+                + "\"code\":\"slot.semantic_conflict\","
+                + "\"facts\":{\"slot_label\":\"notification_topic\",\"reason\":\"topic does not match\"}}]}");
         LlmBackedPromptSemanticValidator validator =
                 new LlmBackedPromptSemanticValidator(llmClient, SLOT_SCHEMA_LOADER, "semantic system", "semantic user");
 
@@ -97,9 +126,9 @@ class LlmBackedPromptSemanticValidatorTest {
                                 "## notification_topic\n{{notification_topic}}\n",
                                 Map.of(SLOT_NAME, "Incident"))));
 
-        assertEquals("slot_validation_error", error.getCode());
+        assertEquals("slot.semantic_conflict", error.getCode());
         assertEquals("slot_validation", error.getStage());
-        assertEquals("topic does not match", error.getMessage());
+        assertTrue(error.getMessage().contains("topic does not match"), "message must render the conflict reason");
     }
 
     @Test
@@ -133,12 +162,12 @@ class LlmBackedPromptSemanticValidatorTest {
     }
 
     @Test
-    void validateRejectsWhenPassedFalseWithEmptyErrors() {
+    void validateRejectsWithResponseInvalidWhenPassedFalseWithEmptyErrors() {
         LLMClient llmClient = new RecordingClient("{\"passed\":false,\"errors\":[]}");
         LlmBackedPromptSemanticValidator validator =
                 new LlmBackedPromptSemanticValidator(llmClient, SLOT_SCHEMA_LOADER, "semantic system", "semantic user");
 
-        assertThrows(
+        PromptComplianceCheckException error = assertThrows(
                 PromptComplianceCheckException.class,
                 () -> validator.validate(
                         "## notification_topic\nIncident\n",
@@ -147,6 +176,30 @@ class LlmBackedPromptSemanticValidatorTest {
                                 "zh-CN",
                                 "## notification_topic\n{{notification_topic}}\n",
                                 Map.of(SLOT_NAME, "Incident"))));
+
+        assertEquals("llm.response_invalid", error.getCode());
+        assertEquals("slot_validation", error.getStage());
+        assertEquals(Map.of("step", "semantic_validation"), error.getFacts());
+    }
+
+    @Test
+    void validateRejectsWithResponseInvalidWhenPayloadIsNotJson() {
+        LLMClient llmClient = new RecordingClient("not-json");
+        LlmBackedPromptSemanticValidator validator =
+                new LlmBackedPromptSemanticValidator(llmClient, SLOT_SCHEMA_LOADER, "semantic system", "semantic user");
+
+        PromptComplianceCheckException error = assertThrows(
+                PromptComplianceCheckException.class,
+                () -> validator.validate(
+                        "## notification_topic\nIncident\n",
+                        new ProcessedPromptMetadata(
+                                "subscribe-incident",
+                                "zh-CN",
+                                "## notification_topic\n{{notification_topic}}\n",
+                                Map.of(SLOT_NAME, "Incident"))));
+
+        assertEquals("llm.response_invalid", error.getCode());
+        assertEquals("slot_validation", error.getStage());
     }
 
     private static final class RecordingClient implements LLMClient {

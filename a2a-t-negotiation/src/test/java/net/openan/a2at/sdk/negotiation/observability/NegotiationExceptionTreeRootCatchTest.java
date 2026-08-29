@@ -8,16 +8,16 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Map;
+import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMError;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -30,8 +30,8 @@ import org.junit.jupiter.api.Test;
  * Verifies the single-root failure contract of the negotiation content layer.
  *
  * <p>Every runtime failure of the generation and parameter-extraction pipelines is catchable through the common
- * {@link A2ATError} root, while programming errors of the content layer (standard {@link IllegalArgumentException}
- * and {@link NullPointerException} of argument validation) stay outside that tree so that callers cannot accidentally
+ * {@link A2ATError} root, while programming errors of the content layer (standard {@link IllegalArgumentException} and
+ * {@link NullPointerException} of argument validation) stay outside that tree so that callers cannot accidentally
  * swallow them with a generic processing-failure handler.
  */
 class NegotiationExceptionTreeRootCatchTest {
@@ -55,8 +55,7 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationGenerationException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR,
-                ((NegotiationGenerationException) failure).getCode());
+                ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), ((NegotiationGenerationException) failure).getCode());
     }
 
     @Test
@@ -73,7 +72,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
@@ -82,8 +82,8 @@ class NegotiationExceptionTreeRootCatchTest {
                 .language("zh-CN")
                 .llmClient(new ScriptedClient(
                         "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":"
-                                + "\"section.info_static\",\"code\":\"template_type_mismatch\",\"message\":"
-                                + "\"inconsistent\"}],\"params\":{}}"))
+                                + "\"section.info_static\",\"code\":\"negotiation.type_mismatch\",\"facts\":"
+                                + "{\"implied\":\"information\",\"declared\":\"information\"}}],\"params\":{}}"))
                 .build();
 
         RuntimeException failure = catchThroughRoot(() -> orchestrator.validateProposePromptAndDataFilling(
@@ -94,7 +94,7 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED,
+                ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(),
                 ((NegotiationParamExtractionException) failure).getCode());
     }
 
@@ -114,7 +114,7 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR,
+                ErrorCatalog.LLM_INVOCATION_FAILED.getCode(),
                 ((NegotiationParamExtractionException) failure).getCode());
     }
 
@@ -129,7 +129,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
@@ -160,7 +161,8 @@ class NegotiationExceptionTreeRootCatchTest {
     @Test
     void contentProgrammingErrorsOfTheContextStayOutsideTheCommonRoot() {
         IllegalArgumentException failure = assertThrows(
-                IllegalArgumentException.class, () -> new NegotiationContext("  ", 1, 5, NegotiationPerformative.PROPOSE));
+                IllegalArgumentException.class,
+                () -> new NegotiationContext("  ", 1, 5, NegotiationPerformative.PROPOSE));
 
         assertFalse(
                 A2ATError.class.isInstance(failure), "content programming errors must stay outside the A2ATError tree");
@@ -180,7 +182,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     @Test
@@ -197,7 +200,8 @@ class NegotiationExceptionTreeRootCatchTest {
 
         assertTrue(failure instanceof NegotiationParamExtractionException);
         assertEquals(
-                A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, ((NegotiationParamExtractionException) failure).getCode());
+                ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(),
+                ((NegotiationParamExtractionException) failure).getCode());
     }
 
     /**

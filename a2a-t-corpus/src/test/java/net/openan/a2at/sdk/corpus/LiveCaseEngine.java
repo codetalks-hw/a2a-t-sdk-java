@@ -1,5 +1,8 @@
 package net.openan.a2at.sdk.corpus;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -7,11 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.TemplateUri;
@@ -36,9 +36,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Retry semantics (Q7): only infrastructure failures retry — LLM runtime errors and IO/timeout exceptions, raw or
  * wrapped by the pipeline's LLM-infrastructure error codes — at most {@code -Dcorpus.live.infraRetries} times (default
- * 2), each attempt on a fresh recording client; an assertion mismatch fails immediately. Every case verdict is
- * appended to the run's {@link LiveTranscript} before it surfaces: the transcript keeps the recorded LLM calls of the
- * failed attempts too, while {@code maxLlmCalls} bounds only the final, judged attempt.
+ * 2), each attempt on a fresh recording client; an assertion mismatch fails immediately. Every case verdict is appended
+ * to the run's {@link LiveTranscript} before it surfaces: the transcript keeps the recorded LLM calls of the failed
+ * attempts too, while {@code maxLlmCalls} bounds only the final, judged attempt.
  *
  * @since 2026-08
  */
@@ -46,7 +46,9 @@ public final class LiveCaseEngine {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** System property overriding the infra-retry limit (live design document §4, same property channel as case.filter). */
+    /**
+     * System property overriding the infra-retry limit (live design document §4, same property channel as case.filter).
+     */
     static final String INFRA_RETRIES_PROPERTY = "corpus.live.infraRetries";
 
     /** Default of the infra-retry limit: at most two retries, three attempts in total. */
@@ -74,11 +76,7 @@ public final class LiveCaseEngine {
      * @param transcript run handle the case verdicts are appended to
      */
     public LiveCaseEngine(LiveLlmConfig config, LiveTranscript.Run transcript) {
-        this(
-                LiveLlmConfig.createLlmClient(config),
-                infraRetryLimit(),
-                LiveLlmEnvWriter.envFileFor(config),
-                transcript);
+        this(LiveLlmConfig.createLlmClient(config), infraRetryLimit(), LiveLlmEnvWriter.envFileFor(config), transcript);
     }
 
     /**
@@ -92,8 +90,7 @@ public final class LiveCaseEngine {
      *     fall back to the scripted minimal env with the fixed pipeline retry limit
      * @param transcript run handle the case verdicts are appended to
      */
-    LiveCaseEngine(
-            LLMClient llmClient, int infraRetries, @Nullable Path envFile, LiveTranscript.Run transcript) {
+    LiveCaseEngine(LLMClient llmClient, int infraRetries, @Nullable Path envFile, LiveTranscript.Run transcript) {
         this.llmClient = Objects.requireNonNull(llmClient, "llmClient");
         this.infraRetries = Math.max(0, infraRetries);
         this.envFile = envFile;
@@ -154,15 +151,16 @@ public final class LiveCaseEngine {
                 throw error;
             }
         }
-        throw new IllegalStateException(testCase.errorPrefix() + " the live engine left the retry loop without a verdict");
+        throw new IllegalStateException(
+                testCase.errorPrefix() + " the live engine left the retry loop without a verdict");
     }
 
     // ------------------------------------------------------------------ judging
 
     /**
-     * Judges one attempt without throwing for an expectation mismatch: the returned {@link Judged} carries the
-     * pipeline output plus the first failed assertion, so the transcript can embed what the pipeline actually
-     * produced even for a failed case. Only infrastructure failures propagate — they are retried by {@link #run}.
+     * Judges one attempt without throwing for an expectation mismatch: the returned {@link Judged} carries the pipeline
+     * output plus the first failed assertion, so the transcript can embed what the pipeline actually produced even for
+     * a failed case. Only infrastructure failures propagate — they are retried by {@link #run}.
      */
     private static Judged judge(TaskApiAssembler assembler, RecordingLLMClient recording, LiveCase testCase) {
         LiveExpectation expect = testCase.liveExpect();
@@ -199,19 +197,17 @@ public final class LiveCaseEngine {
     }
 
     /**
-     * Asserts the value-level live expectations; returns the first mismatch instead of throwing so the caller keeps
-     * the pipeline output for the transcript.
+     * Asserts the value-level live expectations; returns the first mismatch instead of throwing so the caller keeps the
+     * pipeline output for the transcript.
      */
     private static @Nullable AssertionError assertValueExpectations(LiveCase testCase, Judgement judgement) {
         LiveExpectation expect = testCase.liveExpect();
         if (expect.scenarioCode() != null && !expect.scenarioCode().equals(judgement.scenarioCode())) {
             return fail(
-                    testCase,
-                    "$.expect.scenarioCode",
-                    expect.scenarioCode(),
-                    String.valueOf(judgement.scenarioCode()));
+                    testCase, "$.expect.scenarioCode", expect.scenarioCode(), String.valueOf(judgement.scenarioCode()));
         }
-        Map<String, Object> params = judgement.params() == null ? Map.of() : judgement.params().data();
+        Map<String, Object> params =
+                judgement.params() == null ? Map.of() : judgement.params().data();
         for (Map.Entry<String, Object> entry : expect.paramsContains().entrySet()) {
             Object actual = params.get(entry.getKey());
             if (actual == null) {
@@ -231,13 +227,15 @@ public final class LiveCaseEngine {
         }
         for (String slot : expect.paramsAbsent()) {
             if (params.get(slot) != null) {
-                return fail(testCase, "$.expect.paramsAbsent", slot + " null or missing", slot + "=" + params.get(slot));
+                return fail(
+                        testCase, "$.expect.paramsAbsent", slot + " null or missing", slot + "=" + params.get(slot));
             }
         }
         for (String fragment : expect.promptTextContains()) {
-            String promptText = judgement.message() == null || judgement.message().promptText() == null
-                    ? ""
-                    : judgement.message().promptText();
+            String promptText =
+                    judgement.message() == null || judgement.message().promptText() == null
+                            ? ""
+                            : judgement.message().promptText();
             if (!normalize(promptText).contains(normalize(fragment))) {
                 return fail(
                         testCase,
@@ -266,8 +264,8 @@ public final class LiveCaseEngine {
                 yield new Judgement(message, params, scenarioOf(message.templateUri()));
             }
             case VALIDATE_TASK_PROMPT_AND_DATA_FILLING -> {
-                FilledParamData params = assembler.validateTaskPromptAndDataFilling(
-                        requirePromptText(testCase), schema, templateUri);
+                FilledParamData params =
+                        assembler.validateTaskPromptAndDataFilling(requirePromptText(testCase), schema, templateUri);
                 yield new Judgement(null, params, scenarioOf(templateUri.uri()));
             }
             default -> throw new IllegalStateException(
@@ -292,15 +290,18 @@ public final class LiveCaseEngine {
                 assertionSummary(testCase, recordedCalls.size()),
                 inputSummaryOf(testCase),
                 judgement == null ? null : judgement.scenarioCode(),
-                judgement == null || judgement.params() == null ? null : judgement.params().data(),
+                judgement == null || judgement.params() == null
+                        ? null
+                        : judgement.params().data(),
                 recordedCalls,
                 durationMs,
                 failureDiff);
     }
 
     /**
-     * Excerpt of what the case fed the pipeline (design document §5: the transcript's input summary): the natural-language
-     * text of a generation case, or the prompt text a validation case validates, truncated to the reporting length.
+     * Excerpt of what the case fed the pipeline (design document §5: the transcript's input summary): the
+     * natural-language text of a generation case, or the prompt text a validation case validates, truncated to the
+     * reporting length.
      */
     private static @Nullable String inputSummaryOf(LiveCase testCase) {
         String input = testCase.api() == NegotiationApi.GENERATE_TASK_PROMPT_FROM_TEXT
@@ -323,7 +324,8 @@ public final class LiveCaseEngine {
             summary.append(" paramsAbsent=").append(expect.paramsAbsent());
         }
         if (!expect.promptTextContains().isEmpty()) {
-            summary.append(" promptTextContains=").append(expect.promptTextContains().size());
+            summary.append(" promptTextContains=")
+                    .append(expect.promptTextContains().size());
         }
         if (expect.maxLlmCalls() != null) {
             summary.append(" maxLlmCalls<=").append(expect.maxLlmCalls());
@@ -336,18 +338,20 @@ public final class LiveCaseEngine {
     /**
      * Classifies one pipeline exception as an infrastructure failure (Q7): the LLM client's runtime errors and
      * IO/timeout exceptions, raw or anywhere in the pipeline's wrapping cause chain, or an error carrying one of the
-     * two LLM-infrastructure codes. Semantic rejections and rule violations are verdicts, not outages, and never
+     * retryable {@code llm.*} codes. Semantic rejections and rule violations are verdicts, not outages, and never
      * retry.
      */
     private static boolean isInfrastructureFailure(Throwable error) {
-        for (Throwable current = error; current != null;
+        for (Throwable current = error;
+                current != null;
                 current = current.getCause() == current ? null : current.getCause()) {
             if (current instanceof LLMRuntimeError || current instanceof IOException) {
                 return true;
             }
             if (current instanceof A2ATError a2atError
-                    && (A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR.equals(a2atError.getCode())
-                            || A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR.equals(a2atError.getCode()))) {
+                    && (ErrorCatalog.LLM_INVOCATION_FAILED.getCode().equals(a2atError.getCode())
+                            || ErrorCatalog.LLM_RESPONSE_INVALID.getCode().equals(a2atError.getCode())
+                            || ErrorCatalog.LLM_NOT_CONFIGURED.getCode().equals(a2atError.getCode()))) {
                 return true;
             }
         }
@@ -368,7 +372,8 @@ public final class LiveCaseEngine {
     private static boolean valueMatches(Object expected, Object actual) {
         Double expectedNumber = toDoubleOrNull(expected);
         Double actualNumber = toDoubleOrNull(actual);
-        if (expectedNumber != null && actualNumber != null
+        if (expectedNumber != null
+                && actualNumber != null
                 && (expected instanceof Number || actual instanceof Number)) {
             return Double.compare(expectedNumber, actualNumber) == 0;
         }
@@ -390,9 +395,9 @@ public final class LiveCaseEngine {
     }
 
     /**
-     * Returns the scenario segment of a template URI — the last path segment of the Task-T layout ({@code
-     * Task-T/network-layer/private-line-complaint/v1} names the scenario {@code private-line-complaint}); null when
-     * the URI does not parse.
+     * Returns the scenario segment of a template URI — the last path segment of the Task-T layout
+     * ({@code Task-T/network-layer/private-line-complaint/v1} names the scenario {@code private-line-complaint}); null
+     * when the URI does not parse.
      */
     private static @Nullable String scenarioOf(@Nullable String templateUri) {
         return TemplateUri.parse(templateUri)
@@ -467,8 +472,8 @@ public final class LiveCaseEngine {
 
     /**
      * What the pipeline produced for one case: the generated message of a generation case (null for a pure validation
-     * case or an expected failure), the filled parameter data of the validate step, and the scenario code the
-     * pipeline reported.
+     * case or an expected failure), the filled parameter data of the validate step, and the scenario code the pipeline
+     * reported.
      */
     private record Judgement(
             @Nullable MetadataContent message, @Nullable FilledParamData params, @Nullable String scenarioCode) {}

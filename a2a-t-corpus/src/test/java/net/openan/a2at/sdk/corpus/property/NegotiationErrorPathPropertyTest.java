@@ -6,19 +6,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Arbitraries;
+import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
-import net.openan.a2at.sdk.corpus.ScriptedNegotiationLlmClient;
 
 /**
  * Error-path property layer (design §8.3): arbitraries specifically designed to trigger one error code each.
@@ -47,17 +47,17 @@ class NegotiationErrorPathPropertyTest {
                         text,
                         context,
                         PropertyHarness.templateUri("Negotiation-T/information-negotiation/propose/v1")));
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, propose.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(), propose.getCode());
         NegotiationGenerationException abort = assertThrows(
                 NegotiationGenerationException.class,
                 () -> service.generateAbortFromText(
                         text, context, PropertyHarness.templateUri("Negotiation-T/common/abort/v1")));
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, abort.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(), abort.getCode());
         assertEquals(0, llm.callCount());
     }
 
     @Property(tries = 100, seed = "20260911")
-    void conclusionMismatchingThePhaseFailsWithInvalidInput(
+    void conclusionMismatchingThePhaseFailsWithConclusionMismatch(
             @ForAll("languages") String language,
             @ForAll("contexts") NegotiationContext context,
             @ForAll("negotiationTypes") String typeSegment,
@@ -76,9 +76,10 @@ class NegotiationErrorPathPropertyTest {
         } else {
             exception = assertThrows(
                     NegotiationGenerationException.class,
-                    () -> service.generateRejectFromText("I cannot agree with the current offer.", context, templateUri));
+                    () -> service.generateRejectFromText(
+                            "I cannot agree with the current offer.", context, templateUri));
         }
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode(), exception.getCode());
         assertEquals(1, llm.callCount());
     }
 
@@ -91,7 +92,7 @@ class NegotiationErrorPathPropertyTest {
         NegotiationContentService service = PropertyHarness.service(language, llm);
         NegotiationGenerationException exception =
                 assertThrows(NegotiationGenerationException.class, () -> field.run(service, context));
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SLOT_MISSING, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_FIELD_MISSING.getCode(), exception.getCode());
         assertEquals(1, llm.callCount());
     }
 
@@ -114,7 +115,7 @@ class NegotiationErrorPathPropertyTest {
                         proposeContext,
                         FLAT_SCHEMA,
                         PropertyHarness.templateUri("Negotiation-T/information-negotiation/propose/v1")));
-        assertEquals(A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION, propose.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(), propose.getCode());
         NegotiationParamExtractionException abort = assertThrows(
                 NegotiationParamExtractionException.class,
                 () -> service.validateAbortPromptAndDataFilling(
@@ -122,7 +123,7 @@ class NegotiationErrorPathPropertyTest {
                         abortContext,
                         FLAT_SCHEMA,
                         PropertyHarness.templateUri("Negotiation-T/common/abort/v1")));
-        assertEquals(A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION, abort.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(), abort.getCode());
         assertEquals(0, llm.callCount());
     }
 
@@ -238,7 +239,9 @@ class NegotiationErrorPathPropertyTest {
 
     private static Map<String, Object> validInformationProposePayload() {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("items", List.of(Map.of("name", "access_port", "value", "P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1")));
+        payload.put(
+                "items",
+                List.of(Map.of("name", "access_port", "value", "P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1")));
         payload.put("relationship", null);
         return payload;
     }
@@ -254,10 +257,10 @@ class NegotiationErrorPathPropertyTest {
 
     private static Map<String, Object> validFeasibilityProposePayload() {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("feasibility_negotiation_description", "Access port expansion feasibility within the cutover window");
-        payload.put("action", "REQUEST_FEASIBILITY_EVALUATION");
         payload.put(
-                "contents_to_evaluate", List.of(Map.of("name", "latency_target", "value", "within 20ms")));
+                "feasibility_negotiation_description", "Access port expansion feasibility within the cutover window");
+        payload.put("action", "REQUEST_FEASIBILITY_EVALUATION");
+        payload.put("contents_to_evaluate", List.of(Map.of("name", "latency_target", "value", "within 20ms")));
         payload.put("infeasibility_details_and_proposal", List.of());
         return payload;
     }
@@ -265,7 +268,9 @@ class NegotiationErrorPathPropertyTest {
     private static Map<String, Object> validInformationEndingPayload() {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("conclusion", "Accept");
-        payload.put("items", List.of(Map.of("name", "access_port", "value", "P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1")));
+        payload.put(
+                "items",
+                List.of(Map.of("name", "access_port", "value", "P533-Zhujiang Old Town-PTN3900-23-TPA1EG24-1")));
         return payload;
     }
 

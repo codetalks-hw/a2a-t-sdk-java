@@ -12,21 +12,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.openan.a2at.sample.authz_policy.AuthzScenarioRunner.ScenarioOutcome;
 import net.openan.a2at.sample.authz_policy.AuthzScenarioRunner.ScenarioResult;
 import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 
 /**
- * Concurrent scenario executor that runs multiple {@link AuthzScenario} instances in parallel
- * using a fixed thread pool, while preserving input order in the returned result list.
+ * Concurrent scenario executor that runs multiple {@link AuthzScenario} instances in parallel using a fixed thread
+ * pool, while preserving input order in the returned result list.
  *
- * <p>Each task runs the complete client→server flow for a single scenario. Internal failures
- * are caught per-task and converted to {@code sdk_internal_error} outcomes, isolating the
- * remaining scenarios from a single failure.
+ * <p>Each task runs the complete client→server flow for a single scenario. Internal failures are caught per-task and
+ * converted to {@code infra.internal_error} outcomes, isolating the remaining scenarios from a single failure.
  *
- * <p>An optional {@link ProgressListener} receives per-completion callbacks (synchronized,
- * index 1-based) and can be {@code null} when no progress reporting is needed. An optional
- * {@link AuthzReasoningCapture} records LLM reasoning for each scenario when enabled.
+ * <p>An optional {@link ProgressListener} receives per-completion callbacks (synchronized, index 1-based) and can be
+ * {@code null} when no progress reporting is needed. An optional {@link AuthzReasoningCapture} records LLM reasoning
+ * for each scenario when enabled.
  *
  * @since 2026-08
  */
@@ -36,9 +35,7 @@ public final class AuthzScenarioExecutor {
 
     private final AuthzScenarioRunner runner;
 
-    /**
-     * @param runner scenario runner (stateless, safe for concurrent reuse)
-     */
+    /** @param runner scenario runner (stateless, safe for concurrent reuse) */
     public AuthzScenarioExecutor(AuthzScenarioRunner runner) {
         this.runner = runner;
     }
@@ -46,11 +43,11 @@ public final class AuthzScenarioExecutor {
     /**
      * Progress listener invoked after each scenario completes.
      *
-     * <p>Calls are serialized with a lock so the listener implementation does not need to
-     * be thread-safe. The callback runs on the worker thread and must return quickly.
+     * <p>Calls are serialized with a lock so the listener implementation does not need to be thread-safe. The callback
+     * runs on the worker thread and must return quickly.
      *
      * @param completedIndex 1-based completion order (not input index)
-     * @param outcome        the scenario outcome
+     * @param outcome the scenario outcome
      * @param elapsedSeconds wall-clock time for this scenario in seconds, non-negative
      * @since 2026-08
      */
@@ -62,14 +59,14 @@ public final class AuthzScenarioExecutor {
     /**
      * Executes all scenarios concurrently and returns outcomes in the same order as the input list.
      *
-     * @param scenarios    scenarios to execute
-     * @param paramSchema  business-level parameter schema for validation
-     * @param templateUri  template URI for prompt generation
-     * @param workers      maximum number of concurrent worker threads
-     * @param onCompleted  optional progress callback; may be {@code null}
+     * @param scenarios scenarios to execute
+     * @param paramSchema business-level parameter schema for validation
+     * @param templateUri template URI for prompt generation
+     * @param workers maximum number of concurrent worker threads
+     * @param onCompleted optional progress callback; may be {@code null}
      * @return outcomes in input order
-     * @throws IllegalArgumentException      if {@code workers < 1}
-     * @throws IllegalStateException         if the calling thread is interrupted while waiting
+     * @throws IllegalArgumentException if {@code workers < 1}
+     * @throws IllegalStateException if the calling thread is interrupted while waiting
      * @throws java.util.concurrent.RejectedExecutionException if a task cannot be accepted
      * @since 2026-08
      */
@@ -85,15 +82,15 @@ public final class AuthzScenarioExecutor {
     /**
      * Executes all scenarios concurrently with optional reasoning capture.
      *
-     * @param scenarios    scenarios to execute
-     * @param paramSchema  business-level parameter schema for validation
-     * @param templateUri  template URI for prompt generation
-     * @param workers      maximum number of concurrent worker threads
-     * @param onCompleted  optional progress callback; may be {@code null}
-     * @param capture      optional reasoning capture; may be {@code null}
+     * @param scenarios scenarios to execute
+     * @param paramSchema business-level parameter schema for validation
+     * @param templateUri template URI for prompt generation
+     * @param workers maximum number of concurrent worker threads
+     * @param onCompleted optional progress callback; may be {@code null}
+     * @param capture optional reasoning capture; may be {@code null}
      * @return outcomes in input order
-     * @throws IllegalArgumentException      if {@code workers < 1}
-     * @throws IllegalStateException         if the calling thread is interrupted while waiting
+     * @throws IllegalArgumentException if {@code workers < 1}
+     * @throws IllegalStateException if the calling thread is interrupted while waiting
      * @throws java.util.concurrent.RejectedExecutionException if a task cannot be accepted
      * @since 2026-08
      */
@@ -188,14 +185,12 @@ public final class AuthzScenarioExecutor {
         try {
             workers = Integer.parseInt(raw.trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(
-                    "Invalid authz.workers value: '" + raw + "'. Expected an integer >= 1 (default "
-                            + DEFAULT_WORKERS + ").");
+            throw new IllegalArgumentException("Invalid authz.workers value: '" + raw
+                    + "'. Expected an integer >= 1 (default " + DEFAULT_WORKERS + ").");
         }
         if (workers < 1) {
-            throw new IllegalArgumentException(
-                    "Invalid authz.workers value: " + workers + ". Expected an integer >= 1 (default "
-                            + DEFAULT_WORKERS + ").");
+            throw new IllegalArgumentException("Invalid authz.workers value: " + workers
+                    + ". Expected an integer >= 1 (default " + DEFAULT_WORKERS + ").");
         }
         return workers;
     }
@@ -203,11 +198,11 @@ public final class AuthzScenarioExecutor {
     private ScenarioOutcome buildInternalErrorOutcome(AuthzScenario scenario, Throwable t) {
         return new ScenarioOutcome(
                 new ScenarioResult(
-                        A2ATErrorCodes.SDK_INTERNAL_ERROR,
+                        ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(),
                         false,
-                        new A2ATError(A2ATErrorCodes.SDK_INTERNAL_ERROR, t.getMessage(), t),
+                        new A2ATError(ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), t.getMessage(), t),
                         List.of(new SlotValidationError(
-                                "_llm", A2ATErrorCodes.SDK_INTERNAL_ERROR, t.getMessage())),
+                                "_llm", ErrorCatalog.INFRA_INTERNAL_ERROR.getCode(), t.getMessage())),
                         null,
                         null,
                         null,

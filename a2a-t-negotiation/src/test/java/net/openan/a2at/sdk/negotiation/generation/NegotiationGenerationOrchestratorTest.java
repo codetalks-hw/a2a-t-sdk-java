@@ -7,25 +7,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.core.model.FilledParamData;
-import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.validation.ContentValidationException;
+import net.openan.a2at.sdk.llm.LLMClient;
+import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.runtime.NegotiationHandler;
 import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
@@ -73,7 +73,8 @@ class NegotiationGenerationOrchestratorTest {
                 .generateProposeFromData(
                         new NegotiationProposeData(
                                 new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
-                                new InformationProposeContent(List.of(new NegotiationItem("Region", "Songshan Lake")), null)),
+                                new InformationProposeContent(
+                                        List.of(new NegotiationItem("Region", "Songshan Lake")), null)),
                         INFORMATION_PROPOSE);
 
         assertEquals(INFORMATION_PROPOSE_URI, result.templateUri());
@@ -175,10 +176,12 @@ class NegotiationGenerationOrchestratorTest {
         NegotiationGenerationException failure = assertThrows(
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromText(
-                        "请提供区域。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE));
+                        "请提供区域。",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        INFORMATION_PROPOSE));
 
         assertEquals(2, llm.calls);
-        assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, failure.getCode());
+        assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), failure.getCode());
     }
 
     @Test
@@ -195,7 +198,7 @@ class NegotiationGenerationOrchestratorTest {
                                 new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                                 new InformationProposeContent(List.of(new NegotiationItem("区域", "松山湖")), null)),
                         INFORMATION_PROPOSE));
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, generationFailure.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), generationFailure.getCode());
 
         NegotiationGenerationOrchestrator validationOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
                 .language("zh-CN")
@@ -212,7 +215,7 @@ class NegotiationGenerationOrchestratorTest {
                         new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE));
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, extractionFailure.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), extractionFailure.getCode());
     }
 
     @Test
@@ -230,7 +233,7 @@ class NegotiationGenerationOrchestratorTest {
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE));
 
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, failure.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), failure.getCode());
         assertTrue(
                 failure.getCause() instanceof ContentValidationException,
                 "the template-load failure must preserve the mapped pipeline failure as cause for debugging");
@@ -256,7 +259,7 @@ class NegotiationGenerationOrchestratorTest {
                         Map.of("type", "object"),
                         INFORMATION_PROPOSE));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, failure.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(), failure.getCode());
         assertEquals(0, llm.calls);
     }
 

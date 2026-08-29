@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.validation.ContentValidationException;
@@ -23,7 +23,8 @@ class InputLimitedContentValidatorTest {
                 ContentValidationException.class,
                 () -> validator.validate(oversizedPrompt, Map.of(), StandardTemplates.ENERGY_SAVING));
 
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, error.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), error.getCode());
+        assertEquals("Input text length 6 exceeds the maximum of 5 (A2AT_INPUT_TEXT_MAX_CHARS)", error.getMessage());
         assertEquals(null, delegate.lastPrompt, "Delegate must not run for an oversized prompt");
     }
 
@@ -44,7 +45,8 @@ class InputLimitedContentValidatorTest {
         private String lastPrompt;
 
         @Override
-        public FilledParamData validate(String prompt, Map<String, Object> schema, net.openan.a2at.sdk.core.model.TemplateUri templateUri) {
+        public FilledParamData validate(
+                String prompt, Map<String, Object> schema, net.openan.a2at.sdk.core.model.TemplateUri templateUri) {
             this.lastPrompt = prompt;
             return new FilledParamData(Map.of());
         }

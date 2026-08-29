@@ -2,8 +2,8 @@ package net.openan.a2at.sample.authz_policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -30,8 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class AuthzSampleMainConcurrencyTest {
 
-    private static final String SLOT_EXTRACTION_SYSTEM =
-            "/prompt_resources/prompts/slot_extraction/zh-CN/system.md";
+    private static final String SLOT_EXTRACTION_SYSTEM = "/prompt_resources/prompts/slot_extraction/zh-CN/system.md";
     private static final String CONTENT_VALIDATION_SYSTEM =
             "/prompt_resources/prompts/content_validation/zh-CN/system.md";
 
@@ -66,8 +65,7 @@ class AuthzSampleMainConcurrencyTest {
                 "from_text",
                 Map.of("text", "hello"),
                 new AuthzExpected(
-                        new ClientExpected(null, "prompt text", null),
-                        new ServerExpected("success", null, null)));
+                        new ClientExpected(null, "prompt text", null), new ServerExpected("success", null, null)));
     }
 
     private static ScenarioOutcome successOutcome() {
@@ -169,11 +167,9 @@ class AuthzSampleMainConcurrencyTest {
                 "a-only",
                 "from_text",
                 Map.of("text", "hello"),
-                new AuthzExpected(
-                        new ClientExpected("slot_validation_error", null, null),
-                        null));
+                new AuthzExpected(new ClientExpected("slot.rule_violation", null, null), null));
         ScenarioOutcome outcome = new ScenarioOutcome(
-                new ScenarioResult("slot_validation_error", false, null, List.of(), null, null, null, List.of()),
+                new ScenarioResult("slot.rule_violation", false, null, List.of(), null, null, null, List.of()),
                 null,
                 null);
 
@@ -212,7 +208,8 @@ class AuthzSampleMainConcurrencyTest {
     }
 
     @Test
-    void should_writeReport_notOverwrite_WhenCalledTwice(@TempDir Path tempDir) throws IOException, InterruptedException {
+    void should_writeReport_notOverwrite_WhenCalledTwice(@TempDir Path tempDir)
+            throws IOException, InterruptedException {
         AuthzScenario s = successScenario("test");
         ScenarioOutcome outcome = successOutcome();
 

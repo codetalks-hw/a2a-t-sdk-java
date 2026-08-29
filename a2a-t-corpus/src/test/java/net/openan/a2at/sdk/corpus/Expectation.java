@@ -7,16 +7,16 @@ import org.jspecify.annotations.Nullable;
 /**
  * The validated expectation block of one corpus record, already checked for completeness by the loader.
  *
- * <p>The success and failure shapes are a discriminated union in the corpus JSON; on the loaded record both live on
- * one object and the loader guarantees the field combinations that the outcome allows: a failure expectation always
- * carries an exception name or an error code, and success-only fields never appear on a failure expectation or the
- * other way round.
+ * <p>The success and failure shapes are a discriminated union in the corpus JSON; on the loaded record both live on one
+ * object and the loader guarantees the field combinations that the outcome allows: a failure expectation always carries
+ * an exception name or an error code, and success-only fields never appear on a failure expectation or the other way
+ * round.
  *
  * <p>The task-family block (Q21–Q23) adds three success-only fields: {@code promptTextContains} asserts structural
- * fragments of the generated task prompt (the {@code ## 任务类型(Task Type)} style section headers), {@code
- * missingParams} asserts the exact set of schema parameters the validation found missing — a missing parameter is a
- * null-valued entry of the filled parameter data — and {@code paramsFromStep} ties this validation step to the earlier
- * task-validation step whose missing parameters this step must have filled.
+ * fragments of the generated task prompt (the {@code ## 任务类型(Task Type)} style section headers), {@code missingParams}
+ * asserts the exact set of schema parameters the validation found missing — a missing parameter is a null-valued entry
+ * of the filled parameter data — and {@code paramsFromStep} ties this validation step to the earlier task-validation
+ * step whose missing parameters this step must have filled.
  *
  * @param success true for the success outcome, false for the failure outcome
  * @param exception expected exception simple name, failure expectations only
@@ -32,8 +32,8 @@ import org.jspecify.annotations.Nullable;
  * @param differential true when the engine runs the from-text and from-data double assertion, success expectations
  * @param promptTextContains substrings the generated task prompt text must contain, success expectations of the task
  *     family, empty when the record states none
- * @param missingParams exact set of parameter names expected to be missing (null-valued) in the filled parameter
- *     data, success expectations of the task validation; null when the record does not assert the missing set
+ * @param missingParams exact set of parameter names expected to be missing (null-valued) in the filled parameter data,
+ *     success expectations of the task validation; null when the record does not assert the missing set
  * @param paramsFromStep number of the earlier scenario step whose missing parameters this step must have filled;
  *     resolved by the ScenarioEngine, null on standalone cases
  * @since 2026-08
@@ -55,8 +55,8 @@ public record Expectation(
         @Nullable Integer paramsFromStep) {
 
     /**
-     * Creates an expectation without any task-family assertions; kept for the negotiation-family records and the
-     * inline sample cases of the engine tests.
+     * Creates an expectation without any task-family assertions; kept for the negotiation-family records and the inline
+     * sample cases of the engine tests.
      *
      * @param success true for the success outcome, false for the failure outcome
      * @param exception expected exception simple name, failure expectations only
@@ -114,7 +114,7 @@ public record Expectation(
      * One expected slot error as a slot and code pair.
      *
      * @param slot slot name such as {@code round}
-     * @param code expected slot error code such as {@code out_of_range}
+     * @param code expected slot error code such as {@code negotiation.round_exceeded}
      */
     public record SlotError(String slot, String code) {}
 

@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.openan.a2at.sample.negotiation.shared.InformationNegotiationSchemas;
-import net.openan.a2at.sample.private_line_complaint.negotiation.shared.NegotiationSampleEnvironment;
 import net.openan.a2at.sample.private_line_complaint.negotiation.shared.NegotiationSampleFlow;
 import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.core.exception.A2ATError;
@@ -31,35 +30,40 @@ import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.server.A2ATServer;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
+import net.openan.a2at.sdk.server.A2ATServer;
 
 /** Runs deterministic abnormal-input checks against all six Negotiation-T facade APIs and core pipelines. */
 public final class NegotiationAbnormalEvaluationMain {
 
-    private static final ObjectMapper OBJECT_MAPPER =
-            new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private static final DateTimeFormatter FILE_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final List<String> NEGOTIATION_ERROR_CODES = List.of(
-            "template_not_found",
-            "negotiation_content_extract_failed",
-            "negotiation_semantic_rejected",
-            "negotiation_slot_missing",
-            "negotiation_invalid_input",
-            "negotiation_rule_violation",
-            "negotiation_llm_infrastructure_error");
+            "template.not_found",
+            "negotiation.semantic_rejected",
+            "negotiation.field_missing",
+            "negotiation.invalid_input",
+            "negotiation.invalid_context_id",
+            "negotiation.round_exceeded",
+            "llm.invocation_failed",
+            "llm.response_invalid");
 
-    private NegotiationAbnormalEvaluationMain() {
-    }
+    private NegotiationAbnormalEvaluationMain() {}
 
     public static void main(String[] args) throws IOException {
         Path envPath = args.length > 0
                 ? Path.of(args[0])
-                : Path.of("a2a-t-sample", "src", "main", "resources", "sample",
-                        "private-line-complaint-negotiation", "qwen.env");
+                : Path.of(
+                        "a2a-t-sample",
+                        "src",
+                        "main",
+                        "resources",
+                        "sample",
+                        "private-line-complaint-negotiation",
+                        "qwen.env");
         String suffix = LocalDateTime.now(ZoneId.systemDefault()).format(FILE_TIMESTAMP);
         Path reportPath = args.length > 1
                 ? Path.of(args[1])
@@ -74,9 +78,18 @@ public final class NegotiationAbnormalEvaluationMain {
         List<Map<String, Object>> results = new ArrayList<>();
         try (NegotiationEvaluationProcessLogger logger =
                 new NegotiationEvaluationProcessLogger(OBJECT_MAPPER, processLogPath)) {
-            logger.write(event("run_started", runId, null, Map.of(
-                    "env_path", envPath.toAbsolutePath().toString(),
-                    "case_count", NegotiationAbnormalEvaluationCaseLoader.load().size() + scriptedCases().size()), null, null));
+            logger.write(event(
+                    "run_started",
+                    runId,
+                    null,
+                    Map.of(
+                            "env_path",
+                            envPath.toAbsolutePath().toString(),
+                            "case_count",
+                            NegotiationAbnormalEvaluationCaseLoader.load().size()
+                                    + scriptedCases().size()),
+                    null,
+                    null));
             for (NegotiationAbnormalEvaluationCase testCase : NegotiationAbnormalEvaluationCaseLoader.load()) {
                 results.add(runCase(client, server, testCase, runId, logger));
             }
@@ -85,7 +98,9 @@ public final class NegotiationAbnormalEvaluationMain {
             }
         }
 
-        long passed = results.stream().filter(result -> Boolean.TRUE.equals(result.get("passed"))).count();
+        long passed = results.stream()
+                .filter(result -> Boolean.TRUE.equals(result.get("passed")))
+                .count();
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("generated_at", Instant.now().toString());
         report.put("run_id", runId);
@@ -103,7 +118,8 @@ public final class NegotiationAbnormalEvaluationMain {
             Files.createDirectories(parent);
         }
         OBJECT_MAPPER.writeValue(reportPath.toFile(), report);
-        System.out.printf("Abnormal negotiation evaluation complete: %d/%d passed; report=%s; process-log=%s%n",
+        System.out.printf(
+                "Abnormal negotiation evaluation complete: %d/%d passed; report=%s; process-log=%s%n",
                 passed, results.size(), reportPath.toAbsolutePath(), processLogPath.toAbsolutePath());
     }
 
@@ -123,9 +139,8 @@ public final class NegotiationAbnormalEvaluationMain {
         List<String> missing = NEGOTIATION_ERROR_CODES.stream()
                 .filter(code -> counts.get(code) == 0)
                 .toList();
-        List<String> unexpected = observed.stream()
-                .filter(code -> !counts.containsKey(code))
-                .toList();
+        List<String> unexpected =
+                observed.stream().filter(code -> !counts.containsKey(code)).toList();
         Map<String, Object> coverage = new LinkedHashMap<>();
         coverage.put("expected_codes", NEGOTIATION_ERROR_CODES);
         coverage.put("observed_counts", counts);
@@ -140,7 +155,8 @@ public final class NegotiationAbnormalEvaluationMain {
             A2ATServer server,
             NegotiationAbnormalEvaluationCase testCase,
             String runId,
-            NegotiationEvaluationProcessLogger logger) throws IOException {
+            NegotiationEvaluationProcessLogger logger)
+            throws IOException {
         long startedAt = System.nanoTime();
         NegotiationPerformative performative = NegotiationPerformative.valueOf(testCase.performative());
         NegotiationContext context = contextFor(testCase.contextMode(), performative);
@@ -166,13 +182,13 @@ public final class NegotiationAbnormalEvaluationMain {
             result.put("outcome", "unexpected_success");
             result.put("response", responseSummary(response));
             result.put("passed", false);
-            logger.write(event("abnormal_case", runId, testCase.id(), request,
-                    Map.of("outcome", "unexpected_success"), result));
+            logger.write(event(
+                    "abnormal_case", runId, testCase.id(), request, Map.of("outcome", "unexpected_success"), result));
         } catch (RuntimeException exception) {
             Map<String, Object> actualError = errorDetails(exception);
             boolean classMatched = testCase.expectedException().equals(actualError.get("class"));
-            boolean codeMatched = testCase.expectedCode() == null
-                    || testCase.expectedCode().equals(actualError.get("code"));
+            boolean codeMatched =
+                    testCase.expectedCode() == null || testCase.expectedCode().equals(actualError.get("code"));
             result.put("actual_error", actualError);
             result.put("passed", classMatched && codeMatched);
             result.put("outcome", classMatched && codeMatched ? "expected_failure" : "unexpected_failure");
@@ -184,53 +200,95 @@ public final class NegotiationAbnormalEvaluationMain {
 
     private static List<ScriptedAbnormalCase> scriptedCases() {
         return List.of(
-                new ScriptedAbnormalCase("G-PROPOSE-LLM-MALFORMED", "generate_propose",
-                        "请补充接入端口名称和投诉分类。", "not-json", false,
-                        "NegotiationGenerationException", "negotiation_content_extract_failed"),
-                new ScriptedAbnormalCase("G-ACCEPT-LLM-INFRA", "generate_accept",
-                        "接受协商，端口为 PE1-GZ-ETH-0/0/0.200，投诉分类为专线中断。", "throw", false,
-                        "NegotiationGenerationException", "negotiation_llm_infrastructure_error"),
-                new ScriptedAbnormalCase("G-REJECT-SLOT-MISSING", "generate_reject",
-                        "拒绝协商，原因是资源系统暂时无法查询。", "{\"conclusion\":\"Reject\",\"items\":null}", false,
-                        "NegotiationGenerationException", "negotiation_slot_missing"),
-                new ScriptedAbnormalCase("V-PROPOSE-SEMANTIC-REJECTED", "validate_propose",
-                        "## 信息协商\n请根据<所需信息项>补充相关内容。", semanticRejectedPayload(), false,
-                        "NegotiationParamExtractionException", "negotiation_semantic_rejected"),
-                new ScriptedAbnormalCase("V-ACCEPT-LLM-INFRA", "validate_accept",
-                        "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n1. 接入端口名称：PE1-GZ-ETH-0/0/0.200\n2. 投诉分类：专线中断", "throw", false,
-                        "NegotiationParamExtractionException", "negotiation_llm_infrastructure_error"),
-                new ScriptedAbnormalCase("V-REJECT-SEMANTIC-REJECTED", "validate_reject",
-                        "## 信息协商结果\nReject\n\n## 信息协商结果内容\n1. 接入端口名称：无法提供，原因：资源系统暂时无法查询\n2. 投诉分类：无法提供，原因：资源系统暂时无法查询", semanticRejectedPayload(), false,
-                        "NegotiationParamExtractionException", "negotiation_semantic_rejected"),
-                new ScriptedAbnormalCase("G-PROPOSE-TEMPLATE-NOT-FOUND", "generate_propose",
-                        "请补充接入端口名称和投诉分类。", "unused", true,
-                        "NegotiationGenerationException", "template_not_found"),
-                new ScriptedAbnormalCase("V-PROPOSE-TEMPLATE-NOT-FOUND", "validate_propose",
-                        "## 信息协商\n请根据<所需信息项>补充相关内容。", "unused", true,
-                        "NegotiationParamExtractionException", "template_not_found"));
+                new ScriptedAbnormalCase(
+                        "G-PROPOSE-LLM-MALFORMED",
+                        "generate_propose",
+                        "请补充接入端口名称和投诉分类。",
+                        "not-json",
+                        false,
+                        "NegotiationGenerationException",
+                        "llm.response_invalid"),
+                new ScriptedAbnormalCase(
+                        "G-ACCEPT-LLM-INFRA",
+                        "generate_accept",
+                        "接受协商，端口为 PE1-GZ-ETH-0/0/0.200，投诉分类为专线中断。",
+                        "throw",
+                        false,
+                        "NegotiationGenerationException",
+                        "llm.invocation_failed"),
+                new ScriptedAbnormalCase(
+                        "G-REJECT-SLOT-MISSING",
+                        "generate_reject",
+                        "拒绝协商，原因是资源系统暂时无法查询。",
+                        "{\"conclusion\":\"Reject\",\"items\":null}",
+                        false,
+                        "NegotiationGenerationException",
+                        "negotiation.field_missing"),
+                new ScriptedAbnormalCase(
+                        "V-PROPOSE-SEMANTIC-REJECTED",
+                        "validate_propose",
+                        "## 信息协商\n请根据<所需信息项>补充相关内容。",
+                        semanticRejectedPayload(),
+                        false,
+                        "NegotiationParamExtractionException",
+                        "negotiation.semantic_rejected"),
+                new ScriptedAbnormalCase(
+                        "V-ACCEPT-LLM-INFRA",
+                        "validate_accept",
+                        "## 信息协商结果\nAccept\n\n## 信息协商结果内容\n1. 接入端口名称：PE1-GZ-ETH-0/0/0.200\n2. 投诉分类：专线中断",
+                        "throw",
+                        false,
+                        "NegotiationParamExtractionException",
+                        "llm.invocation_failed"),
+                new ScriptedAbnormalCase(
+                        "V-REJECT-SEMANTIC-REJECTED",
+                        "validate_reject",
+                        "## 信息协商结果\nReject\n\n## 信息协商结果内容\n1. 接入端口名称：无法提供，原因：资源系统暂时无法查询\n2. 投诉分类：无法提供，原因：资源系统暂时无法查询",
+                        semanticRejectedPayload(),
+                        false,
+                        "NegotiationParamExtractionException",
+                        "negotiation.semantic_rejected"),
+                new ScriptedAbnormalCase(
+                        "G-PROPOSE-TEMPLATE-NOT-FOUND",
+                        "generate_propose",
+                        "请补充接入端口名称和投诉分类。",
+                        "unused",
+                        true,
+                        "NegotiationGenerationException",
+                        "template.not_found"),
+                new ScriptedAbnormalCase(
+                        "V-PROPOSE-TEMPLATE-NOT-FOUND",
+                        "validate_propose",
+                        "## 信息协商\n请根据<所需信息项>补充相关内容。",
+                        "unused",
+                        true,
+                        "NegotiationParamExtractionException",
+                        "template.not_found"));
     }
 
     private static String semanticRejectedPayload() {
         return "{\"semantic_verdict\":false,\"negotiation_type\":\"information\","
                 + "\"errors\":[{\"slot_name\":\"section.info_result_content\","
-                + "\"code\":\"missing_result_content\",\"message\":\"The information result content is missing.\"}],"
+                + "\"code\":\"negotiation.missing_result_content\","
+                + "\"facts\":{\"section_label\":\"信息协商结果内容\"}}],"
                 + "\"params\":{}}";
     }
 
     private static Map<String, Object> runScriptedCase(
-            ScriptedAbnormalCase testCase,
-            String runId,
-            NegotiationEvaluationProcessLogger logger) throws IOException {
+            ScriptedAbnormalCase testCase, String runId, NegotiationEvaluationProcessLogger logger) throws IOException {
         long startedAt = System.nanoTime();
         NegotiationPerformative performative = testCase.api().contains("accept")
                 ? NegotiationPerformative.ACCEPT
                 : testCase.api().contains("reject") ? NegotiationPerformative.REJECT : NegotiationPerformative.PROPOSE;
         NegotiationContext context = new NegotiationContext(UUID.randomUUID().toString(), 1, 3, performative);
         TemplateUri template = testCase.api().contains("propose")
-                ? NegotiationSampleFlow.PROPOSE_TEMPLATE_URI : NegotiationSampleFlow.ENDING_TEMPLATE_URI;
+                ? NegotiationSampleFlow.PROPOSE_TEMPLATE_URI
+                : NegotiationSampleFlow.ENDING_TEMPLATE_URI;
         ScriptedLlmClient llm = new ScriptedLlmClient(testCase.payload());
         NegotiationGenerationOrchestratorBuilder builder = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN").llmClient(llm).maxAttempts(1);
+                .language("zh-CN")
+                .llmClient(llm)
+                .maxAttempts(1);
         if (testCase.missingTemplate()) {
             builder.templateLoader(new MissingTemplateLoader());
         }
@@ -255,7 +313,8 @@ public final class NegotiationAbnormalEvaluationMain {
             result.put("response", responseSummary(response));
             result.put("outcome", "unexpected_success");
             result.put("passed", false);
-            logger.write(event("abnormal_scripted_case", runId, testCase.id(), request, responseSummary(response), result));
+            logger.write(
+                    event("abnormal_scripted_case", runId, testCase.id(), request, responseSummary(response), result));
         } catch (RuntimeException exception) {
             Map<String, Object> actualError = errorDetails(exception);
             boolean matched = testCase.expectedException().equals(actualError.get("class"))
@@ -440,8 +499,7 @@ public final class NegotiationAbnormalEvaluationMain {
             String payload,
             boolean missingTemplate,
             String expectedException,
-            String expectedCode) {
-    }
+            String expectedCode) {}
 
     private static final class ScriptedLlmClient implements LLMClient {
 
@@ -460,8 +518,8 @@ public final class NegotiationAbnormalEvaluationMain {
             if ("throw".equals(payload)) {
                 throw new IllegalStateException("scripted LLM infrastructure failure");
             }
-            return new LLMResponse(payload, "sample-scripted-model",
-                    Map.of("prompt_tokens", 1, "completion_tokens", 1), Map.of());
+            return new LLMResponse(
+                    payload, "sample-scripted-model", Map.of("prompt_tokens", 1, "completion_tokens", 1), Map.of());
         }
     }
 

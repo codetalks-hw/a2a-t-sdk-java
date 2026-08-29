@@ -22,5 +22,6 @@ public interface TemplateContentLoader<T> {
      * @return loaded template text
      * @throws net.openan.a2at.sdk.core.exception.ResourceNotFoundException if the template cannot be resolved
      */
-    @NonNull String load(@NonNull T reference);
+    @NonNull
+    String load(@NonNull T reference);
 }

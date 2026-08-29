@@ -43,6 +43,21 @@ NEGOTIATION_MARKER = re.compile(
     r"^\{\{(?P<slot>[^{}]+)\}\}(?:(?P<zh>（(?P<zh_kind>必填|选填)）)| \((?P<en_kind>required|optional)\))\s*$"
 )
 
+ERROR_CATALOG_DEFAULT = Path(__file__).resolve().parent.parent / "a2a-t-core/src/main/java/net/openan/a2at/sdk/core/exception/ErrorCatalog.java"
+ERROR_TEMPLATE_LANGUAGES = ("zh-CN", "en-US")
+# Error codes are layered 'domain.semantic' tokens; plain snake_case words are only trusted in "code": "..." values.
+ERROR_CODE_TOKEN = re.compile(r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$")
+ERROR_CATALOG_ENTRY = re.compile(
+    r'\(\s*"(?P<code>[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+)",\s*Category\.(?:BUSINESS|INFRA)(?P<rest>[^)]*)\)'
+)
+ERROR_TEMPLATE_PLACEHOLDER = re.compile(r"\{([a-zA-Z][a-zA-Z0-9_]*)\}")
+PROMPT_JSON_CODE_VALUE = re.compile(r'"code"\s*:\s*"([^"]*)"')
+PROMPT_LIST_CODE_DEFINITION = re.compile(r"^\s*[-*]\s+(?:\*\*)?([a-z][a-z0-9_.]*)(?:\*\*)?\s*[：:]\s")
+PROMPT_BACKTICK_CODE = re.compile(r"`([a-z][a-z0-9_.]+)`")
+# Tokens that look like error codes but are known not to be codes.
+PROMPT_CODE_ALLOWLIST = {"string", "e.g", "i.e"}
+PROMPT_CODE_ALLOWLIST_PREFIXES = ("section.",)
+
 
 def error(path: Path, line: int, rule: str, message: str) -> str:
     return f"{path}:{line}: [{rule}] {message}"
@@ -401,7 +416,122 @@ def lint_negotiation(templates_dir: Path, vocabularies: dict[str, dict[str, str]
     return errors
 
 
-def lint_root(root: Path) -> list[str]:
+def load_error_catalog(catalog_path: Path) -> tuple[dict[str, list[str]], list[str]]:
+    """Parses the ErrorCatalog enum source into an ordered {code: fact parameter names} table."""
+    try:
+        text = catalog_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {}, [error(catalog_path, 1, "error-catalog", f"Cannot read ErrorCatalog source: {exc}")]
+    errors: list[str] = []
+    catalog: dict[str, list[str]] = {}
+    for match in ERROR_CATALOG_ENTRY.finditer(text):
+        code = match.group("code")
+        if code in catalog:
+            errors.append(error(catalog_path, 1, "error-catalog", f"Duplicate catalog code '{code}'."))
+            continue
+        catalog[code] = re.findall(r'"([a-z0-9_]+)"', match.group("rest"))
+    if not catalog:
+        errors.append(error(catalog_path, 1, "error-catalog", "No catalog entries found in the ErrorCatalog source."))
+    return catalog, errors
+
+
+def load_error_templates(resource_root: Path, language: str) -> tuple[dict[str, str], list[str]]:
+    """Loads errors/{language}/errors.json as a flat code-to-template object."""
+    path = resource_root / "errors" / language / "errors.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        return {}, [error(path, 1, "error-template", f"Cannot load error message templates: {exc}")]
+    if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
+        return {}, [error(path, 1, "error-template", "Error message templates must be a flat JSON object mapping codes to strings.")]
+    blank = sorted(key for key, value in data.items() if not value.strip())
+    if blank:
+        return {}, [error(path, 1, "error-template-blank-value", f"Blank templates are not allowed: {', '.join(blank)}.")]
+    return data, []
+
+
+def allowed_prompt_code_token(token: str) -> bool:
+    """Returns whether one token is a known non-code token (allowlist with optional prefixes)."""
+    return token in PROMPT_CODE_ALLOWLIST or token.startswith(PROMPT_CODE_ALLOWLIST_PREFIXES)
+
+
+def lint_prompt_error_codes(prompts_dir: Path, catalog: set[str]) -> list[str]:
+    """Verifies every error code token quoted in the prompt resources is part of the ErrorCatalog.
+
+    Tokens are collected from three code-bearing positions: values of "code": "..." JSON keys (snake_case trusted
+    there), backtick-quoted tokens, and list-leading definitions such as '- content.param_missing: ...' (dotted
+    tokens only in the latter two, because snake_case words in those positions are usually field names).
+    """
+    errors: list[str] = []
+    for path in sorted(prompts_dir.rglob("*.md")):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            errors.append(error(path, 1, "prompt-error-code", f"Cannot read prompt: {exc}"))
+            continue
+        tokens: dict[str, int] = {}
+        for line_no, line in enumerate(lines, 1):
+            for value in PROMPT_JSON_CODE_VALUE.findall(line):
+                for token in value.split("|"):
+                    token = token.strip()
+                    if token and (ERROR_CODE_TOKEN.fullmatch(token) or re.fullmatch(r"[a-z][a-z0-9_]*", token)):
+                        tokens.setdefault(token, line_no)
+            match = PROMPT_LIST_CODE_DEFINITION.match(line)
+            if match and "." in match.group(1):
+                tokens.setdefault(match.group(1), line_no)
+            for token in PROMPT_BACKTICK_CODE.findall(line):
+                if "." in token:
+                    tokens.setdefault(token, line_no)
+        for token, line_no in sorted(tokens.items()):
+            if token not in catalog and not allowed_prompt_code_token(token):
+                errors.append(
+                    error(path, line_no, "prompt-error-code", f"Error code '{token}' is not part of the ErrorCatalog.")
+                )
+    return errors
+
+
+def lint_error_codes(resource_root: Path, catalog_path: Path) -> list[str]:
+    """Verifies the catalog, its message templates, and the prompt code sets stay consistent."""
+    errors: list[str] = []
+    catalog, catalog_errors = load_error_catalog(catalog_path)
+    errors.extend(catalog_errors)
+    templates: dict[str, dict[str, str]] = {}
+    for language in ERROR_TEMPLATE_LANGUAGES:
+        data, template_errors = load_error_templates(resource_root, language)
+        errors.extend(template_errors)
+        templates[language] = data
+        for code in sorted(set(data) - set(catalog)):
+            path = resource_root / "errors" / language / "errors.json"
+            errors.append(error(path, 1, "error-template-unknown-code", f"Template code '{code}' is not in the ErrorCatalog."))
+    if not catalog:
+        return errors
+    for language, data in templates.items():
+        path = resource_root / "errors" / language / "errors.json"
+        for code in sorted(set(catalog) - set(data)):
+            errors.append(error(path, 1, "error-template-missing", f"Missing {language} message template for catalog code '{code}'."))
+        for code, facts in catalog.items():
+            template = data.get(code)
+            if template is None:
+                continue
+            for placeholder in sorted(set(ERROR_TEMPLATE_PLACEHOLDER.findall(template))):
+                if placeholder not in facts:
+                    errors.append(
+                        error(
+                            path,
+                            1,
+                            "error-template-placeholder",
+                            f"Placeholder '{{{placeholder}}}' of code '{code}' ({language}) is not a declared fact parameter.",
+                        )
+                    )
+    prompts_dir = resource_root / "prompts"
+    if prompts_dir.is_dir():
+        errors.extend(lint_prompt_error_codes(prompts_dir, set(catalog)))
+    else:
+        errors.append(error(prompts_dir, 1, "error-catalog", "Missing prompts directory."))
+    return errors
+
+
+def lint_root(root: Path, catalog_path: Path) -> list[str]:
     templates, slots = root / "templates", root / "slots"
     if not templates.is_dir():
         return [error(templates, 1, "resource-root", "Missing templates directory.")]
@@ -424,13 +554,21 @@ def lint_root(root: Path) -> list[str]:
     vocabularies, vocabulary_errors = load_negotiation_vocabularies(root)
     errors.extend(vocabulary_errors)
     errors.extend(lint_negotiation(templates, vocabularies))
+    errors.extend(lint_error_codes(root, catalog_path))
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--resource-root", type=Path, required=True)
-    errors = lint_root(parser.parse_args().resource_root)
+    parser.add_argument(
+        "--catalog-source",
+        type=Path,
+        default=ERROR_CATALOG_DEFAULT,
+        help="Path of the ErrorCatalog.java enum source backing the error-code checks.",
+    )
+    arguments = parser.parse_args()
+    errors = lint_root(arguments.resource_root, arguments.catalog_source)
     for item in errors:
         print(item, file=sys.stderr)
     if errors:

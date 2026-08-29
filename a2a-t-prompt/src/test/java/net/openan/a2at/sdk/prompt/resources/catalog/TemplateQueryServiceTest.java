@@ -138,15 +138,18 @@ class TemplateQueryServiceTest {
         writeTemplate(localRootDir, "Task-T/network-layer/custom-planning/v1", "<!-- Custom -->\nbody");
 
         TemplateQueryService service = new TemplateQueryService(LANGUAGE, "local_file", localRootDir.toString());
-        Set<String> before = service.getPrompts().stream().map(t -> t.templateUri().uri()).collect(Collectors.toSet());
+        Set<String> before =
+                service.getPrompts().stream().map(t -> t.templateUri().uri()).collect(Collectors.toSet());
 
         writeTemplate(localRootDir, "Notification-T/network-layer/added-after-construction/v1", "<!-- new -->\nbody");
-        Files.delete(localRootDir.resolve("templates")
+        Files.delete(localRootDir
+                .resolve("templates")
                 .resolve("Task-T/network-layer/custom-planning/v1")
                 .resolve(LANGUAGE)
                 .resolve("template.md"));
 
-        Set<String> after = service.getPrompts().stream().map(t -> t.templateUri().uri()).collect(Collectors.toSet());
+        Set<String> after =
+                service.getPrompts().stream().map(t -> t.templateUri().uri()).collect(Collectors.toSet());
 
         assertEquals(before, after);
     }

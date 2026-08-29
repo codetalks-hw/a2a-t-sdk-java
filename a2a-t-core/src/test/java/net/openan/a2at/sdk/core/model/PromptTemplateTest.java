@@ -18,8 +18,8 @@ class PromptTemplateTest {
     /**
      * Verifies that {@link PromptTemplate} exposes all four components.
      *
-     * <p>Scenario: Construct a template with a URI, description, content and a {@code classpath} source.
-     * Expected result: templateUri(), description(), content() and source() each return the supplied value.
+     * <p>Scenario: Construct a template with a URI, description, content and a {@code classpath} source. Expected
+     * result: templateUri(), description(), content() and source() each return the supplied value.
      */
     @Test
     void should_exposeAllFourComponents_When_templateConstructedWithClasspathSource() {
@@ -36,8 +36,7 @@ class PromptTemplateTest {
     /**
      * Verifies that {@link PromptTemplate#source()} carries the {@code local} source value.
      *
-     * <p>Scenario: Construct a template with a {@code local} source.
-     * Expected result: source() returns {@code local}.
+     * <p>Scenario: Construct a template with a {@code local} source. Expected result: source() returns {@code local}.
      */
     @Test
     void should_exposeLocalSource_When_templateConstructedWithLocalSource() {

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.InputLimitConfig;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests of the free-text input length limit of the negotiation pipelines.
  *
- * <p>Oversized inputs fail fast with the code {@code input_text_too_long} before any LLM call, inputs at exactly the
+ * <p>Oversized inputs fail fast with the code {@code input.text_too_long} before any LLM call, inputs at exactly the
  * limit pass the gate and reach the LLM, and the limit is configurable through the builder.
  */
 class InputTextLengthLimitTest {
@@ -41,7 +41,7 @@ class InputTextLengthLimitTest {
                         PROPOSE.context(),
                         PROPOSE.template()));
 
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, failure.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), failure.getCode());
         assertTrue(
                 failure.getMessage().contains(String.valueOf(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS + 1)),
                 "the violation message must state the actual length but was: " + failure.getMessage());
@@ -60,11 +60,9 @@ class InputTextLengthLimitTest {
         NegotiationGenerationException failure = assertThrows(
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromText(
-                        textOfLength(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS),
-                        PROPOSE.context(),
-                        PROPOSE.template()));
+                        textOfLength(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS), PROPOSE.context(), PROPOSE.template()));
 
-        assertNotEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, failure.getCode());
+        assertNotEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), failure.getCode());
         assertTrue(llm.calls >= 1, "a text at exactly the limit must reach the LLM");
     }
 
@@ -82,11 +80,13 @@ class InputTextLengthLimitTest {
                         Map.of("type", "object"),
                         PROPOSE.template()));
 
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, failure.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), failure.getCode());
         assertEquals(0, llm.calls, "an oversized prompt must never reach the LLM");
     }
 
-    /** A validation prompt at exactly the default limit passes the gate and reaches the semantic validation LLM call. */
+    /**
+     * A validation prompt at exactly the default limit passes the gate and reaches the semantic validation LLM call.
+     */
     @Test
     void acceptsValidationPromptAtExactlyTheDefaultLimit() {
         CountingClient llm = new CountingClient();
@@ -100,7 +100,7 @@ class InputTextLengthLimitTest {
                         Map.of("type", "object"),
                         PROPOSE.template()));
 
-        assertNotEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, failure.getCode());
+        assertNotEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), failure.getCode());
         assertTrue(llm.calls >= 1, "a prompt at exactly the limit must reach the LLM");
     }
 
@@ -118,16 +118,15 @@ class InputTextLengthLimitTest {
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromText("01234567890", PROPOSE.context(), PROPOSE.template()));
 
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, failure.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), failure.getCode());
         assertEquals(0, llm.calls);
     }
 
     /** The builder rejects a non-positive limit as a programming error. */
     @Test
     void builderRejectsNonPositiveLimit() {
-        IllegalStateException failure = assertThrows(
-                IllegalStateException.class,
-                () -> NegotiationGenerationOrchestratorBuilder.builder()
+        IllegalStateException failure =
+                assertThrows(IllegalStateException.class, () -> NegotiationGenerationOrchestratorBuilder.builder()
                         .language(ZH_CN)
                         .maxTextChars(0)
                         .build());

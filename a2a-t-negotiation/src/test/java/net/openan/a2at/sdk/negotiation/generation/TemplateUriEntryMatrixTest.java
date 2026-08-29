@@ -8,23 +8,23 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.llm.LLMClient;
+import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenCase;
+import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,12 +33,11 @@ import org.junit.jupiter.params.provider.MethodSource;
  * Verifies the template-URI entry matrix of the from-data generation.
  *
  * <p>The seven built-in URIs (six typed negotiation templates plus the common abort template) address their templates
- * and render outputs identical to the golden fixtures; a well-formed
- * URI that resolves to no template fails with the code {@code template_not_found} before any LLM call; a typed URI
- * that does not address a negotiation template of the expected performative (wrong extension name, version, type
- * segment, performative segment or separator, including the underscore misspelling of the type segment) fails as a
- * programming error pointing at {@code templateUri}, while structural malformation is impossible by construction of
- * {@link TemplateUri}.
+ * and render outputs identical to the golden fixtures; a well-formed URI that resolves to no template fails with the
+ * code {@code template.not_found} before any LLM call; a typed URI that does not address a negotiation template of the
+ * expected performative (wrong extension name, version, type segment, performative segment or separator, including the
+ * underscore misspelling of the type segment) fails as a programming error pointing at {@code templateUri}, while
+ * structural malformation is impossible by construction of {@link TemplateUri}.
  */
 class TemplateUriEntryMatrixTest {
 
@@ -75,7 +74,7 @@ class TemplateUriEntryMatrixTest {
 
     /**
      * Entry (b): a well-formed URI that resolves to no template in any resource root fails with the code
-     * {@code template_not_found} before any LLM call. With the bundled resources every well-formed v1 URI resolves in
+     * {@code template.not_found} before any LLM call. With the bundled resources every well-formed v1 URI resolves in
      * both bundled languages, so the always-miss condition is realized by a loader whose every load misses.
      */
     @Test
@@ -91,7 +90,7 @@ class TemplateUriEntryMatrixTest {
                 NegotiationGenerationException.class,
                 () -> orchestrator.generateProposeFromData(informationProposeData(), INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, failure.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), failure.getCode());
         assertTrue(
                 failure.getMessage() != null && !failure.getMessage().isBlank(),
                 "the load failure message must be surfaced");
@@ -101,9 +100,9 @@ class TemplateUriEntryMatrixTest {
     /**
      * Entry (c): every typed URI that does not address a negotiation template of the expected performative — wrong
      * extension name, version, type segment, performative segment and separator (underscore misspelling), plus unknown
-     * types and unknown performative segments — fails as a programming error with an
-     * {@link IllegalArgumentException} pointing at the template URI, without any LLM call. Structurally malformed URIs
-     * cannot exist as {@link TemplateUri} values.
+     * types and unknown performative segments — fails as a programming error with an {@link IllegalArgumentException}
+     * pointing at the template URI, without any LLM call. Structurally malformed URIs cannot exist as
+     * {@link TemplateUri} values.
      */
     @ParameterizedTest(name = "non-addressing URI [{0}] is rejected as a templateUri programming error")
     @MethodSource("nonAddressingTemplateUris")
@@ -119,8 +118,9 @@ class TemplateUriEntryMatrixTest {
                 () -> orchestrator.generateProposeFromData(informationProposeData(), templateUri));
 
         assertTrue(
-                failure.getMessage().contains(
-                        "Template URI does not address a negotiation template of the expected performative PROPOSE"),
+                failure.getMessage()
+                        .contains(
+                                "Template URI does not address a negotiation template of the expected performative PROPOSE"),
                 "the failure must point at the template URI but was: " + failure.getMessage());
         assertEquals(0, llm.calls);
     }
@@ -139,7 +139,8 @@ class TemplateUriEntryMatrixTest {
     private static NegotiationProposeData informationProposeData() {
         return new NegotiationProposeData(
                 new NegotiationContext(UUID, 2, 5, NegotiationPerformative.PROPOSE),
-                new InformationProposeContent(List.of(new NegotiationItem("接入端口名称", "P533-珠江旧城-PTN3900-23-TPA1EG24-1")), null));
+                new InformationProposeContent(
+                        List.of(new NegotiationItem("接入端口名称", "P533-珠江旧城-PTN3900-23-TPA1EG24-1")), null));
     }
 
     private static final class MissingTemplateLoader implements NegotiationTemplateLoader {

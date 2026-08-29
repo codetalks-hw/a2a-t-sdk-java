@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.function.Consumer;
 import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.model.FilledParamData;
@@ -38,39 +37,38 @@ import net.openan.a2at.sdk.server.A2ATServer;
 /**
  * Closed-loop evaluator for the negotiation prompt interfaces of the private-line-complaint scenario.
  *
- * <p>Each case of the bundled suite ({@code sample/negotiation/eval/eval-suite.json}) is driven through the
- * negotiation interfaces in message order, exactly the way the negotiation demo wires them:
+ * <p>Each case of the bundled suite ({@code sample/negotiation/eval/eval-suite.json}) is driven through the negotiation
+ * interfaces in message order, exactly the way the negotiation demo wires them:
  *
  * <ol>
  *   <li>Task-T generation — the client value from the Task-T extension metadata is either structured JSON
- *       ({@code generateTaskPromptFromDataWithSchema}: every data key maps to one slot value, the schema is passed
- *       as a call parameter) or natural language ({@code generateTaskPromptFromText}, LLM slot extraction);
- *   <li>server validation — {@code validateTaskPromptAndDataFilling} extracts the parameters against the passed
- *       JSON schema; the missing-slot set (blank slots plus semantic {@code missing_required} errors) decides
- *       whether negotiation is triggered;
+ *       ({@code generateTaskPromptFromDataWithSchema}: every data key maps to one slot value, the schema is passed as a
+ *       call parameter) or natural language ({@code generateTaskPromptFromText}, LLM slot extraction);
+ *   <li>server validation — {@code validateTaskPromptAndDataFilling} extracts the parameters against the passed JSON
+ *       schema; the missing-slot set (blank slots plus semantic {@code content.param_missing} errors) decides whether
+ *       negotiation is triggered;
  *   <li>propose generation — for the detected missing slots, {@code generateNegotiationProposePromptFromData} /
  *       {@code FromText} renders the Negotiation-T information-propose message;
  *   <li>outbound propose validation — the server self-checks the generated propose via
  *       {@code validateProposePromptAndDataFilling} before sending it (expected to pass);
- *   <li>inbound propose validation — the client validates the received propose through the symmetric client-side
- *       API {@code validateProposePromptAndDataFilling} and reads out which slots it is asked to supplement;
- *       the fill round is driven by this client-side view;
+ *   <li>inbound propose validation — the client validates the received propose through the symmetric client-side API
+ *       {@code validateProposePromptAndDataFilling} and reads out which slots it is asked to supplement; the fill round
+ *       is driven by this client-side view;
  *   <li>client fill + accept — the client merges the round-1 parameters with its fill values, RE-RENDERS the full
  *       Task-T prompt from the complete parameter map (there is no incremental merge API; the supplement is
  *       incorporated by re-generating the whole prompt) and renders the Negotiation-T accept;
  *   <li>inbound accept validation — {@code validateAcceptPromptAndDataFilling} checks the accept message and extracts
  *       the supplemented values (expected to pass with the values the client sent);
- *   <li>second Task-T validation — {@code validateTaskPromptAndDataFilling} re-validates the filled Task-T prompt;
- *       no missing slot means the negotiation completed the flow (COMPLETED), any rejection keeps it in
- *       INPUT_REQUIRED.
+ *   <li>second Task-T validation — {@code validateTaskPromptAndDataFilling} re-validates the filled Task-T prompt; no
+ *       missing slot means the negotiation completed the flow (COMPLETED), any rejection keeps it in INPUT_REQUIRED.
  * </ol>
  *
- * <p>Every intermediate artifact is recorded per case in a JSON report: the generated Task-T prompt, both
- * negotiation messages, each validation verdict with extracted parameters and per-slot errors, the client's fill
- * values — and, for every SDK call, an {@code api} entry carrying the exact method name plus its input parameters
- * (including the full JSON schema passed to generate/validate), so a reviewer can verify from the report alone
- * which interface ran with which arguments. A single case can be replayed and audited without re-running it. The
- * report is rewritten after every case, so an interrupted run keeps the cases already finished.
+ * <p>Every intermediate artifact is recorded per case in a JSON report: the generated Task-T prompt, both negotiation
+ * messages, each validation verdict with extracted parameters and per-slot errors, the client's fill values — and, for
+ * every SDK call, an {@code api} entry carrying the exact method name plus its input parameters (including the full
+ * JSON schema passed to generate/validate), so a reviewer can verify from the report alone which interface ran with
+ * which arguments. A single case can be replayed and audited without re-running it. The report is rewritten after every
+ * case, so an interrupted run keeps the cases already finished.
  *
  * <p>Usage:
  *
@@ -139,9 +137,7 @@ public final class NegotiationEvalApp {
         report.put("llm", llmInfo(envPath));
         report.put("case_filter", caseFilter);
         report.put("channel_filter", channelFilter == null ? "all" : channelFilter);
-        report.put("negotiation_channel", negotiationChannelOverride == null
-                ? "per-case"
-                : negotiationChannelOverride);
+        report.put("negotiation_channel", negotiationChannelOverride == null ? "per-case" : negotiationChannelOverride);
 
         List<Map<String, Object>> cases = new ArrayList<>();
         report.put("cases", cases);
@@ -173,8 +169,12 @@ public final class NegotiationEvalApp {
         Map<String, Object> metrics = metrics(cases);
         emit("\n[eval] ===== Negotiation interface correctness metrics =====");
         emit("[eval] cases: " + metrics.get("cases"));
-        for (String key : List.of("trigger_accuracy", "missing_slot_exact_match", "propose_outbound_valid",
-                "accept_fill_value_match", "closed_loop_completion")) {
+        for (String key : List.of(
+                "trigger_accuracy",
+                "missing_slot_exact_match",
+                "propose_outbound_valid",
+                "accept_fill_value_match",
+                "closed_loop_completion")) {
             emit("[eval] " + metrics.get(key));
         }
         emit("[eval] report written to " + outPath.toAbsolutePath());
@@ -198,8 +198,8 @@ public final class NegotiationEvalApp {
         Map<String, String> phrasing = stringMap(suite.get("negotiation_phrasing"));
         Map<String, Object> properties = asMap(taskSchema.get("properties"));
         Set<String> requiredSlots = new TreeSet<>(stringList(taskSchema.get("required")));
-        Map<String, String> fillValues = mergeFills(stringMap(suite.get("client_fill_values")),
-                stringMap(testCase.get("fill_override")));
+        Map<String, String> fillValues =
+                mergeFills(stringMap(suite.get("client_fill_values")), stringMap(testCase.get("fill_override")));
 
         Map<String, Object> expect = asMap(testCase.get("expect"));
         boolean expectNegotiation = Boolean.TRUE.equals(expect.get("negotiation_needed"));
@@ -239,9 +239,8 @@ public final class NegotiationEvalApp {
             taskGenerationInput.put("schema", taskSchema);
         }
         taskGenerationInput.put("template_uri", taskTemplate.uri());
-        String taskGenerationApi = fromText
-                ? "A2ATClient.generateTaskPromptFromText"
-                : "A2ATClient.generateTaskPromptFromDataWithSchema";
+        String taskGenerationApi =
+                fromText ? "A2ATClient.generateTaskPromptFromText" : "A2ATClient.generateTaskPromptFromDataWithSchema";
         String taskPrompt;
         try {
             long nanos = System.nanoTime();
@@ -257,7 +256,10 @@ public final class NegotiationEvalApp {
             steps.add(step);
             emit("[eval]   [1] Task-T prompt generated (" + channel + ", " + secs(nanos) + "s)");
         } catch (A2ATError error) {
-            steps.add(errorStep("1. Task-T generation (" + channel + ")", "task_generation", error,
+            steps.add(errorStep(
+                    "1. Task-T generation (" + channel + ")",
+                    "task_generation",
+                    error,
                     apiCall(taskGenerationApi, taskGenerationInput)));
             emit("[eval]   [1] Task-T generation FAILED: " + error.getCode() + " " + error.getMessage());
             if (expectGenerationFails) {
@@ -270,14 +272,14 @@ public final class NegotiationEvalApp {
                 verdict.put("accept_fill_value_match", null);
                 verdict.put("fill_completes_correct", null);
                 verdict.put("pass", !expectNegotiation && expectMissing.isEmpty());
-                verdict.put("reason", "generation failed fast as expected: " + error.getCode() + " "
-                        + error.getMessage());
+                verdict.put(
+                        "reason", "generation failed fast as expected: " + error.getCode() + " " + error.getMessage());
                 record.put("verdict", verdict);
                 emit("[eval]   verdict: PASS (generation fail-fast as expected)");
                 return record;
             }
-            return finish(record, steps, null, null, null, null, null, expectNegotiation, expectMissing,
-                    expectFillCompletes);
+            return finish(
+                    record, steps, null, null, null, null, null, expectNegotiation, expectMissing, expectFillCompletes);
         }
 
         // -- step 2: server validation of the Task-T prompt -> missing-slot detection --
@@ -319,8 +321,17 @@ public final class NegotiationEvalApp {
             done.put("task_state", "COMPLETED");
             steps.add(done);
             emit("[eval]   [3] no missing parameters -> COMPLETED without negotiation");
-            return finish(record, steps, negotiationTriggered, actualMissing, null, null, null, expectNegotiation,
-                    expectMissing, expectFillCompletes);
+            return finish(
+                    record,
+                    steps,
+                    negotiationTriggered,
+                    actualMissing,
+                    null,
+                    null,
+                    null,
+                    expectNegotiation,
+                    expectMissing,
+                    expectFillCompletes);
         }
 
         // -- step 3: Negotiation-T propose generation from the detected missing slots --
@@ -330,7 +341,10 @@ public final class NegotiationEvalApp {
         }
         String proposeRelationship = missingItems.size() > 1 ? phrasing.get("propose_relationship") : null;
         NegotiationContext proposeContext = new NegotiationContext(
-                UUID.randomUUID().toString(), 1, NegotiationContext.DEFAULT_MAX_ROUNDS, NegotiationPerformative.PROPOSE);
+                UUID.randomUUID().toString(),
+                1,
+                NegotiationContext.DEFAULT_MAX_ROUNDS,
+                NegotiationPerformative.PROPOSE);
         String proposeInputText = itemsToProposeText(missingItems, phrasing);
         Map<String, Object> proposeGenerationInput = new LinkedHashMap<>();
         if (negotiationFromText) {
@@ -357,8 +371,7 @@ public final class NegotiationEvalApp {
                             proposeInputText, proposeContext, DemoTemplates.NEGOTIATION_PROPOSE)
                     : server.generateNegotiationProposePromptFromData(
                             new NegotiationProposeData(
-                                    proposeContext,
-                                    new InformationProposeContent(missingItems, proposeRelationship)),
+                                    proposeContext, new InformationProposeContent(missingItems, proposeRelationship)),
                             DemoTemplates.NEGOTIATION_PROPOSE);
             proposePrompt = propose.promptText();
             Map<String, Object> step =
@@ -375,11 +388,23 @@ public final class NegotiationEvalApp {
             emit("[eval]   [3] propose rendered for " + actualMissing + " (" + negotiationChannel
                     + ") -> INPUT_REQUIRED");
         } catch (A2ATError error) {
-            steps.add(errorStep("3. Negotiation-T propose generation (" + negotiationChannel + ")",
-                    "propose_generation", error, apiCall(proposeGenerationApi, proposeGenerationInput)));
+            steps.add(errorStep(
+                    "3. Negotiation-T propose generation (" + negotiationChannel + ")",
+                    "propose_generation",
+                    error,
+                    apiCall(proposeGenerationApi, proposeGenerationInput)));
             emit("[eval]   [3] propose generation FAILED: " + error.getCode() + " " + error.getMessage());
-            return finish(record, steps, negotiationTriggered, actualMissing, null, null, null, expectNegotiation,
-                    expectMissing, expectFillCompletes);
+            return finish(
+                    record,
+                    steps,
+                    negotiationTriggered,
+                    actualMissing,
+                    null,
+                    null,
+                    null,
+                    expectNegotiation,
+                    expectMissing,
+                    expectFillCompletes);
         }
 
         // -- step 4: outbound validation of the generated propose --
@@ -393,7 +418,9 @@ public final class NegotiationEvalApp {
             long nanos = System.nanoTime();
             A2ATServer server = new A2ATServer(envPath);
             FilledParamData proposeParams = server.validateProposePromptAndDataFilling(
-                    proposePrompt, proposeContext, negotiationSchema(actualMissing, taskSchema),
+                    proposePrompt,
+                    proposeContext,
+                    negotiationSchema(actualMissing, taskSchema),
                     DemoTemplates.NEGOTIATION_PROPOSE);
             proposeValid = true;
             Map<String, Object> step = stepOf(
@@ -405,8 +432,10 @@ public final class NegotiationEvalApp {
             emit("[eval]   [4] outbound propose validation passed (" + secs(nanos) + "s)");
         } catch (A2ATError error) {
             proposeValid = false;
-            List<SlotValidationError> slotErrors = error instanceof
-                    net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException extraction
+            List<SlotValidationError> slotErrors = error
+                            instanceof
+                            net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException
+                            extraction
                     ? extraction.getErrors()
                     : List.of();
             Map<String, Object> step = stepOf(
@@ -428,7 +457,9 @@ public final class NegotiationEvalApp {
             long nanos = System.nanoTime();
             A2ATClient client = new A2ATClient(envPath);
             FilledParamData requested = client.validateProposePromptAndDataFilling(
-                    proposePrompt, proposeContext, negotiationSchema(actualMissing, taskSchema),
+                    proposePrompt,
+                    proposeContext,
+                    negotiationSchema(actualMissing, taskSchema),
                     DemoTemplates.NEGOTIATION_PROPOSE);
             if (requested.data() != null) {
                 for (String key : requested.data().keySet()) {
@@ -443,29 +474,38 @@ public final class NegotiationEvalApp {
                     "5. client inbound propose validation (requested-slot extraction)",
                     "client",
                     validationJson("passed", null, null, requested, Set.of()));
-            api(step, apiCall("A2ATClient.validateProposePromptAndDataFilling", Map.of(
-                    "prompt", proposePrompt,
-                    "context", contextJson(proposeContext),
-                    "schema", negotiationSchema(actualMissing, taskSchema),
-                    "template_uri", DemoTemplates.NEGOTIATION_PROPOSE.uri())));
+            api(
+                    step,
+                    apiCall(
+                            "A2ATClient.validateProposePromptAndDataFilling",
+                            Map.of(
+                                    "prompt", proposePrompt,
+                                    "context", contextJson(proposeContext),
+                                    "schema", negotiationSchema(actualMissing, taskSchema),
+                                    "template_uri", DemoTemplates.NEGOTIATION_PROPOSE.uri())));
             step.put("client_requested_slots", new ArrayList<>(clientRequestedSlots));
             steps.add(step);
-            emit("[eval]   [5] client extracted requested slots: " + clientRequestedSlots + " (" + secs(nanos)
-                    + "s)");
+            emit("[eval]   [5] client extracted requested slots: " + clientRequestedSlots + " (" + secs(nanos) + "s)");
         } catch (A2ATError error) {
-            List<SlotValidationError> slotErrors = error instanceof
-                    net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException extraction
+            List<SlotValidationError> slotErrors = error
+                            instanceof
+                            net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException
+                            extraction
                     ? extraction.getErrors()
                     : List.of();
             Map<String, Object> step = stepOf(
                     "5. client inbound propose validation (requested-slot extraction)",
                     "client",
                     validationJson("rejected", error.getCode(), slotErrors, null, Set.of()));
-            api(step, apiCall("A2ATClient.validateProposePromptAndDataFilling", Map.of(
-                    "prompt", proposePrompt,
-                    "context", contextJson(proposeContext),
-                    "schema", negotiationSchema(actualMissing, taskSchema),
-                    "template_uri", DemoTemplates.NEGOTIATION_PROPOSE.uri())));
+            api(
+                    step,
+                    apiCall(
+                            "A2ATClient.validateProposePromptAndDataFilling",
+                            Map.of(
+                                    "prompt", proposePrompt,
+                                    "context", contextJson(proposeContext),
+                                    "schema", negotiationSchema(actualMissing, taskSchema),
+                                    "template_uri", DemoTemplates.NEGOTIATION_PROPOSE.uri())));
             step.put("client_requested_slots", List.of());
             steps.add(step);
             emit("[eval]   [5] client propose validation REJECTED: " + error.getCode() + " " + error.getMessage()
@@ -503,14 +543,24 @@ public final class NegotiationEvalApp {
             Map<String, Object> step = step("6. client fill + Negotiation-T accept generation (fromData)", "client");
             api(step, apiCall("A2ATClient.generateTaskPromptFromDataWithSchema", filledGenerationInput));
             step.put("client_fill", fills);
-            step.put("fill_generation_rejected", Map.of(
-                    "code", error.getCode(),
-                    "message", String.valueOf(error.getMessage())));
+            step.put(
+                    "fill_generation_rejected",
+                    Map.of(
+                            "code", error.getCode(),
+                            "message", String.valueOf(error.getMessage())));
             steps.add(step);
-            emit("[eval]   [6] filled Task-T generation REJECTED (" + error.getCode() + "): "
-                    + error.getMessage());
-            return finish(record, steps, negotiationTriggered, actualMissing, proposeValid, null, false,
-                    expectNegotiation, expectMissing, expectFillCompletes);
+            emit("[eval]   [6] filled Task-T generation REJECTED (" + error.getCode() + "): " + error.getMessage());
+            return finish(
+                    record,
+                    steps,
+                    negotiationTriggered,
+                    actualMissing,
+                    proposeValid,
+                    null,
+                    false,
+                    expectNegotiation,
+                    expectMissing,
+                    expectFillCompletes);
         }
         String acceptPrompt;
         NegotiationContext acceptContext = new NegotiationContext(
@@ -521,10 +571,12 @@ public final class NegotiationEvalApp {
             acceptGenerationInput.put("text", acceptInputText);
             acceptGenerationInput.put("context", contextJson(acceptContext));
         } else {
-            acceptGenerationInput.put("data", Map.of(
-                    "context", contextJson(acceptContext),
-                    "conclusion", NegotiationConclusion.ACCEPT.toString(),
-                    "items", itemsJson(filledItems(fills))));
+            acceptGenerationInput.put(
+                    "data",
+                    Map.of(
+                            "context", contextJson(acceptContext),
+                            "conclusion", NegotiationConclusion.ACCEPT.toString(),
+                            "items", itemsJson(filledItems(fills))));
         }
         acceptGenerationInput.put("template_uri", DemoTemplates.NEGOTIATION_ACCEPT.uri());
         String acceptGenerationApi = negotiationFromText
@@ -534,8 +586,8 @@ public final class NegotiationEvalApp {
             A2ATClient client = new A2ATClient(envPath);
             List<NegotiationItem> filledItems = filledItems(fills);
             MetadataContent accept = negotiationFromText
-                    ? client.generateNegotiationAcceptPromptFromText(acceptInputText, acceptContext,
-                            DemoTemplates.NEGOTIATION_ACCEPT)
+                    ? client.generateNegotiationAcceptPromptFromText(
+                            acceptInputText, acceptContext, DemoTemplates.NEGOTIATION_ACCEPT)
                     : client.generateNegotiationAcceptPromptFromData(
                             new NegotiationEndingData(
                                     acceptContext,
@@ -544,7 +596,8 @@ public final class NegotiationEvalApp {
             acceptPrompt = accept.promptText();
             Map<String, Object> step =
                     step("6. client fill + Negotiation-T accept generation (" + negotiationChannel + ")", "client");
-            api(step,
+            api(
+                    step,
                     apiCall("A2ATClient.generateTaskPromptFromDataWithSchema", filledGenerationInput),
                     apiCall(acceptGenerationApi, acceptGenerationInput));
             step.put("client_fill", fills);
@@ -558,11 +611,23 @@ public final class NegotiationEvalApp {
             steps.add(step);
             emit("[eval]   [6] client fills " + fills.keySet() + ", accept rendered (" + negotiationChannel + ")");
         } catch (A2ATError error) {
-            steps.add(errorStep("6. client fill + Negotiation-T accept generation (" + negotiationChannel + ")",
-                    "accept_generation", error, apiCall(acceptGenerationApi, acceptGenerationInput)));
+            steps.add(errorStep(
+                    "6. client fill + Negotiation-T accept generation (" + negotiationChannel + ")",
+                    "accept_generation",
+                    error,
+                    apiCall(acceptGenerationApi, acceptGenerationInput)));
             emit("[eval]   [6] accept generation FAILED: " + error.getCode() + " " + error.getMessage());
-            return finish(record, steps, negotiationTriggered, actualMissing, proposeValid, null, null,
-                    expectNegotiation, expectMissing, expectFillCompletes);
+            return finish(
+                    record,
+                    steps,
+                    negotiationTriggered,
+                    actualMissing,
+                    proposeValid,
+                    null,
+                    null,
+                    expectNegotiation,
+                    expectMissing,
+                    expectFillCompletes);
         }
 
         // -- step 7: inbound validation of the accept message; extracted values must match the client fill --
@@ -578,7 +643,9 @@ public final class NegotiationEvalApp {
             long nanos = System.nanoTime();
             A2ATServer server = new A2ATServer(envPath);
             FilledParamData acceptParams = server.validateAcceptPromptAndDataFilling(
-                    acceptPrompt, acceptContext, negotiationSchema(slotsToFill, taskSchema),
+                    acceptPrompt,
+                    acceptContext,
+                    negotiationSchema(slotsToFill, taskSchema),
                     DemoTemplates.NEGOTIATION_ACCEPT);
             acceptValid = true;
             extractedAcceptParams = acceptParams.data() == null ? Map.of() : new LinkedHashMap<>(acceptParams.data());
@@ -594,8 +661,10 @@ public final class NegotiationEvalApp {
         } catch (A2ATError error) {
             acceptValid = false;
             fillValueMatch = false;
-            List<SlotValidationError> slotErrors = error instanceof
-                    net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException extraction
+            List<SlotValidationError> slotErrors = error
+                            instanceof
+                            net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException
+                            extraction
                     ? extraction.getErrors()
                     : List.of();
             Map<String, Object> validation = validationJson("rejected", error.getCode(), slotErrors, null, Set.of());
@@ -622,7 +691,8 @@ public final class NegotiationEvalApp {
             Map<String, Object> step = stepOf(
                     "8. second Task-T validation (fill round)",
                     "server",
-                    validationJson(fillCompleted ? "passed" : "rejected",
+                    validationJson(
+                            fillCompleted ? "passed" : "rejected",
                             fillCompleted ? null : "slots_still_missing",
                             fillCompleted ? null : stillMissingErrors(stillMissing),
                             filled,
@@ -630,8 +700,8 @@ public final class NegotiationEvalApp {
             api(step, apiCall("A2ATServer.validateTaskPromptAndDataFilling", secondValidationInput));
             step.put("task_state", fillCompleted ? "COMPLETED" : "INPUT_REQUIRED");
             steps.add(step);
-            emit("[eval]   [8] second Task-T validation " + (fillCompleted ? "-> COMPLETED" : "still missing: "
-                    + stillMissing) + " (" + secs(nanos) + "s)");
+            emit("[eval]   [8] second Task-T validation "
+                    + (fillCompleted ? "-> COMPLETED" : "still missing: " + stillMissing) + " (" + secs(nanos) + "s)");
         } catch (ContentValidationException error) {
             fillCompleted = false;
             Map<String, Object> step = stepOf(
@@ -643,8 +713,17 @@ public final class NegotiationEvalApp {
             emit("[eval]   [8] second Task-T validation REJECTED (" + error.getCode() + "): " + errorSlots(error));
         }
 
-        return finish(record, steps, negotiationTriggered, actualMissing, proposeValid, fillValueMatch,
-                fillCompleted, expectNegotiation, expectMissing, expectFillCompletes);
+        return finish(
+                record,
+                steps,
+                negotiationTriggered,
+                actualMissing,
+                proposeValid,
+                fillValueMatch,
+                fillCompleted,
+                expectNegotiation,
+                expectMissing,
+                expectFillCompletes);
     }
 
     // -- record assembly --
@@ -679,7 +758,8 @@ public final class NegotiationEvalApp {
         } else {
             fillCorrect = !expectFillCompletes;
         }
-        boolean pass = triggerCorrect && slotsCorrect
+        boolean pass = triggerCorrect
+                && slotsCorrect
                 && (proposeValidCorrect == null || proposeValidCorrect)
                 && (fillMatchCorrect == null || fillMatchCorrect)
                 && (fillCorrect == null || fillCorrect);
@@ -699,8 +779,19 @@ public final class NegotiationEvalApp {
         verdict.put("accept_fill_value_match", fillMatchCorrect);
         verdict.put("fill_completes_correct", fillCorrect);
         verdict.put("pass", pass);
-        verdict.put("reason", reason(error, triggerCorrect, slotsCorrect, fillMatchCorrect, fillCorrect,
-                actualMissing, expectMissing, triggered, expectNegotiation, proposeValid));
+        verdict.put(
+                "reason",
+                reason(
+                        error,
+                        triggerCorrect,
+                        slotsCorrect,
+                        fillMatchCorrect,
+                        fillCorrect,
+                        actualMissing,
+                        expectMissing,
+                        triggered,
+                        expectNegotiation,
+                        proposeValid));
         record.put("verdict", verdict);
 
         emit("[eval]   verdict: " + (pass ? "PASS" : "FAIL")
@@ -759,10 +850,10 @@ public final class NegotiationEvalApp {
     }
 
     /**
-     * Attaches the LLM calls recorded since the previous step was built: the exact messages (system + user
-     * prompt) and JSON schema fed to the model, plus the response or the failure. When a case fails, this is
-     * what makes the cause traceable — the recorded prompt shows which slot description, constraint or
-     * system instruction the model actually saw, so the prompt resources can be tuned in reverse.
+     * Attaches the LLM calls recorded since the previous step was built: the exact messages (system + user prompt) and
+     * JSON schema fed to the model, plus the response or the failure. When a case fails, this is what makes the cause
+     * traceable — the recorded prompt shows which slot description, constraint or system instruction the model actually
+     * saw, so the prompt resources can be tuned in reverse.
      */
     private static void attachLlmCalls(Map<String, Object> step) {
         List<Map<String, Object>> calls = EvalLlmCaptureClient.drain();
@@ -771,7 +862,9 @@ public final class NegotiationEvalApp {
         }
     }
 
-    /** Attaches the SDK API call evidence (method name + input parameters) to a step; one step may make several calls. */
+    /**
+     * Attaches the SDK API call evidence (method name + input parameters) to a step; one step may make several calls.
+     */
     @SafeVarargs
     private static void api(Map<String, Object> step, Map<String, Object>... calls) {
         step.put("api_calls", List.of(calls));
@@ -823,8 +916,7 @@ public final class NegotiationEvalApp {
             validation.put("slot_errors", errors);
         }
         if (params != null) {
-            validation.put("extracted_params",
-                    params.data() == null ? Map.of() : new LinkedHashMap<>(params.data()));
+            validation.put("extracted_params", params.data() == null ? Map.of() : new LinkedHashMap<>(params.data()));
         }
         validation.put("missing_slots", missingSlots == null ? List.of() : new ArrayList<>(missingSlots));
         return validation;
@@ -841,15 +933,18 @@ public final class NegotiationEvalApp {
     private static Map<String, Object> errorStep(
             String name, String stage, A2ATError error, Map<String, Object>... calls) {
         Map<String, Object> step = step(name, "n/a");
-        step.put("error", Map.of(
-                "stage", stage,
-                "code", error.getCode(),
-                "message", String.valueOf(error.getMessage())));
+        step.put(
+                "error",
+                Map.of(
+                        "stage", stage,
+                        "code", error.getCode(),
+                        "message", String.valueOf(error.getMessage())));
         if (calls.length > 0) {
             api(step, calls);
         }
         return step;
     }
+
     private static List<Map<String, Object>> itemsJson(List<NegotiationItem> items) {
         List<Map<String, Object>> list = new ArrayList<>();
         for (NegotiationItem item : items) {
@@ -870,7 +965,8 @@ public final class NegotiationEvalApp {
                 && !text.isBlank()) {
             description = text;
         }
-        return template.replace("{slot}", slot).replace("{description}", description == null ? "" : String.valueOf(description));
+        return template.replace("{slot}", slot)
+                .replace("{description}", description == null ? "" : String.valueOf(description));
     }
 
     /**
@@ -911,9 +1007,9 @@ public final class NegotiationEvalApp {
     }
 
     /**
-     * The client's own structured knowledge for the fill round of a fromText case: the fields its input text
-     * quoted. The server's round-1 extraction is the fallback when the case carries no client data — a lossy
-     * fallback, because those params are only produced when round-1 validation passed.
+     * The client's own structured knowledge for the fill round of a fromText case: the fields its input text quoted.
+     * The server's round-1 extraction is the fallback when the case carries no client data — a lossy fallback, because
+     * those params are only produced when round-1 validation passed.
      */
     private static Map<String, Object> clientBaseData(
             Map<String, Object> testCase, Map<String, Object> extractedRound1) {
@@ -968,16 +1064,19 @@ public final class NegotiationEvalApp {
     private static String appendSupplements(String taskPrompt, Map<String, String> fills) {
         StringBuilder filled = new StringBuilder(taskPrompt);
         for (Map.Entry<String, String> entry : fills.entrySet()) {
-            filled.append(System.lineSeparator()).append(entry.getKey()).append("：").append(entry.getValue());
+            filled.append(System.lineSeparator())
+                    .append(entry.getKey())
+                    .append("：")
+                    .append(entry.getValue());
         }
         return filled.toString();
     }
 
     /**
-     * Parameter schema for the negotiation-message validations (steps 4/5/7): one property per negotiated slot,
-     * derived from the task schema so the description and {@code x-a2at-value-constraint} of each slot flow into the
-     * validation prompt — the extraction surface is exactly the supplemented information, with the same semantic
-     * constraints the Task-T validation enforces.
+     * Parameter schema for the negotiation-message validations (steps 4/5/7): one property per negotiated slot, derived
+     * from the task schema so the description and {@code x-a2at-value-constraint} of each slot flow into the validation
+     * prompt — the extraction surface is exactly the supplemented information, with the same semantic constraints the
+     * Task-T validation enforces.
      */
     private static Map<String, Object> negotiationSchema(Set<String> slots, Map<String, Object> taskSchema) {
         Map<String, Object> taskProperties = asMap(taskSchema.get("properties"));
@@ -1035,9 +1134,9 @@ public final class NegotiationEvalApp {
     }
 
     /**
-     * Restricts missing-slot candidates to the task schema's required slots: an empty optional slot is a valid
-     * state and never a negotiation trigger — only a required slot that is blank (or flagged by the semantic
-     * validator) means information the negotiation must ask for.
+     * Restricts missing-slot candidates to the task schema's required slots: an empty optional slot is a valid state
+     * and never a negotiation trigger — only a required slot that is blank (or flagged by the semantic validator) means
+     * information the negotiation must ask for.
      */
     private static Set<String> requiredMissing(Set<String> candidates, Set<String> requiredSlots) {
         Set<String> missing = new TreeSet<>(candidates);
@@ -1050,7 +1149,8 @@ public final class NegotiationEvalApp {
         Set<String> slots = new TreeSet<>();
         if (error.errors() != null) {
             for (SlotValidationError validationError : error.errors()) {
-                if (validationError.slotName() != null && !validationError.slotName().isBlank()) {
+                if (validationError.slotName() != null
+                        && !validationError.slotName().isBlank()) {
                     slots.add(validationError.slotName());
                 }
             }
@@ -1105,10 +1205,12 @@ public final class NegotiationEvalApp {
         metrics.put("cases", total);
         metrics.put("trigger_accuracy", ratio("negotiation correctly triggered/held", triggerOk, total));
         metrics.put("missing_slot_exact_match", ratio("missing-slot set exact match", slotsOk, total));
-        metrics.put("propose_outbound_valid", ratio("generated propose passes outbound validation", proposeOk,
-                proposeEvaluated));
-        metrics.put("accept_fill_value_match", ratio("extracted fill values match client fill", fillMatchOk,
-                fillMatchEvaluated));
+        metrics.put(
+                "propose_outbound_valid",
+                ratio("generated propose passes outbound validation", proposeOk, proposeEvaluated));
+        metrics.put(
+                "accept_fill_value_match",
+                ratio("extracted fill values match client fill", fillMatchOk, fillMatchEvaluated));
         metrics.put("closed_loop_completion", ratio("closed loop completes as expected", loopOk, loopEvaluated));
         metrics.put("full_pass", ratio("all dimensions pass", pass, total));
         return metrics;
@@ -1160,7 +1262,9 @@ public final class NegotiationEvalApp {
                     continue;
                 }
                 int separator = line.indexOf('=');
-                values.put(line.substring(0, separator).trim(), line.substring(separator + 1).trim());
+                values.put(
+                        line.substring(0, separator).trim(),
+                        line.substring(separator + 1).trim());
             }
         } catch (IOException exception) {
             throw new UncheckedIOException("Failed to read env file: " + envPath, exception);
@@ -1178,10 +1282,9 @@ public final class NegotiationEvalApp {
 
     private static int countCases(Map<String, Object> suite, List<String> filter, String channelFilter) {
         return (int) cases(suite).stream()
-                .filter(testCase -> filter.isEmpty()
-                        || filter.contains(String.valueOf(testCase.get("id"))))
-                .filter(testCase -> channelFilter == null
-                        || channelFilter.equals(String.valueOf(testCase.get("channel"))))
+                .filter(testCase -> filter.isEmpty() || filter.contains(String.valueOf(testCase.get("id"))))
+                .filter(testCase ->
+                        channelFilter == null || channelFilter.equals(String.valueOf(testCase.get("channel"))))
                 .count();
     }
 
@@ -1193,7 +1296,8 @@ public final class NegotiationEvalApp {
     /** Negotiation template URIs used by the closed loop; kept local so the evaluator stays self-contained. */
     private static final class DemoTemplates {
 
-        static final TemplateUri NEGOTIATION_PROPOSE = parseTemplate("Negotiation-T/information-negotiation/propose/v1");
+        static final TemplateUri NEGOTIATION_PROPOSE =
+                parseTemplate("Negotiation-T/information-negotiation/propose/v1");
 
         static final TemplateUri NEGOTIATION_ACCEPT =
                 parseTemplate("Negotiation-T/information-negotiation/accept-reject/v1");

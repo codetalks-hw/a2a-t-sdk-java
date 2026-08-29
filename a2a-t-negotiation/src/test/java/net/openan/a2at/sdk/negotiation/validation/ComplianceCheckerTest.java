@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.SlotValidationError;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,7 +22,9 @@ class ComplianceCheckerTest {
     static List<Object[]> violationCases() {
         return List.of(
                 new Object[] {
-                    "non-uuid id", new NegotiationContext("not-a-uuid", 1, 5, NegotiationPerformative.PROPOSE), List.of("id")
+                    "non-uuid id",
+                    new NegotiationContext("not-a-uuid", 1, 5, NegotiationPerformative.PROPOSE),
+                    List.of("id")
                 },
                 new Object[] {
                     "short id", new NegotiationContext("short", 1, 5, NegotiationPerformative.PROPOSE), List.of("id")
@@ -59,7 +61,8 @@ class ComplianceCheckerTest {
 
     @ParameterizedTest
     @MethodSource("violationCases")
-    void contextViolationsFailWithTheExpectedSlotNames(String caseName, NegotiationContext context, List<String> expectedSlots) {
+    void contextViolationsFailWithTheExpectedSlotNames(
+            String caseName, NegotiationContext context, List<String> expectedSlots) {
         NegotiationRuleCheckResult result = checker.check(context);
 
         assertFalse(result.passed(), caseName);
@@ -76,13 +79,13 @@ class ComplianceCheckerTest {
 
         assertFalse(result.passed());
         assertEquals("id", result.errors().get(0).slotName());
-        assertEquals("invalid_uuid", result.errors().get(0).code());
+        assertEquals("negotiation.invalid_context_id", result.errors().get(0).code());
     }
 
     @Test
     void uppercaseHexUuidIsAccepted() {
-        NegotiationRuleCheckResult result = checker.check(
-                new NegotiationContext(SESSION_ID.toUpperCase(java.util.Locale.ROOT), 1, 5, NegotiationPerformative.PROPOSE));
+        NegotiationRuleCheckResult result = checker.check(new NegotiationContext(
+                SESSION_ID.toUpperCase(java.util.Locale.ROOT), 1, 5, NegotiationPerformative.PROPOSE));
 
         assertTrue(result.passed());
         assertEquals(0, result.errors().size());
@@ -96,8 +99,8 @@ class ComplianceCheckerTest {
         assertFalse(result.passed());
         SlotValidationError error = result.errors().get(0);
         assertEquals("round", error.slotName());
-        assertEquals("out_of_range", error.code());
-        assertTrue(error.message().contains("maxRounds"));
+        assertEquals("negotiation.round_exceeded", error.code());
+        assertTrue(error.message().contains("maximum"));
     }
 
     @Test
@@ -121,7 +124,7 @@ class ComplianceCheckerTest {
 
         SlotValidationError error = result.errors().get(0);
         assertEquals("id", error.slotName());
-        assertEquals("invalid_uuid", error.code());
+        assertEquals("negotiation.invalid_context_id", error.code());
         assertTrue(error.message().contains("UUID"));
     }
 }

@@ -55,11 +55,8 @@ class ClasspathPromptResourceLoaderTest {
 
     @Test
     void loadsPackagedSubscribeIncidentSlotSchemaWithSemanticHint() {
-        PromptResourceKey key =
-                PromptResourceKey.slotSchema(
-                        TemplateUri.of("Notification-T", "network-layer", "subscribe-incident"),
-                        "zh-CN",
-                        "slot.json");
+        PromptResourceKey key = PromptResourceKey.slotSchema(
+                TemplateUri.of("Notification-T", "network-layer", "subscribe-incident"), "zh-CN", "slot.json");
 
         String text = loader.loadText(key);
 

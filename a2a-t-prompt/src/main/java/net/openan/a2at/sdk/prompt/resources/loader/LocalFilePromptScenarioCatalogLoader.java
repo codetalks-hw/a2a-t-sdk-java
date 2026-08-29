@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.resources.PathSegments;
 import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
@@ -13,8 +12,8 @@ import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
 /**
  * Loads shared scenario catalogs from one local prompt resource root.
  *
- * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch
- * the filesystem, so changes to the local files only take effect after the SDK is restarted.
+ * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch the
+ * filesystem, so changes to the local files only take effect after the SDK is restarted.
  *
  * @since 2026-06
  */
@@ -44,7 +43,14 @@ public final class LocalFilePromptScenarioCatalogLoader {
             return PromptResourceJsonParser.parse(snapshot.get(pathKey), ScenarioCatalog.class)
                     .scenarios();
         } catch (JsonProcessingException exception) {
-            throw new A2ATError("Failed to parse scenario catalog for language: " + language, exception);
+            throw ResourceReadErrors.readFailed(
+                    promptRootDir
+                            .resolve("scenarios")
+                            .resolve(language)
+                            .resolve("scenarios.json")
+                            .toString(),
+                    language,
+                    exception);
         }
     }
 

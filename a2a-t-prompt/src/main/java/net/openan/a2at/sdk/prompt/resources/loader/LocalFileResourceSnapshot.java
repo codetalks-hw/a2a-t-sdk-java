@@ -15,8 +15,8 @@ import net.openan.a2at.sdk.core.exception.A2ATError;
  * Immutable in-memory snapshot of a local prompt resource root, captured once at assembly time.
  *
  * <p>The snapshot freezes the {@code templates/}, {@code slots/} and {@code scenarios/} subtrees read from the local
- * root once at assembly time and never re-read. Runtime lookups resolve against this map rather than the
- * filesystem, so local file changes only take effect after the SDK is restarted.
+ * root once at assembly time and never re-read. Runtime lookups resolve against this map rather than the filesystem, so
+ * local file changes only take effect after the SDK is restarted.
  */
 final class LocalFileResourceSnapshot {
 

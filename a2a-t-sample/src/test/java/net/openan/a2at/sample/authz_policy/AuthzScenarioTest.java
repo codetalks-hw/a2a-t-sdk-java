@@ -16,8 +16,7 @@ class AuthzScenarioTest {
 
     private static AuthzExpected success() {
         return new AuthzExpected(
-                new ClientExpected(null, "## rendered prompt", null),
-                new ServerExpected("success", null, null));
+                new ClientExpected(null, "## rendered prompt", null), new ServerExpected("success", null, null));
     }
 
     @Test
@@ -67,7 +66,7 @@ class AuthzScenarioTest {
                 "from_text",
                 Map.of("text", "test"),
                 new AuthzExpected(
-                        new ClientExpected("slot_validation_error", null, null),
+                        new ClientExpected("slot.rule_violation", null, null),
                         new ServerExpected("success", null, null)));
 
         IllegalArgumentException ex =
@@ -85,14 +84,15 @@ class AuthzScenarioTest {
 
         IllegalArgumentException ex =
                 assertThrows(IllegalArgumentException.class, () -> AuthzScenario.validate(scenario));
-        assertEquals(
-                "expected.client.promptText must be non-blank when client outcome is not set", ex.getMessage());
+        assertEquals("expected.client.promptText must be non-blank when client outcome is not set", ex.getMessage());
     }
 
     @Test
     void should_rejectClientSuccessWithoutServerExpectation() {
         AuthzScenario scenario = new AuthzScenario(
-                "bad", "from_text", Map.of("text", "test"),
+                "bad",
+                "from_text",
+                Map.of("text", "test"),
                 new AuthzExpected(new ClientExpected(null, "prompt", null), null));
 
         IllegalArgumentException ex =
@@ -107,7 +107,7 @@ class AuthzScenarioTest {
                 "reject",
                 "from_text",
                 Map.of("text", "test"),
-                new AuthzExpected(new ClientExpected("slot_validation_error", null, null), null));
+                new AuthzExpected(new ClientExpected("slot.rule_violation", null, null), null));
 
         assertDoesNotThrow(() -> AuthzScenario.validate(scenario));
     }
@@ -120,7 +120,7 @@ class AuthzScenarioTest {
                 Map.of("text", "test"),
                 new AuthzExpected(
                         new ClientExpected(null, "prompt", null),
-                        new ServerExpected("validation_semantic_rejected", null, null)));
+                        new ServerExpected("negotiation.semantic_rejected", null, null)));
 
         assertDoesNotThrow(() -> AuthzScenario.validate(scenario));
     }
@@ -203,15 +203,13 @@ class AuthzScenarioTest {
 
     @Test
     void should_rejectNullScenario() {
-        IllegalArgumentException ex =
-                assertThrows(IllegalArgumentException.class, () -> AuthzScenario.validate(null));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> AuthzScenario.validate(null));
         assertEquals("scenario must not be null", ex.getMessage());
     }
 
     @Test
     void should_haveNullValidateSchema_WhenFourArgConstructor() {
-        AuthzScenario scenario = new AuthzScenario(
-                "add-from-text", "from_text", Map.of("text", "test"), success());
+        AuthzScenario scenario = new AuthzScenario("add-from-text", "from_text", Map.of("text", "test"), success());
 
         assertNull(scenario.validateSchema());
     }
@@ -230,8 +228,8 @@ class AuthzScenarioTest {
 
     @Test
     void should_rejectEmptyValidateSchema() {
-        AuthzScenario scenario = new AuthzScenario(
-                "add-from-text", "from_text", Map.of("text", "test"), success(), Map.of());
+        AuthzScenario scenario =
+                new AuthzScenario("add-from-text", "from_text", Map.of("text", "test"), success(), Map.of());
 
         IllegalArgumentException ex =
                 assertThrows(IllegalArgumentException.class, () -> AuthzScenario.validate(scenario));

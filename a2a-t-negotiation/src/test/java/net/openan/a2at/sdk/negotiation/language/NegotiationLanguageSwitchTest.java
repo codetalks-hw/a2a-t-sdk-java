@@ -6,14 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.Stream;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenCase;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,7 +70,8 @@ class NegotiationLanguageSwitchTest {
                     template.templateUri().uri() + " must not leak the other language");
         }
 
-        PromptTemplate queriedTemplate = queryService(language).getPrompt(INFORMATION_PROPOSE_URI).orElseThrow();
+        PromptTemplate queriedTemplate =
+                queryService(language).getPrompt(INFORMATION_PROPOSE_URI).orElseThrow();
         assertTrue(queriedTemplate.content().contains(requirementLabel));
     }
 
@@ -111,5 +112,4 @@ class NegotiationLanguageSwitchTest {
                 .language(language)
                 .build();
     }
-
 }

@@ -1,29 +1,29 @@
 package net.openan.a2at.sdk.negotiation.generation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.exception.ErrorMessages;
+import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATError;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
-import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.llm.LLMRuntimeError;
-import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.negotiation.content.InformationEndingContent;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationConclusion;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -64,7 +64,8 @@ class ValidateAndFillingDataPipelineTest {
     private static final TemplateUri TARGET_PROPOSE_URI = StandardTemplates.TARGET_NEGOTIATION_PROPOSE;
 
     private static final Map<String, Object> ACCESS_PORT_SCHEMA = Map.of(
-            "type", "object",
+            "type",
+            "object",
             "properties",
             Map.of(
                     "accessPort", Map.of("type", "string"),
@@ -81,8 +82,8 @@ class ValidateAndFillingDataPipelineTest {
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         String message = informationProposeMessage(orchestrator);
 
-        FilledParamData filled =
-                orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI);
+        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
+                message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI);
 
         assertEquals(1, llm.calls);
         assertEquals(SESSION_ID, filled.data().get("id"));
@@ -134,51 +135,59 @@ class ValidateAndFillingDataPipelineTest {
 
     // The rule-violation table of this suite (non-uuid id, round above maxRounds, 0 LLM calls) is absorbed by the
     // VAL-RULE batch of the test corpus (negotiation-cases/validate/rule-gate.json): every row there asserts the same
-    // negotiation_rule_violation code, the exact slot error pairs and the zero-LLM guarantee, plus the boundary and
+    // negotiation.rule_violation code, the exact slot error pairs and the zero-LLM guarantee, plus the boundary and
     // combined-error rows the hand-written table never carried (design §6 Q8).
 
     @Test
     void semanticRejectionIsNotRetriedAndPassesTheErrorsThrough() {
+        Map<String, String> conclusionFacts =
+                Map.of("conclusion", "Accept", "section_label", "section.info_conclusion");
+        Map<String, String> resultFacts = Map.of("section_label", "section.info_items");
         List<SlotValidationError> semanticErrors = List.of(
                 new SlotValidationError(
                         "section.info_conclusion",
-                        "invalid_conclusion",
-                        "Conclusion Abort is not one of Accept or Reject."),
+                        ErrorCatalog.NEGOTIATION_CONCLUSION_CONTENT_MISMATCH.getCode(),
+                        ErrorMessages.render(
+                                ErrorCatalog.NEGOTIATION_CONCLUSION_CONTENT_MISMATCH, "zh-CN", conclusionFacts),
+                        conclusionFacts),
                 new SlotValidationError(
-                        "section.info_items", "missing_section", "Required information items are missing."));
+                        "section.info_items",
+                        ErrorCatalog.NEGOTIATION_MISSING_RESULT_CONTENT.getCode(),
+                        ErrorMessages.render(ErrorCatalog.NEGOTIATION_MISSING_RESULT_CONTENT, "zh-CN", resultFacts),
+                        resultFacts));
         ScriptedLlmClient llm = new ScriptedLlmClient("{\"semantic_verdict\":false,\"negotiation_type\":null,"
-                + "\"errors\":[{\"slot_name\":\"section.info_conclusion\",\"code\":\"invalid_conclusion\","
-                + "\"message\":\"Conclusion Abort is not one of Accept or Reject.\"},"
-                + "{\"slot_name\":\"section.info_items\",\"code\":\"missing_section\","
-                + "\"message\":\"Required information items are missing.\"}],\"params\":{}}");
+                + "\"errors\":[{\"slot_name\":\"section.info_conclusion\","
+                + "\"code\":\"negotiation.conclusion_content_mismatch\","
+                + "\"facts\":{\"conclusion\":\"Accept\",\"section_label\":\"section.info_conclusion\"}},"
+                + "{\"slot_name\":\"section.info_items\",\"code\":\"negotiation.missing_result_content\","
+                + "\"facts\":{\"section_label\":\"section.info_items\"}}],\"params\":{}}");
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         String message = informationProposeMessage(orchestrator);
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), exception.getCode());
         assertEquals(semanticErrors, exception.getErrors());
         assertEquals(1, llm.calls, "a negative verdict is a decision, not a failure, and must not be retried");
     }
 
     @ParameterizedTest
     @MethodSource("taskTMessages")
-    void taskTMessagesAreRejectedAsNonNegotiationInputWithALanguageNeutralMessage(
-            String caseName, String taskTMessage) {
+    void taskTMessagesAreRejectedAsNonNegotiationInputWithARenderedMessage(String caseName, String taskTMessage) {
         ScriptedLlmClient llm = new ScriptedLlmClient(
                 "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[],\"params\":{}}");
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(taskTMessage, null, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        taskTMessage, null, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_INVALID_INPUT, exception.getCode(), caseName);
-        assertTrue(exception.getMessage().contains("checkTaskPrompt"), caseName);
-        assertFalse(exception.getMessage().contains("协商上下文"), caseName);
-        assertFalse(exception.getMessage().contains("Negotiation Context"), caseName);
+        assertEquals(ErrorCatalog.NEGOTIATION_INVALID_INPUT.getCode(), exception.getCode(), caseName);
+        assertEquals("输入的协商内容无效:缺少协商上下文(该报文不是协商报文)", exception.getMessage(), caseName);
         assertEquals(List.of(), exception.getErrors(), caseName);
         assertEquals(0, llm.calls, caseName);
     }
@@ -224,7 +233,8 @@ class ValidateAndFillingDataPipelineTest {
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         String message = targetProposeMessage(orchestrator);
 
-        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(message, TARGET_CONTEXT, callerSchema, TARGET_PROPOSE_URI);
+        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
+                message, TARGET_CONTEXT, callerSchema, TARGET_PROPOSE_URI);
 
         assertEquals(1, llm.calls);
         assertEquals(SESSION_ID, filled.data().get("id"));
@@ -244,19 +254,16 @@ class ValidateAndFillingDataPipelineTest {
 
     @Test
     void callerSchemaWithoutATypeKeywordIsWrappedAndTheChainSucceeds() {
-        Map<String, Object> schemaWithoutType = Map.of(
-                "properties",
-                Map.of("accessPort", Map.of("type", "string")),
-                "required",
-                List.of("accessPort"));
+        Map<String, Object> schemaWithoutType =
+                Map.of("properties", Map.of("accessPort", Map.of("type", "string")), "required", List.of("accessPort"));
         ScriptedLlmClient llm =
                 new ScriptedLlmClient("{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[],"
                         + "\"params\":{\"accessPort\":\"P533-珠江旧城-PTN3900-23-TPA1EG24-1\"}}");
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         String message = informationProposeMessage(orchestrator);
 
-        FilledParamData filled =
-                orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, schemaWithoutType, INFORMATION_PROPOSE_URI);
+        FilledParamData filled = orchestrator.validateProposePromptAndDataFilling(
+                message, CONTEXT, schemaWithoutType, INFORMATION_PROPOSE_URI);
 
         assertEquals(1, llm.calls);
         assertEquals("P533-珠江旧城-PTN3900-23-TPA1EG24-1", filled.data().get("accessPort"));
@@ -278,13 +285,15 @@ class ValidateAndFillingDataPipelineTest {
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
+        assertEquals(ErrorCatalog.LLM_RESPONSE_INVALID.getCode(), exception.getCode());
         assertEquals(3, llm.calls, "a shape-invalid response is a retryable infrastructure failure");
         assertEquals(1, exception.getErrors().size());
         assertEquals("_llm", exception.getErrors().get(0).slotName());
-        assertTrue(exception.getMessage().contains("negotiation_type"));
+        assertEquals("semantic_validation", exception.getFacts().get("step"));
+        assertTrue(exception.getCause().getCause().getMessage().contains("negotiation_type"));
     }
 
     @Test
@@ -296,13 +305,18 @@ class ValidateAndFillingDataPipelineTest {
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), exception.getCode());
         assertEquals(1, llm.calls, "a type mismatch is a semantic decision and must not be retried");
         assertEquals(1, exception.getErrors().size());
         assertEquals("section.target", exception.getErrors().get(0).slotName());
-        assertEquals("template_type_mismatch", exception.getErrors().get(0).code());
+        assertEquals(
+                ErrorCatalog.NEGOTIATION_TYPE_MISMATCH.getCode(),
+                exception.getErrors().get(0).code());
+        assertEquals("target", exception.getErrors().get(0).facts().get("implied"));
+        assertEquals("information", exception.getErrors().get(0).facts().get("declared"));
     }
 
     @ParameterizedTest
@@ -315,45 +329,57 @@ class ValidateAndFillingDataPipelineTest {
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, exception.getCode(), caseName);
+        assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), exception.getCode(), caseName);
         assertEquals(List.of(expectedError), exception.getErrors(), caseName);
         assertEquals(1, llm.calls, caseName);
     }
 
     static List<Object[]> structuralSemanticCases() {
+        Map<String, String> conclusionFacts = Map.of("expected", "Accept", "actual", "Abort");
+        Map<String, String> resultFacts = Map.of("section_label", "section.target_result_content");
+        Map<String, String> conflictFacts =
+                Map.of("section_label", "section.info_static", "reason", "the static section coexists with the items");
         return List.of(
                 new Object[] {
                     "conclusion outside accept and reject",
                     "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":["
-                            + "{\"slot_name\":\"section.target_conclusion\",\"code\":\"invalid_conclusion\","
-                            + "\"message\":\"Conclusion Abort is not one of Accept or Reject.\"}],\"params\":{}}",
+                            + "{\"slot_name\":\"section.target_conclusion\","
+                            + "\"code\":\"negotiation.conclusion_mismatch\","
+                            + "\"facts\":{\"expected\":\"Accept\",\"actual\":\"Abort\"}}],\"params\":{}}",
                     new SlotValidationError(
                             "section.target_conclusion",
-                            "invalid_conclusion",
-                            "Conclusion Abort is not one of Accept or Reject.")
+                            ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH.getCode(),
+                            ErrorMessages.render(
+                                    ErrorCatalog.NEGOTIATION_CONCLUSION_MISMATCH, "zh-CN", conclusionFacts),
+                            conclusionFacts)
                 },
                 new Object[] {
                     "ending result content section missing",
                     "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":["
-                            + "{\"slot_name\":\"section.target_result_content\",\"code\":\"missing_section\","
-                            + "\"message\":\"The ending result content section is missing.\"}],\"params\":{}}",
+                            + "{\"slot_name\":\"section.target_result_content\","
+                            + "\"code\":\"negotiation.missing_result_content\","
+                            + "\"facts\":{\"section_label\":\"section.target_result_content\"}}],\"params\":{}}",
                     new SlotValidationError(
                             "section.target_result_content",
-                            "missing_section",
-                            "The ending result content section is missing.")
+                            ErrorCatalog.NEGOTIATION_MISSING_RESULT_CONTENT.getCode(),
+                            ErrorMessages.render(ErrorCatalog.NEGOTIATION_MISSING_RESULT_CONTENT, "zh-CN", resultFacts),
+                            resultFacts)
                 },
                 new Object[] {
                     "information propose carries both conditional sections",
                     "{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":["
-                            + "{\"slot_name\":\"section.info_static\",\"code\":\"conflicting_sections\","
-                            + "\"message\":\"The static section and the required information items coexist.\"}],"
-                            + "\"params\":{}}",
+                            + "{\"slot_name\":\"section.info_static\","
+                            + "\"code\":\"negotiation.field_inconsistency\","
+                            + "\"facts\":{\"section_label\":\"section.info_static\",\"reason\":"
+                            + "\"the static section coexists with the items\"}}],\"params\":{}}",
                     new SlotValidationError(
                             "section.info_static",
-                            "conflicting_sections",
-                            "The static section and the required information items coexist.")
+                            ErrorCatalog.NEGOTIATION_FIELD_INCONSISTENCY.getCode(),
+                            ErrorMessages.render(ErrorCatalog.NEGOTIATION_FIELD_INCONSISTENCY, "zh-CN", conflictFacts),
+                            conflictFacts)
                 });
     }
 
@@ -361,17 +387,21 @@ class ValidateAndFillingDataPipelineTest {
     void falseVerdictWithNullTypeIsAShapeLegalOutcome() {
         ScriptedLlmClient llm = new ScriptedLlmClient("{\"semantic_verdict\":false,\"negotiation_type\":null,"
                 + "\"errors\":[{\"slot_name\":\"section.context\",\"code\":\"inconsistent_context\","
-                + "\"message\":\"Context contradicts the message body.\"}],\"params\":{}}");
+                + "\"facts\":{\"reason\":\"Context contradicts the message body.\"}}],\"params\":{}}");
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         String message = informationProposeMessage(orchestrator);
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), exception.getCode());
         assertEquals(1, exception.getErrors().size());
         assertEquals("section.context", exception.getErrors().get(0).slotName());
+        assertEquals(
+                ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(),
+                exception.getErrors().get(0).code());
         assertEquals(1, llm.calls, "verdict false with a null type is shape-legal and must not be retried");
     }
 
@@ -384,13 +414,16 @@ class ValidateAndFillingDataPipelineTest {
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), exception.getCode());
         assertEquals(1, llm.calls, "a null type with a true verdict is a semantic rejection, not a retryable failure");
         assertEquals(1, exception.getErrors().size());
         assertEquals("section.info_static", exception.getErrors().get(0).slotName());
-        assertEquals("template_type_mismatch", exception.getErrors().get(0).code());
+        assertEquals(
+                ErrorCatalog.NEGOTIATION_TYPE_MISMATCH.getCode(),
+                exception.getErrors().get(0).code());
     }
 
     @Test
@@ -406,9 +439,10 @@ class ValidateAndFillingDataPipelineTest {
 
         NegotiationParamExtractionException exception = assertThrows(
                 NegotiationParamExtractionException.class,
-                () -> orchestrator.validateProposePromptAndDataFilling(message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        message, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
+        assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), exception.getCode());
         assertEquals(2, llm.calls);
         assertEquals(1, exception.getErrors().size());
         assertEquals("_llm", exception.getErrors().get(0).slotName());
@@ -436,7 +470,7 @@ class ValidateAndFillingDataPipelineTest {
                         ACCESS_PORT_SCHEMA,
                         INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, exception.getCode());
+        assertEquals(ErrorCatalog.TEMPLATE_NOT_FOUND.getCode(), exception.getCode());
         assertEquals(
                 NegotiationParamExtractionException.class,
                 exception.getClass(),
@@ -447,15 +481,18 @@ class ValidateAndFillingDataPipelineTest {
 
     @Test
     void proposeUriValidatingAResultMessageIsASemanticRejection() {
+        Map<String, String> phaseFacts = Map.of("implied", "accept-reject", "declared", "propose");
         SlotValidationError phaseError = new SlotValidationError(
                 "section.info_result_content",
-                "phase_mismatch",
-                "The message is a terminal accept-reject message but the template URI declares the propose phase.");
+                ErrorCatalog.NEGOTIATION_PHASE_MISMATCH.getCode(),
+                ErrorMessages.render(ErrorCatalog.NEGOTIATION_PHASE_MISMATCH, "zh-CN", phaseFacts),
+                phaseFacts);
         ScriptedLlmClient llm =
                 new ScriptedLlmClient("{\"semantic_verdict\":false,\"negotiation_type\":\"information\",\"errors\":["
-                        + "{\"slot_name\":\"section.info_result_content\",\"code\":\"phase_mismatch\","
-                        + "\"message\":\"The message is a terminal accept-reject message but the template URI"
-                        + " declares the propose phase.\"}],\"params\":{}}");
+                        + "{\"slot_name\":\"section.info_result_content\","
+                        + "\"code\":\"negotiation.phase_mismatch\","
+                        + "\"facts\":{\"implied\":\"accept-reject\",\"declared\":\"propose\"}}],"
+                        + "\"params\":{}}");
         NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         String rejectMessage = informationEndingMessage(orchestrator, NegotiationConclusion.REJECT);
 
@@ -464,7 +501,7 @@ class ValidateAndFillingDataPipelineTest {
                 () -> orchestrator.validateProposePromptAndDataFilling(
                         rejectMessage, CONTEXT, ACCESS_PORT_SCHEMA, INFORMATION_PROPOSE_URI));
 
-        assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, exception.getCode());
+        assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), exception.getCode());
         assertEquals(List.of(phaseError), exception.getErrors());
         assertEquals(1, llm.calls);
     }

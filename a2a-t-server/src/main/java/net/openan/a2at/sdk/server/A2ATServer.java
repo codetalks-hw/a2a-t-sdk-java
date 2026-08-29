@@ -8,12 +8,12 @@ import net.openan.a2at.sdk.core.model.A2ATConfig;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
-import net.openan.a2at.sdk.core.validation.ContentValidator;
 import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
+import net.openan.a2at.sdk.core.validation.ContentValidator;
 import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationEndingData;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
+import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
 import net.openan.a2at.sdk.negotiation.runtime.RoleBoundNegotiationOrchestrator;
 import net.openan.a2at.sdk.negotiation.types.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.types.model.NegotiationStatus;
@@ -59,7 +59,8 @@ public final class A2ATServer {
                 DefaultA2ATServerBuilder.builder().envPath(resolvedEnvPath).config(config);
         this.promptComplianceOrchestrator = builder.buildPromptComplianceOrchestrator();
         this.negotiationOrchestrator = builder.buildNegotiationOrchestrator();
-        this.negotiationContentService = new NegotiationContentService(builder.buildNegotiationGenerationOrchestrator());
+        this.negotiationContentService =
+                new NegotiationContentService(builder.buildNegotiationGenerationOrchestrator());
         this.templateQueryService = builder.buildTemplateQueryService();
         this.taskContentValidator = builder.buildTaskContentValidator();
         this.notificationContentValidator = builder.buildNotificationContentValidator();
@@ -70,7 +71,7 @@ public final class A2ATServer {
      * Checks one processed task prompt for server-side compliance.
      *
      * <p>An input longer than {@code A2AT_INPUT_TEXT_MAX_CHARS} characters (default 16384) fails fast with the code
-     * {@code input_text_too_long} before any LLM call.
+     * {@code input.text_too_long} before any LLM call.
      *
      * @param processedPromptText processed task prompt text
      * @return compliance result containing only success state or failure details
@@ -129,8 +130,8 @@ public final class A2ATServer {
      * @throws NullPointerException if the data, its context or the template URI is null
      * @throws IllegalArgumentException if the template URI phase or type contradicts the method or the content type
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
     public MetadataContent generateNegotiationProposePromptFromData(
             @NonNull NegotiationProposeData data, @NonNull TemplateUri templateUri) {
@@ -144,15 +145,15 @@ public final class A2ATServer {
      * mismatched conclusion is a content error.
      *
      * @param data typed terminal input carrying the negotiation context and the typed ending content
-     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its
-     *     phase segment must be {@code accept-reject}
+     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its phase
+     *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the data, its context or the template URI is null
      * @throws IllegalArgumentException if the template URI phase or type contradicts the method or the content, or the
      *     content conclusion is not {@code Accept}
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
     public MetadataContent generateNegotiationAcceptPromptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
@@ -166,15 +167,15 @@ public final class A2ATServer {
      * mismatched conclusion is a content error.
      *
      * @param data typed terminal input carrying the negotiation context and the typed ending content
-     * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its
-     *     phase segment must be {@code accept-reject}
+     * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its phase
+     *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the data, its context or the template URI is null
      * @throws IllegalArgumentException if the template URI phase or type contradicts the method or the content, or the
      *     content conclusion is not {@code Reject}
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
     public MetadataContent generateNegotiationRejectPromptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
@@ -194,8 +195,8 @@ public final class A2ATServer {
      * @throws IllegalArgumentException if the template URI does not address the common abort template or the
      *     termination reason is blank
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template exists for the URI in any resource root, or the code
-     *     {@code negotiation_slot_missing} when rendering the template fails
+     *     {@code template.not_found} when no template exists for the URI in any resource root, or the code
+     *     {@code negotiation.field_missing} when rendering the template fails
      */
     public MetadataContent generateNegotiationAbortPromptFromData(
             @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
@@ -208,22 +209,23 @@ public final class A2ATServer {
      * <p>This variant runs one LLM content-extraction step constrained by the template URI and then renders
      * deterministically like the from-data variant. The template is loaded before the LLM call and the extraction step
      * is retried up to the configured attempt limit on the retryable failure codes
-     * {@code negotiation_content_extract_failed} and {@code negotiation_llm_infrastructure_error}.
+     * {@code negotiation.content_extract_failed} and {@code llm.invocation_failed}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}; its phase segment
      *     must be {@code propose}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses a required field, {@code negotiation_invalid_input} when the text is blank or the extracted
-     *     content contradicts the phase, or {@code input_text_too_long} when the text exceeds the configured maximum
-     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed}, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the extraction step fails after exhausting its retries, {@code negotiation.field_missing} when the
+     *     extracted content misses a required field, {@code negotiation.invalid_input} when the text is blank or the
+     *     extracted content contradicts the phase, or {@code input.text_too_long} when the text exceeds the configured
+     *     maximum length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public MetadataContent generateNegotiationProposePromptFromText(
             @NonNull String text,
@@ -240,19 +242,20 @@ public final class A2ATServer {
      * conclusion must be {@code Accept}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
-     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its
-     *     phase segment must be {@code accept-reject}
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
+     * @param templateUri template URI such as {@code Negotiation-T/information-negotiation/accept-reject/v1}; its phase
+     *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses a required field, {@code negotiation_invalid_input} when the text is blank or the extracted
-     *     conclusion is not {@code Accept}, or {@code input_text_too_long} when the text exceeds the configured
-     *     maximum length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed}, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the extraction step fails after exhausting its retries, {@code negotiation.field_missing} when the
+     *     extracted content misses a required field, {@code negotiation.invalid_input} when the text is blank or the
+     *     extracted conclusion is not {@code Accept}, or {@code input.text_too_long} when the text exceeds the
+     *     configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public MetadataContent generateNegotiationAcceptPromptFromText(
             @NonNull String text,
@@ -269,19 +272,20 @@ public final class A2ATServer {
      * conclusion must be {@code Reject}.
      *
      * @param text free-text input describing the message content
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
-     * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its
-     *     phase segment must be {@code accept-reject}
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
+     * @param templateUri template URI such as {@code Negotiation-T/feasibility-negotiation/accept-reject/v1}; its phase
+     *     segment must be {@code accept-reject}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses a required field, {@code negotiation_invalid_input} when the text is blank or the extracted
-     *     conclusion is not {@code Reject}, or {@code input_text_too_long} when the text exceeds the configured
-     *     maximum length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed}, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the extraction step fails after exhausting its retries, {@code negotiation.field_missing} when the
+     *     extracted content misses a required field, {@code negotiation.invalid_input} when the text is blank or the
+     *     extracted conclusion is not {@code Reject}, or {@code input.text_too_long} when the text exceeds the
+     *     configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public MetadataContent generateNegotiationRejectPromptFromText(
             @NonNull String text,
@@ -297,18 +301,19 @@ public final class A2ATServer {
      * deterministically like the from-data variant.
      *
      * @param text free-text input stating the termination reason
-     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated message without any LLM involvement
+     * @param context negotiation context carried in the {@code negotiationContext} metadata entry of the generated
+     *     message without any LLM involvement
      * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
      * @return generated message carrying the template URI, the rendered message text and the negotiation extension URI
      * @throws NullPointerException if the context or the template URI is null
      * @throws IllegalArgumentException if the template URI does not address the common abort template
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException with the code
-     *     {@code template_not_found} when no template or prompt resource exists for the URI and language,
-     *     {@code negotiation_content_extract_failed} or {@code negotiation_llm_infrastructure_error} when the
-     *     extraction step fails after exhausting its retries, {@code negotiation_slot_missing} when the extracted
-     *     content misses the termination reason, {@code negotiation_invalid_input} when the text is blank, or
-     *     {@code input_text_too_long} when the text exceeds the configured maximum length
-     *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code template.not_found} when no template or prompt resource exists for the URI and language,
+     *     {@code negotiation.content_extract_failed}, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the extraction step fails after exhausting its retries, {@code negotiation.field_missing} when the
+     *     extracted content misses the termination reason, {@code negotiation.invalid_input} when the text is blank, or
+     *     {@code input.text_too_long} when the text exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
+     *     default 16384)
      */
     public MetadataContent generateNegotiationAbortPromptFromText(
             @NonNull String text,
@@ -321,8 +326,8 @@ public final class A2ATServer {
      * Lists every template available for the configured language across all A2A-T extensions.
      *
      * <p>This query never throws: the extension directories are discovered from the bundled resource tree itself, so
-     * templates of extensions added later are included automatically. Templates that exist nowhere for the language
-     * are skipped and an empty list is returned when no template can be loaded at all.
+     * templates of extensions added later are included automatically. Templates that exist nowhere for the language are
+     * skipped and an empty list is returned when no template can be loaded at all.
      *
      * @return loadable templates of the configured language across all extensions, sorted by template URI; empty when
      *     none can be loaded
@@ -353,8 +358,8 @@ public final class A2ATServer {
      * parameters with the rule-level context parameters; context parameters win on conflict.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected negotiation type and phase; its phase segment must be
      *     {@code propose}
@@ -362,13 +367,15 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt, schema or template URI is null
      * @throws IllegalArgumentException if the prompt is blank or the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.invalid_context_id} or {@code negotiation.round_exceeded} when the negotiation context
+     *     violates a rule, one of the closed {@code negotiation.*} code set (for example
+     *     {@code negotiation.conclusion_content_mismatch}) when a rule or semantic check rejects the message,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
+     *     its retries, or {@code template.not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
+     *     default 16384)
      */
     public FilledParamData validateProposePromptAndDataFilling(
             @NonNull String prompt,
@@ -381,13 +388,13 @@ public final class A2ATServer {
     /**
      * Validates an accept-phase negotiation message and extracts its parameters.
      *
-     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected
-     * phase fixed to accept: the template URI must declare the {@code accept-reject} segment and the message must
-     * satisfy the accept-phase semantic constraints.
+     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected phase fixed to
+     * accept: the template URI must declare the {@code accept-reject} segment and the message must satisfy the
+     * accept-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected negotiation type and phase; its phase segment must be
      *     {@code accept-reject}
@@ -395,13 +402,15 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt, schema or template URI is null
      * @throws IllegalArgumentException if the prompt is blank or the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.invalid_context_id} or {@code negotiation.round_exceeded} when the negotiation context
+     *     violates a rule, one of the closed {@code negotiation.*} code set (for example
+     *     {@code negotiation.conclusion_content_mismatch}) when a rule or semantic check rejects the message,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
+     *     its retries, or {@code template.not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
+     *     default 16384)
      */
     public FilledParamData validateAcceptPromptAndDataFilling(
             @NonNull String prompt,
@@ -414,13 +423,13 @@ public final class A2ATServer {
     /**
      * Validates a reject-phase negotiation message and extracts its parameters.
      *
-     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected
-     * phase fixed to reject: the template URI must declare the {@code accept-reject} segment and the message must
-     * satisfy the reject-phase semantic constraints.
+     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected phase fixed to
+     * reject: the template URI must declare the {@code accept-reject} segment and the message must satisfy the
+     * reject-phase semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected negotiation type and phase; its phase segment must be
      *     {@code accept-reject}
@@ -428,13 +437,15 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt, schema or template URI is null
      * @throws IllegalArgumentException if the prompt is blank or the template URI phase contradicts the method
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.invalid_context_id} or {@code negotiation.round_exceeded} when the negotiation context
+     *     violates a rule, one of the closed {@code negotiation.*} code set (for example
+     *     {@code negotiation.conclusion_content_mismatch}) when a rule or semantic check rejects the message,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
+     *     its retries, or {@code template.not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
+     *     default 16384)
      */
     public FilledParamData validateRejectPromptAndDataFilling(
             @NonNull String prompt,
@@ -447,26 +458,28 @@ public final class A2ATServer {
     /**
      * Validates an abort negotiation message and extracts its parameters.
      *
-     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected
-     * phase fixed to abort: the template URI must address the common abort template and the message must satisfy the
-     * abort-phase semantic constraints.
+     * <p>The pipeline is the one of {@link #validateProposePromptAndDataFilling} with the expected phase fixed to
+     * abort: the template URI must address the common abort template and the message must satisfy the abort-phase
+     * semantic constraints.
      *
      * @param prompt rendered negotiation message text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI of the common abort template {@code Negotiation-T/common/abort/v1}
      * @return filled parameter data carrying the context parameters and the extracted parameters
      * @throws IllegalArgumentException if the prompt is blank or the template URI does not address the common abort
      *     template
      * @throws net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException with the code
-     *     {@code negotiation_invalid_input} when the prompt is not a negotiation message,
-     *     {@code negotiation_rule_violation} when the negotiation context violates a rule,
-     *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
-     *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the prompt is not a negotiation message,
+     *     {@code negotiation.invalid_context_id} or {@code negotiation.round_exceeded} when the negotiation context
+     *     violates a rule, one of the closed {@code negotiation.*} code set (for example
+     *     {@code negotiation.conclusion_content_mismatch}) when a rule or semantic check rejects the message,
+     *     {@code negotiation.semantic_rejected} when the semantic validation rejects the message,
+     *     {@code llm.invocation_failed} or {@code llm.response_invalid} when the semantic step fails after exhausting
+     *     its retries, or {@code template.not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input.text_too_long} when the prompt exceeds the configured maximum length (A2AT_INPUT_TEXT_MAX_CHARS,
+     *     default 16384)
      */
     public FilledParamData validateAbortPromptAndDataFilling(
             @NonNull String prompt,
@@ -480,21 +493,19 @@ public final class A2ATServer {
      * Validates a task prompt and extracts its parameters.
      *
      * @param prompt rendered task prompt text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
-     * @param templateUri template URI declaring the expected task template; its prefix segment must be
-     *     {@code Task-T}
+     * @param templateUri template URI declaring the expected task template; its prefix segment must be {@code Task-T}
      * @return filled parameter data carrying the merged parameters
      * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
-     *     {@code validation_invalid_input} when the template URI is null,
-     *     {@code validation_semantic_rejected} when the semantic validation rejects the content,
-     *     {@code validation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code validation_prompt_resource_not_found} when the validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the template URI is null, {@code negotiation.semantic_rejected} when
+     *     the semantic validation rejects the content, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the semantic step fails after exhausting its retries, or {@code template.not_found} when the validation
+     *     prompt resources are missing, or {@code input.text_too_long} when the prompt exceeds the configured maximum
+     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public FilledParamData validateTaskPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
@@ -505,8 +516,8 @@ public final class A2ATServer {
      * Validates a notification prompt and extracts its parameters.
      *
      * @param prompt rendered notification prompt text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected notification template; its prefix segment must be
      *     {@code Notification-T}
@@ -514,12 +525,11 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
-     *     {@code validation_invalid_input} when the template URI is null,
-     *     {@code validation_semantic_rejected} when the semantic validation rejects the content,
-     *     {@code validation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code validation_prompt_resource_not_found} when the validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the template URI is null, {@code negotiation.semantic_rejected} when
+     *     the semantic validation rejects the content, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the semantic step fails after exhausting its retries, or {@code template.not_found} when the validation
+     *     prompt resources are missing, or {@code input.text_too_long} when the prompt exceeds the configured maximum
+     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public FilledParamData validateNotificationPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
@@ -530,8 +540,8 @@ public final class A2ATServer {
      * Validates an authorization prompt and extracts its parameters.
      *
      * @param prompt rendered authorization prompt text to validate
-     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is
-     *     reported as not being a negotiation message
+     * @param context negotiation context carried alongside the message in the A2A-T metadata; {@code null} is reported
+     *     as not being a negotiation message
      * @param schema caller-provided parameter JSON schema describing the parameters to extract
      * @param templateUri template URI declaring the expected authorization template; its prefix segment must be
      *     {@code Authorization-T}
@@ -539,12 +549,11 @@ public final class A2ATServer {
      * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
-     *     {@code validation_invalid_input} when the template URI is null,
-     *     {@code validation_semantic_rejected} when the semantic validation rejects the content,
-     *     {@code validation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code validation_prompt_resource_not_found} when the validation prompt resources are missing, or
- *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
- *     (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
+     *     {@code negotiation.invalid_input} when the template URI is null, {@code negotiation.semantic_rejected} when
+     *     the semantic validation rejects the content, {@code llm.invocation_failed} or {@code llm.response_invalid}
+     *     when the semantic step fails after exhausting its retries, or {@code template.not_found} when the validation
+     *     prompt resources are missing, or {@code input.text_too_long} when the prompt exceeds the configured maximum
+     *     length (A2AT_INPUT_TEXT_MAX_CHARS, default 16384)
      */
     public FilledParamData validateAuthPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {

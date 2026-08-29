@@ -32,9 +32,8 @@ import org.junit.jupiter.api.Test;
 @Tag("integration")
 class NotificationTAccuracyTest {
 
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .enable(SerializationFeature.INDENT_OUTPUT)
-            .build();
+    private static final ObjectMapper MAPPER =
+            JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
     private static final String TEMPLATE_URI_STR = "Notification-T/network-layer/service-recovery/v1";
     private static final String DATA_SCHEMA_RESOURCE = "sample/service-recovery/client/schema.json";
@@ -138,7 +137,8 @@ class NotificationTAccuracyTest {
             entry.put("input", Map.of("data", dc.data));
 
             try {
-                MetadataContent result = client.generateNotificationPromptFromDataWithSchema(dc.data, dataSchema, templateUri);
+                MetadataContent result =
+                        client.generateNotificationPromptFromDataWithSchema(dc.data, dataSchema, templateUri);
                 entry.put("output", metadataOutput(result));
                 System.out.println("  " + dc.name + ": " + compact(result.promptText()));
             } catch (Exception e) {
@@ -151,7 +151,8 @@ class NotificationTAccuracyTest {
 
     private static Map<String, Object> validate(String promptText) {
         try {
-            FilledParamData result = server.validateNotificationPromptAndDataFilling(promptText, validationSchema, templateUri);
+            FilledParamData result =
+                    server.validateNotificationPromptAndDataFilling(promptText, validationSchema, templateUri);
             Map<String, Object> output = new LinkedHashMap<>();
             output.put("semantic_verdict", true);
             output.put("params", result.data());
@@ -162,9 +163,18 @@ class NotificationTAccuracyTest {
             output.put("code", e.getCode());
             output.put("message", e.getMessage());
             if (!e.errors().isEmpty()) {
-                output.put("errors", e.errors().stream()
-                        .map(err -> Map.of("slot_name", err.slotName(), "code", err.code(), "message", err.message()))
-                        .toList());
+                output.put(
+                        "errors",
+                        e.errors().stream()
+                                .map(err -> {
+                                    Map<String, Object> item = new LinkedHashMap<String, Object>();
+                                    item.put("slot_name", err.slotName());
+                                    item.put("code", err.code());
+                                    item.put("message", err.message());
+                                    item.put("facts", err.facts());
+                                    return item;
+                                })
+                                .toList());
             }
             return output;
         } catch (Exception e) {
@@ -178,7 +188,8 @@ class NotificationTAccuracyTest {
             System.out.println("SKIP: validateNotificationPromptAndDataFilling - API key not configured");
             return;
         }
-        List<ValidateCase> cases = loadValidateCases("service-recovery-accuracy-test/test-cases-validate-and-fill.json");
+        List<ValidateCase> cases =
+                loadValidateCases("service-recovery-accuracy-test/test-cases-validate-and-fill.json");
         System.out.println("== validateNotificationPromptAndDataFilling ==");
         boolean first = true;
         for (ValidateCase vc : cases) {
@@ -237,7 +248,9 @@ class NotificationTAccuracyTest {
 
     private static String resolveRootDir(String content, Path projectRoot) {
         String prefix = "A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=";
-        Path promptRoot = projectRoot.resolve("a2a-t-resources/src/main/resources/prompt_resources").normalize();
+        Path promptRoot = projectRoot
+                .resolve("a2a-t-resources/src/main/resources/prompt_resources")
+                .normalize();
         String absolutePath = promptRoot.toString();
         for (String line : content.split("\n")) {
             String trimmed = line.strip();
@@ -297,6 +310,8 @@ class NotificationTAccuracyTest {
     }
 
     private record TextCase(String name, String text) {}
+
     private record DataCase(String name, Map<String, Object> data) {}
+
     private record ValidateCase(String name, String promptText) {}
 }

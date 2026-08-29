@@ -1,6 +1,7 @@
 package net.openan.a2at.sdk.core.exception;
 
 import java.nio.file.Path;
+import java.util.Map;
 import org.jspecify.annotations.NonNull;
 
 /**
@@ -16,6 +17,11 @@ public final class ConfigFileNotFoundException extends A2ATError {
      * @param path missing config file path
      */
     public ConfigFileNotFoundException(@NonNull Path path) {
-        super("Config file does not exist: " + path);
+        super(
+                ErrorCatalog.INFRA_CONFIG_INVALID.getCode(),
+                ErrorMessages.render(
+                        ErrorCatalog.INFRA_CONFIG_INVALID,
+                        null,
+                        Map.of("key", String.valueOf(path), "reason", "config file does not exist")));
     }
 }

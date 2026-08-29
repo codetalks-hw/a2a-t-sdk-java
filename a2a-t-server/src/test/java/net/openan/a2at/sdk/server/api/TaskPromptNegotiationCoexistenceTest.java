@@ -3,23 +3,22 @@ package net.openan.a2at.sdk.server.api;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import net.openan.a2at.sdk.core.model.MetadataContent;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMClientConfig;
 import net.openan.a2at.sdk.llm.LLMClientFactory;
 import net.openan.a2at.sdk.llm.LLMResponse;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
-import net.openan.a2at.sdk.core.model.MetadataContent;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
-import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
@@ -70,7 +69,7 @@ class TaskPromptNegotiationCoexistenceTest {
         PromptComplianceResult complianceResult = server.checkTaskPrompt(TASK_T_MESSAGE);
 
         assertFalse(complianceResult.success());
-        assertEquals("processed_prompt_parse_error", complianceResult.failure().code());
+        assertEquals("scenario.not_matched", complianceResult.failure().code());
         assertEquals("prompt_parse", complianceResult.failure().stage());
 
         NegotiationParamExtractionException negotiationFailure = assertThrows(
@@ -81,9 +80,8 @@ class TaskPromptNegotiationCoexistenceTest {
                         Map.of("type", "object", "properties", Map.of("region", Map.of("type", "string"))),
                         INFORMATION_PROPOSE_TEMPLATE));
 
-        assertEquals("negotiation_invalid_input", negotiationFailure.getCode());
-        assertTrue(negotiationFailure.getMessage().contains("checkTaskPrompt"));
-        assertFalse(negotiationFailure.getMessage().contains("协商上下文"));
+        assertEquals("negotiation.invalid_input", negotiationFailure.getCode());
+        assertEquals("输入的协商内容无效:缺少协商上下文(该报文不是协商报文)", negotiationFailure.getMessage());
 
         MetadataContent negotiationMessage = server.generateNegotiationProposePromptFromData(
                 new NegotiationProposeData(

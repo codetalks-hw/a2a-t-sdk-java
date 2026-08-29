@@ -20,12 +20,12 @@ import java.util.Map;
  * <ul>
  *   <li>{@link #textSamples()} feed {@code A2ATClient#generateTaskPromptFromText} with concise colloquial natural
  *       language — deliberately <b>not</b> field-listed, so a run exercises the SDK natural-language parsing
- *       capability;</li>
- *   <li>{@link #dataWithSchemaSamples()} feed {@code A2ATClient#generateTaskPromptFromDataWithSchema} with a
- *       structured input whose {@code data} carries <b>English business fields</b> — not the template slot names.</li>
+ *       capability;
+ *   <li>{@link #dataWithSchemaSamples()} feed {@code A2ATClient#generateTaskPromptFromDataWithSchema} with a structured
+ *       input whose {@code data} carries <b>English business fields</b> — not the template slot names.
  *   <li>{@link #rejectionSamples()} feed {@code generateTaskPromptFromText} with content that deliberately omits key
  *       slots; server-side semantic validation is expected to reject them — scored separately from the accuracy
- *       samples.</li>
+ *       samples.
  * </ul>
  *
  * <p>Per design, the client-side keys and the server-side keys intentionally <b>diverge</b>: the client submits its
@@ -86,8 +86,7 @@ public final class TaskTPrivateLineComplaintSamples {
 
     private static final Loaded LOADED = load();
 
-    private TaskTPrivateLineComplaintSamples() {
-    }
+    private TaskTPrivateLineComplaintSamples() {}
 
     /**
      * Natural-language samples for {@code generateTaskPromptFromText}.
@@ -101,9 +100,9 @@ public final class TaskTPrivateLineComplaintSamples {
     /**
      * Data-plus-schema samples for {@code generateTaskPromptFromDataWithSchema}.
      *
-     * <p>Each sample passes business fields under the <b>client</b> keys in {@code data} plus a client-side
-     * semantics {@code schema}; the server-side validation schema re-extracts the parameters under the <b>server</b>
-     * keys, so a run exercises the cross-key adaptation of the SDK.
+     * <p>Each sample passes business fields under the <b>client</b> keys in {@code data} plus a client-side semantics
+     * {@code schema}; the server-side validation schema re-extracts the parameters under the <b>server</b> keys, so a
+     * run exercises the cross-key adaptation of the SDK.
      *
      * @return immutable data sample list
      */
@@ -120,7 +119,7 @@ public final class TaskTPrivateLineComplaintSamples {
      * {@code enum}. Time and serial are <em>optional</em> slots and are deliberately not used as rejection criteria —
      * their absence is exercised by the positive samples {@code text-optional-slots-missing} /
      * {@code data-optional-slots-missing} instead. The server-side semantic validation is expected to reject these
-     * samples with {@code validation_semantic_rejected}; they are scored separately from the accuracy samples and are
+     * samples with {@code negotiation.semantic_rejected}; they are scored separately from the accuracy samples and are
      * never fed into the field-accuracy evaluation.
      *
      * @return immutable rejection sample list
@@ -157,9 +156,11 @@ public final class TaskTPrivateLineComplaintSamples {
                     String name = node.get("name").asText();
                     JsonNode data = node.get("data");
                     if (data == null) {
-                        rejections.add(new TaskTRejectionSample(name, node.get("text").asText(), null, null, validationSchema));
+                        rejections.add(new TaskTRejectionSample(
+                                name, node.get("text").asText(), null, null, validationSchema));
                     } else {
-                        rejections.add(new TaskTRejectionSample(name, null, toObjectMap(data), semanticsSchema, validationSchema));
+                        rejections.add(new TaskTRejectionSample(
+                                name, null, toObjectMap(data), semanticsSchema, validationSchema));
                     }
                 }
             }
@@ -186,10 +187,10 @@ public final class TaskTPrivateLineComplaintSamples {
  *
  * @param name sample identifier shown in the accuracy report
  * @param text natural-language input for the FromText case; {@code null} when the sample only targets the data case
- * @param data structured business-field input for the FromDataWithSchema case, keyed by the <b>client</b> field
- *     names; {@code null} when the sample only targets the text case
- * @param semanticsSchema client-side field-semantics schema, keyed by the client field names; may be {@code null}
- *     when {@code data} is {@code null}
+ * @param data structured business-field input for the FromDataWithSchema case, keyed by the <b>client</b> field names;
+ *     {@code null} when the sample only targets the text case
+ * @param semanticsSchema client-side field-semantics schema, keyed by the client field names; may be {@code null} when
+ *     {@code data} is {@code null}
  * @param expectedParams ground truth business values, keyed by the <b>server</b> field names (the keys read out of
  *     {@code validateTaskPromptAndDataFilling}); these are the fields actually scored
  * @param validationSchema caller-provided JSON parameter schema passed to {@code validateTaskPromptAndDataFilling},
@@ -210,17 +211,17 @@ record TaskTSample(
  * mirroring the two client APIs under test:
  *
  * <ul>
- *   <li>{@code text} variant feeds {@code A2ATClient#generateTaskPromptFromText} with colloquial natural language;</li>
+ *   <li>{@code text} variant feeds {@code A2ATClient#generateTaskPromptFromText} with colloquial natural language;
  *   <li>{@code data} variant feeds {@code A2ATClient#generateTaskPromptFromDataWithSchema} with structured input keyed
- *       by the client field names plus the client-side semantics schema.</li>
+ *       by the client field names plus the client-side semantics schema.
  * </ul>
  *
  * @param name sample identifier shown in the rejection report
  * @param text natural-language input for the FromText variant; {@code null} when the sample only targets the data case
  * @param data structured business-field input for the FromDataWithSchema variant, keyed by the <b>client</b> field
  *     names; {@code null} when the sample only targets the text case
- * @param semanticsSchema client-side field-semantics schema, keyed by the client field names; may be {@code null}
- *     when {@code data} is {@code null}
+ * @param semanticsSchema client-side field-semantics schema, keyed by the client field names; may be {@code null} when
+ *     {@code data} is {@code null}
  * @param validationSchema caller-provided JSON parameter schema passed to {@code validateTaskPromptAndDataFilling}
  * @since 2026-08
  */

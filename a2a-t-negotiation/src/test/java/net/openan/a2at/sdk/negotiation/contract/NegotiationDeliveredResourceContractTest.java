@@ -21,7 +21,8 @@ import org.junit.jupiter.api.Test;
  *
  * <p>The twelve templates resolved from the test classpath must be byte-identical to the delivered template files of
  * the working tree, so that no packaging or formatting step can silently rewrite the authoritative template bytes. The
- * error-code constants must stay exactly the pinned eight-constant registry.
+ * deprecated error-code constants must stay exactly the pinned forwarding registry: each constant forwards to the
+ * layered {@code domain.semantic} code of its {@link net.openan.a2at.sdk.core.exception.ErrorCatalog} replacement.
  */
 class NegotiationDeliveredResourceContractTest {
 
@@ -67,27 +68,27 @@ class NegotiationDeliveredResourceContractTest {
     @Test
     void errorCodeConstantsStayExactlyThePinnedRegistry() {
         java.util.Map<String, String> expected = new java.util.LinkedHashMap<>();
-        expected.put("SDK_INTERNAL_ERROR", "sdk_internal_error");
-        expected.put("INPUT_TEXT_TOO_LONG", "input_text_too_long");
-        expected.put("PARAM_EXTRACTION_FAILED", "param_extraction_failed");
-        expected.put("TEMPLATE_NOT_FOUND", "template_not_found");
-        expected.put("NEGOTIATION_CONTENT_EXTRACT_FAILED", "negotiation_content_extract_failed");
-        expected.put("NEGOTIATION_SEMANTIC_REJECTED", "negotiation_semantic_rejected");
-        expected.put("NEGOTIATION_RULE_VIOLATION", "negotiation_rule_violation");
-        expected.put("NEGOTIATION_SLOT_MISSING", "negotiation_slot_missing");
-        expected.put("NEGOTIATION_INVALID_INPUT", "negotiation_invalid_input");
-        expected.put("NEGOTIATION_LLM_INFRASTRUCTURE_ERROR", "negotiation_llm_infrastructure_error");
-        expected.put("VALIDATION_INVALID_INPUT", "validation_invalid_input");
-        expected.put("VALIDATION_RULE_VIOLATION", "validation_rule_violation");
-        expected.put("VALIDATION_SEMANTIC_REJECTED", "validation_semantic_rejected");
-        expected.put("VALIDATION_LLM_INFRASTRUCTURE_ERROR", "validation_llm_infrastructure_error");
-        expected.put("VALIDATION_PROMPT_RESOURCE_NOT_FOUND", "validation_prompt_resource_not_found");
-        expected.put("PROMPT_RESOURCE_LOAD_ERROR", "prompt_resource_load_error");
-        expected.put("SLOT_SCHEMA_NOT_FOUND", "slot_schema_not_found");
-        expected.put("LLM_INVOCATION_FAILED", "llm_invocation_failed");
-        expected.put("RENDER_FAILED", "render_failed");
-        expected.put("SLOT_VALIDATION_ERROR", "slot_validation_error");
-        expected.put("PROCESSED_PROMPT_PARSE_ERROR", "processed_prompt_parse_error");
+        expected.put("SDK_INTERNAL_ERROR", "infra.internal_error");
+        expected.put("INPUT_TEXT_TOO_LONG", "input.text_too_long");
+        expected.put("PARAM_EXTRACTION_FAILED", "slot.not_provided");
+        expected.put("TEMPLATE_NOT_FOUND", "template.not_found");
+        expected.put("NEGOTIATION_CONTENT_EXTRACT_FAILED", "negotiation.content_extract_failed");
+        expected.put("NEGOTIATION_SEMANTIC_REJECTED", "negotiation.semantic_rejected");
+        expected.put("NEGOTIATION_RULE_VIOLATION", "negotiation.rule_violation");
+        expected.put("NEGOTIATION_SLOT_MISSING", "negotiation.field_missing");
+        expected.put("NEGOTIATION_INVALID_INPUT", "negotiation.invalid_input");
+        expected.put("NEGOTIATION_LLM_INFRASTRUCTURE_ERROR", "llm.invocation_failed");
+        expected.put("VALIDATION_INVALID_INPUT", "negotiation.invalid_input");
+        expected.put("VALIDATION_RULE_VIOLATION", "negotiation.rule_violation");
+        expected.put("VALIDATION_SEMANTIC_REJECTED", "negotiation.semantic_rejected");
+        expected.put("VALIDATION_LLM_INFRASTRUCTURE_ERROR", "llm.invocation_failed");
+        expected.put("VALIDATION_PROMPT_RESOURCE_NOT_FOUND", "template.not_found");
+        expected.put("PROMPT_RESOURCE_LOAD_ERROR", "template.load_failed");
+        expected.put("SLOT_SCHEMA_NOT_FOUND", "slot.schema_not_found");
+        expected.put("LLM_INVOCATION_FAILED", "llm.invocation_failed");
+        expected.put("RENDER_FAILED", "template.render_failed");
+        expected.put("SLOT_VALIDATION_ERROR", "slot.rule_violation");
+        expected.put("PROCESSED_PROMPT_PARSE_ERROR", "scenario.not_matched");
 
         java.util.Map<String, String> actual = new java.util.LinkedHashMap<>();
         for (java.lang.reflect.Field field : A2ATErrorCodes.class.getDeclaredFields()) {
@@ -104,7 +105,8 @@ class NegotiationDeliveredResourceContractTest {
         assertEquals(
                 expected,
                 actual,
-                "the error-code registry is locked; adding or changing codes must update this" + " test");
+                "the deprecated forwarding registry is locked; adding or changing constants must update this"
+                        + " test");
         assertTrue(
                 !actual.containsValue("negotiation_type_unrecognized"),
                 "the removed type-recognition code must not reappear");

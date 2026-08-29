@@ -46,7 +46,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "messageContains": ["must not be blank"],
       "llmCalls": 0
     }
@@ -65,7 +65,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.invalid_input",
       "messageContains": ["must not be blank"],
       "llmCalls": 0
     }

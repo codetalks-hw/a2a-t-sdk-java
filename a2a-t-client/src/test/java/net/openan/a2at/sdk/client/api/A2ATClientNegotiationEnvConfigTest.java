@@ -18,20 +18,20 @@ import java.util.List;
 import java.util.Map;
 import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
-import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.llm.LLMClientConfig;
-import net.openan.a2at.sdk.llm.LLMClientFactory;
-import net.openan.a2at.sdk.llm.LLMRuntimeError;
-import net.openan.a2at.sdk.llm.LLMResponse;
-import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.llm.LLMClient;
+import net.openan.a2at.sdk.llm.LLMClientConfig;
+import net.openan.a2at.sdk.llm.LLMClientFactory;
+import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.llm.LLMRuntimeError;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,10 +42,10 @@ import org.junit.jupiter.api.io.TempDir;
  * Drives the env-configured negotiation behavior of the client facade end to end.
  *
  * <p>The negotiation-relevant env keys must become observable in the facade behavior: the language selects the Chinese
- * templates, and the LLM attempt limit bounds the retry loop of the from-text generation. The negotiation
- * templates are classpath-fixed, so a configured local resource root is ignored in {@code classpath} mode: the built-in
- * template wins over any local override. A second test proves the zero-configuration defaults (English templates, three
- * attempts, built-in resources) work out of the box.
+ * templates, and the LLM attempt limit bounds the retry loop of the from-text generation. The negotiation templates are
+ * classpath-fixed, so a configured local resource root is ignored in {@code classpath} mode: the built-in template wins
+ * over any local override. A second test proves the zero-configuration defaults (English templates, three attempts,
+ * built-in resources) work out of the box.
  */
 class A2ATClientNegotiationEnvConfigTest {
 

@@ -64,7 +64,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry-exhausted", "shape-invalid", "llm-pseudo-slot", "propose", "information"],
-    "summary": "语义返回连续三种无效结构时重试至耗尽，最终携带 _llm 伪槽位以 LLM 基础设施错误失败",
+    "summary": "语义返回连续三种无效结构时重试至耗尽，最终携带 _llm 伪槽位以 llm.response_invalid 错误失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "prompt": { "golden": "information_propose" },
@@ -80,8 +80,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_llm_infrastructure_error",
-      "slotErrors": [ { "slot": "_llm", "code": "validation_llm_infrastructure_error" } ],
+      "code": "llm.response_invalid",
+      "slotErrors": [ { "slot": "_llm", "code": "llm.response_invalid" } ],
       "llmCalls": 3
     }
   },
@@ -91,7 +91,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "max-attempts-1", "shape-invalid", "llm-pseudo-slot", "propose"],
-    "summary": "maxAttempts 配置为 1 时语义结构错误不获重试机会，单次调用即以 LLM 基础设施错误失败",
+    "summary": "maxAttempts 配置为 1 时语义结构错误不获重试机会，单次调用即以 llm.response_invalid 错误失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "prompt": { "golden": "information_propose" },
@@ -103,8 +103,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_llm_infrastructure_error",
-      "slotErrors": [ { "slot": "_llm", "code": "validation_llm_infrastructure_error" } ],
+      "code": "llm.response_invalid",
+      "slotErrors": [ { "slot": "_llm", "code": "llm.response_invalid" } ],
       "llmCalls": 1
     }
   },
@@ -114,7 +114,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry-exhausted", "llm-infrastructure-error", "max-attempts-2", "llm-pseudo-slot", "accept"],
-    "summary": "LLM 基础设施错误连续出现时按 maxAttempts=2 重试两次后耗尽，携带 _llm 伪槽位失败",
+    "summary": "LLM 传输错误连续出现时按 maxAttempts=2 重试两次后耗尽，携带 _llm 伪槽位以 llm.invocation_failed 失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "prompt": { "golden": "information_accept" },
@@ -126,8 +126,8 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_llm_infrastructure_error",
-      "slotErrors": [ { "slot": "_llm", "code": "validation_llm_infrastructure_error" } ],
+      "code": "llm.invocation_failed",
+      "slotErrors": [ { "slot": "_llm", "code": "llm.invocation_failed" } ],
       "llmCalls": 2
     }
   },
@@ -197,20 +197,17 @@
     "languages": ["zh-CN"],
     "priority": "P2",
     "tags": ["no-retry", "runtime-exception", "llm-infrastructure-error", "accept", "information"],
-    "summary": "语义步骤抛出非 LLMError 的原始运行时异常时不重试，单次调用即包装为 LLM 基础设施错误失败",
+    "summary": "语义步骤抛出非 LLMError 的原始运行时异常时以 llm.response_invalid 错误失败（原始运行时异常现已与其他 LLM 步骤失败一样按预算重试，本探针以 maxAttempts=1 固化单次调用形态）",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "prompt": { "golden": "information_accept" },
     "schema": { "$ref": "schemas/biz.complaint.params" },
-    "llm": {
-      "maxAttempts": 3,
-      "script": [ { "$fail": "runtime-exception" }, { "$ref": "responses/semantic.information.accept.full" } ]
-    },
+    "llm": { "maxAttempts": 1, "script": [ { "$fail": "runtime-exception" } ] },
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_llm_infrastructure_error",
-      "slotErrors": [ { "slot": "_llm", "code": "validation_llm_infrastructure_error" } ],
+      "code": "llm.response_invalid",
+      "slotErrors": [ { "slot": "_llm", "code": "llm.response_invalid" } ],
       "llmCalls": 1
     }
   },
@@ -220,20 +217,17 @@
     "languages": ["zh-CN"],
     "priority": "P2",
     "tags": ["no-retry", "null-response", "llm-infrastructure-error", "accept", "information"],
-    "summary": "语义步骤返回空响应（null）时不重试，单次调用即包装为 LLM 基础设施错误失败",
+    "summary": "语义步骤返回空响应（null）时以 llm.response_invalid 错误失败（空响应现已按预算重试，本探针以 maxAttempts=1 固化单次调用形态）",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "prompt": { "golden": "information_accept" },
     "schema": { "$ref": "schemas/biz.complaint.params" },
-    "llm": {
-      "maxAttempts": 3,
-      "script": [ { "$fail": "null-response" }, { "$ref": "responses/semantic.information.accept.full" } ]
-    },
+    "llm": { "maxAttempts": 1, "script": [ { "$fail": "null-response" } ] },
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationParamExtractionException",
-      "code": "negotiation_llm_infrastructure_error",
-      "slotErrors": [ { "slot": "_llm", "code": "validation_llm_infrastructure_error" } ],
+      "code": "llm.response_invalid",
+      "slotErrors": [ { "slot": "_llm", "code": "llm.response_invalid" } ],
       "llmCalls": 1
     }
   }

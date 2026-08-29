@@ -5,7 +5,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "extract-failed", "exhaustion", "max-attempts-1"],
-    "summary": "最大尝试次数为1时大模型返回不可解析内容，不发起任何重试即以抽取失败错误码失败",
+    "summary": "最大尝试次数为1时大模型返回不可解析内容，不发起任何重试即以 LLM 响应无效错误码失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "input": { "text": { "zh-CN": "请补充接入端口名称、投诉分类与专线业务标识三项信息。" } },
@@ -13,7 +13,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "llm.response_invalid",
       "llmCalls": 1
     }
   },
@@ -23,7 +23,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "extract-failed", "exhaustion", "max-attempts-2"],
-    "summary": "最大尝试次数为2时大模型连续返回空响应与空白内容，尝试耗尽后仍以原始的抽取失败错误码失败",
+    "summary": "最大尝试次数为2时大模型连续返回空响应与空白内容，尝试耗尽后仍以原始的 LLM 响应无效错误码失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": { "text": { "zh-CN": "确认补充投诉诊断信息：接入端口名称为P533-珠江旧城-PTN3900-23-TPA1EG24-1，投诉分类为专线质差。" } },
@@ -31,7 +31,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "llm.response_invalid",
       "llmCalls": 2
     }
   },
@@ -41,7 +41,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "extract-failed", "exhaustion", "max-attempts-3"],
-    "summary": "最大尝试次数为3时三种不可解析形态依次出现，三次尝试耗尽后以抽取失败错误码失败",
+    "summary": "最大尝试次数为3时三种不可解析形态依次出现，三次尝试耗尽后以 LLM 响应无效错误码失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "input": { "text": { "zh-CN": "请补充接入端口名称、投诉分类与专线业务标识三项信息。" } },
@@ -49,7 +49,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "llm.response_invalid",
       "llmCalls": 3
     }
   },
@@ -59,7 +59,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "infrastructure-error", "exhaustion", "max-attempts-1"],
-    "summary": "最大尝试次数为1时底层通道抛出运行时异常，不重试即以基础设施错误码失败且异常细节不外泄",
+    "summary": "最大尝试次数为1时底层通道抛出运行时异常，不重试即以 llm.invocation_failed 失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": { "text": { "zh-CN": "确认补充投诉诊断信息：接入端口名称为P533-珠江旧城-PTN3900-23-TPA1EG24-1，投诉分类为专线质差。" } },
@@ -67,8 +67,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_llm_infrastructure_error",
-      "contracts": ["noLlmLeakInUserMessage"],
+      "code": "llm.invocation_failed",
       "llmCalls": 1
     }
   },
@@ -78,7 +77,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "infrastructure-error", "exhaustion", "max-attempts-2"],
-    "summary": "最大尝试次数为2时底层先后出现传输异常与错误响应，尝试耗尽后仍以基础设施错误码失败",
+    "summary": "最大尝试次数为2时底层先后出现传输异常与错误响应，尝试耗尽后仍以 llm.invocation_failed 失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "input": { "text": { "zh-CN": "请补充接入端口名称、投诉分类与专线业务标识三项信息。" } },
@@ -86,8 +85,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_llm_infrastructure_error",
-      "contracts": ["noLlmLeakInUserMessage"],
+      "code": "llm.invocation_failed",
       "llmCalls": 2
     }
   },
@@ -97,7 +95,7 @@
     "languages": ["zh-CN"],
     "priority": "P1",
     "tags": ["retry", "infrastructure-error", "exhaustion", "max-attempts-3"],
-    "summary": "最大尝试次数为3时基础设施错误持续出现，三次尝试耗尽后以基础设施错误码失败",
+    "summary": "最大尝试次数为3时基础设施错误持续出现，三次尝试耗尽后以 llm.invocation_failed 失败",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/accept-reject/v1",
     "input": { "text": { "zh-CN": "无法提供接入端口名称：工作台侧端口资源台账暂不可查，本轮协商拒绝。" } },
@@ -105,8 +103,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_llm_infrastructure_error",
-      "contracts": ["noLlmLeakInUserMessage"],
+      "code": "llm.invocation_failed",
       "llmCalls": 3
     }
   },
@@ -248,7 +245,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_slot_missing",
+      "code": "negotiation.field_missing",
       "llmCalls": 1
     }
   },
@@ -266,7 +263,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_invalid_input",
+      "code": "negotiation.conclusion_mismatch",
       "llmCalls": 1
     }
   },
@@ -276,7 +273,7 @@
     "languages": ["zh-CN"],
     "priority": "P0",
     "tags": ["retry", "exhaustion", "original-code"],
-    "summary": "两次失败形态不同（基础设施错误后接不可解析内容）时，耗尽后重抛最后一次失败的原始错误码而非统一的耗尽错误码",
+    "summary": "两次失败形态不同（基础设施错误后接不可解析内容）时，耗尽后重抛最后一次失败的原始错误码（llm.response_invalid）而非统一的耗尽错误码",
     "context": { "id": "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", "round": 2, "maxRounds": 5 },
     "templateUri": "Negotiation-T/information-negotiation/propose/v1",
     "input": { "text": { "zh-CN": "请补充接入端口名称、投诉分类与专线业务标识三项信息。" } },
@@ -284,7 +281,7 @@
     "expect": {
       "outcome": "failure",
       "exception": "NegotiationGenerationException",
-      "code": "negotiation_content_extract_failed",
+      "code": "llm.response_invalid",
       "llmCalls": 2
     }
   }

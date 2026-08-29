@@ -2,11 +2,11 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 
 /**
  * Generator for information negotiation propose messages.
@@ -33,9 +33,7 @@ final class InformationProposeGenerator extends AbstractNegotiationGenerator {
         InformationProposeContent proposeContent =
                 contentOf(content, InformationProposeContent.class, "Information propose generator");
         requiredItems(
-                proposeContent.items(),
-                "items",
-                "Information negotiation propose message requested items");
+                proposeContent.items(), "items", "Information negotiation propose message requested items", vocabulary);
         Map<String, String> slots = new LinkedHashMap<>();
         slots.put(vocabulary.get("slot.info_items"), itemsSlotValue(proposeContent, vocabulary));
         return render(template, slots);

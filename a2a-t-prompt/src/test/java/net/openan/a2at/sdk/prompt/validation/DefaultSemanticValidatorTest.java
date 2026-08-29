@@ -1,6 +1,7 @@
 package net.openan.a2at.sdk.prompt.validation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -11,9 +12,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.FilledParamData;
+import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.validation.ContentValidationException;
 import net.openan.a2at.sdk.core.validation.ValidationPipeline;
@@ -43,7 +44,10 @@ class DefaultSemanticValidatorTest {
         DefaultSemanticValidator validator = new DefaultSemanticValidator(llmClient, "en-US");
 
         ValidationResult result = validator.validate(
-                "Check Site A power usage.", Map.of("type", "object"), TemplateUri.of("Task-T", "ran-energy-saving"), TEMPLATE_CONTENT);
+                "Check Site A power usage.",
+                Map.of("type", "object"),
+                TemplateUri.of("Task-T", "ran-energy-saving"),
+                TEMPLATE_CONTENT);
 
         assertTrue(result.verdict());
         assertEquals(Map.of("site", "Site A"), result.params());
@@ -72,10 +76,13 @@ class DefaultSemanticValidatorTest {
 
         DefaultSemanticValidator validator = new DefaultSemanticValidator(flakyClient, "en-US");
 
-        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 2);
+        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 2, "en-US");
 
         FilledParamData result = pipeline.validate(
-                "Check Site A power usage.", Map.of("type", "object"), TemplateUri.of("Task-T", "ran-energy-saving"), TEMPLATE_CONTENT);
+                "Check Site A power usage.",
+                Map.of("type", "object"),
+                TemplateUri.of("Task-T", "ran-energy-saving"),
+                TEMPLATE_CONTENT);
 
         assertEquals(Map.of("site", "Site A"), result.data());
         assertEquals(2, flakyClient.invocations());
@@ -95,17 +102,18 @@ class DefaultSemanticValidatorTest {
 
         DefaultSemanticValidator validator = new DefaultSemanticValidator(flakyClient, "en-US");
 
-        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 3);
+        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 3, "en-US");
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> pipeline.validate(
                         "Check Site A power usage.",
                         Map.of("type", "object"),
-                        TemplateUri.of("Task-T", "ran-energy-saving"), TEMPLATE_CONTENT));
+                        TemplateUri.of("Task-T", "ran-energy-saving"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertInstanceOf(LLMRuntimeError.class, exception.getCause().getCause());
+        assertEquals("llm.invocation_failed", exception.getCode());
+        assertInstanceOf(LLMRuntimeError.class, exception.getCause());
         assertEquals(3, flakyClient.invocations());
     }
 
@@ -118,10 +126,10 @@ class DefaultSemanticValidatorTest {
                 "{\"semantic_verdict\": true, \"errors\": []," + "\"params\": {\"任务对象\": \"端口A\", \"任务上下文\": null}}";
         DefaultSemanticValidator validator = new DefaultSemanticValidator(new StubClient(llmJson), "zh-CN");
 
-        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 2);
+        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 2, "en-US");
 
-        FilledParamData result =
-                pipeline.validate("task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
+        FilledParamData result = pipeline.validate(
+                "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
 
         assertEquals(2, result.data().size());
         assertEquals("端口A", result.data().get("任务对象"));
@@ -134,8 +142,8 @@ class DefaultSemanticValidatorTest {
                 "{\"semantic_verdict\": true, \"errors\": []," + "\"params\": {\"任务对象\": \"端口A\", \"任务上下文\": null}}";
         DefaultSemanticValidator validator = new DefaultSemanticValidator(new StubClient(llmJson), "zh-CN");
 
-        ValidationResult result =
-                validator.validate("task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
+        ValidationResult result = validator.validate(
+                "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
 
         assertTrue(result.verdict());
         // a null param is the validator's signal that a schema slot is missing from the content; the key must stay
@@ -154,10 +162,13 @@ class DefaultSemanticValidatorTest {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate(
-                        "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT));
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertTrue(exception.getMessage().contains("semantic_verdict"));
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("semantic_verdict"));
     }
 
     @Test
@@ -168,10 +179,13 @@ class DefaultSemanticValidatorTest {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate(
-                        "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT));
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertTrue(exception.getMessage().contains("semantic_verdict"));
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("semantic_verdict"));
     }
 
     @Test
@@ -182,10 +196,13 @@ class DefaultSemanticValidatorTest {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate(
-                        "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT));
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertTrue(exception.getMessage().contains("errors"));
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("errors"));
     }
 
     @Test
@@ -196,10 +213,13 @@ class DefaultSemanticValidatorTest {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate(
-                        "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT));
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertTrue(exception.getMessage().contains("errors"));
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("errors"));
     }
 
     @Test
@@ -210,10 +230,13 @@ class DefaultSemanticValidatorTest {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate(
-                        "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT));
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertTrue(exception.getMessage().contains("params"));
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("params"));
     }
 
     @Test
@@ -222,8 +245,8 @@ class DefaultSemanticValidatorTest {
                 new StubClient("{\"semantic_verdict\": true, \"errors\": [], \"params\": {\"site\": \"Site A\"}}"),
                 "en-US");
 
-        ValidationResult result =
-                validator.validate("task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
+        ValidationResult result = validator.validate(
+                "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
 
         assertTrue(result.verdict());
     }
@@ -244,10 +267,13 @@ class DefaultSemanticValidatorTest {
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> validator.validate(
-                        "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT));
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
-        assertTrue(exception.getMessage().contains("params keys"));
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("params keys"));
     }
 
     @Test
@@ -256,10 +282,13 @@ class DefaultSemanticValidatorTest {
                 "{\"semantic_verdict\": \"true\", \"errors\": [], \"params\": {}}", VALID_RESPONSE);
 
         DefaultSemanticValidator validator = new DefaultSemanticValidator(client, "en-US");
-        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 2);
+        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 2, "en-US");
 
         FilledParamData result = pipeline.validate(
-                "Check Site A power usage.", Map.of("type", "object"), TemplateUri.of("Task-T", "ran-energy-saving"), TEMPLATE_CONTENT);
+                "Check Site A power usage.",
+                Map.of("type", "object"),
+                TemplateUri.of("Task-T", "ran-energy-saving"),
+                TEMPLATE_CONTENT);
 
         // first attempt violates the output contract (string verdict) → retryable infra error → second attempt
         // returns a compliant response and the pipeline succeeds
@@ -273,17 +302,106 @@ class DefaultSemanticValidatorTest {
                 new FlakyPayloadClient("{\"semantic_verdict\": \"true\", \"errors\": [], \"params\": {}}", null);
 
         DefaultSemanticValidator validator = new DefaultSemanticValidator(client, "en-US");
-        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 3);
+        ValidationPipeline pipeline = new ValidationPipeline(prompt -> Map.of(), validator, 3, "en-US");
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
                 () -> pipeline.validate(
                         "Check Site A power usage.",
                         Map.of("type", "object"),
-                        TemplateUri.of("Task-T", "ran-energy-saving"), TEMPLATE_CONTENT));
+                        TemplateUri.of("Task-T", "ran-energy-saving"),
+                        TEMPLATE_CONTENT));
 
-        assertEquals(A2ATErrorCodes.VALIDATION_LLM_INFRASTRUCTURE_ERROR, exception.getCode());
+        assertEquals("llm.response_invalid", exception.getCode());
         assertEquals(3, client.invocations());
+    }
+
+    @Test
+    void parsesErrorsWithFactsAndRendersTheMessage() {
+        String llmJson = "{\"semantic_verdict\": false, \"errors\": [{\"slot_name\": \"subscriptionCondition\","
+                + " \"code\": \"content.param_missing\", \"facts\": {\"section_label\": \"订阅条件\"}}],"
+                + "\"params\": {}}";
+        DefaultSemanticValidator validator = new DefaultSemanticValidator(new StubClient(llmJson), "zh-CN");
+
+        ValidationResult result = validator.validate(
+                "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
+
+        assertFalse(result.verdict());
+        assertEquals(1, result.errors().size());
+        SlotValidationError error = result.errors().get(0);
+        assertEquals("subscriptionCondition", error.slotName());
+        assertEquals("content.param_missing", error.code());
+        assertEquals("「订阅条件」未填写,请补充该参数的取值", error.message());
+        assertEquals(Map.of("section_label", "订阅条件"), error.facts());
+    }
+
+    @Test
+    void rendersEntryFieldMissingMessageInEnglish() {
+        String llmJson = "{\"semantic_verdict\": false, \"errors\": [{\"slot_name\": \"policyList\","
+                + " \"code\": \"content.entry_field_missing\","
+                + " \"facts\": {\"section_label\": \"Policy List\", \"index\": 2,"
+                + " \"field_label\": \"Effective Date\"}}], \"params\": {}}";
+        DefaultSemanticValidator validator = new DefaultSemanticValidator(new StubClient(llmJson), "en-US");
+
+        ValidationResult result = validator.validate(
+                "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
+
+        assertEquals(1, result.errors().size());
+        SlotValidationError error = result.errors().get(0);
+        assertEquals("content.entry_field_missing", error.code());
+        assertEquals("Entry 2 of 'Policy List' is missing required field 'Effective Date'", error.message());
+    }
+
+    @Test
+    void unknownErrorCodeFallsBackToContentRuleViolation() {
+        String llmJson = "{\"semantic_verdict\": false, \"errors\": [{\"slot_name\": \"policyList\","
+                + " \"code\": \"data_problem\", \"facts\": {\"section_label\": \"Policy List\"}}],"
+                + "\"params\": {}}";
+        DefaultSemanticValidator validator = new DefaultSemanticValidator(new StubClient(llmJson), "en-US");
+
+        ValidationResult result = validator.validate(
+                "task prompt", Map.of("type", "object"), TemplateUri.of("Task-T", "network-layer"), TEMPLATE_CONTENT);
+
+        assertEquals(1, result.errors().size());
+        SlotValidationError error = result.errors().get(0);
+        assertEquals("content.rule_violation", error.code());
+        assertEquals("The value of 'policyList' violates the validation rules.", error.message());
+        assertEquals(Map.of("section_label", "policyList"), error.facts());
+    }
+
+    @Test
+    void missingLlmClientFailsWithLlmNotConfigured() {
+        DefaultSemanticValidator validator = new DefaultSemanticValidator(null, "zh-CN");
+
+        ContentValidationException exception = assertThrows(
+                ContentValidationException.class,
+                () -> validator.validate(
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
+
+        assertEquals("llm.not_configured", exception.getCode());
+        assertEquals("未配置 LLM 客户端,无法执行该操作(请检查 A2AT_LLM_* 配置)", exception.getMessage());
+    }
+
+    @Test
+    void malformedErrorFactsFailsWithResponseInvalid() {
+        DefaultSemanticValidator validator = new DefaultSemanticValidator(
+                new StubClient("{\"semantic_verdict\": false, \"errors\": [{\"slot_name\": \"site\", \"code\":"
+                        + " \"content.param_missing\"}], \"params\": {}}"),
+                "en-US");
+
+        ContentValidationException exception = assertThrows(
+                ContentValidationException.class,
+                () -> validator.validate(
+                        "task prompt",
+                        Map.of("type", "object"),
+                        TemplateUri.of("Task-T", "network-layer"),
+                        TEMPLATE_CONTENT));
+
+        assertEquals("llm.response_invalid", exception.getCode());
+        assertTrue(exception.getCause().getMessage().contains("facts"));
     }
 
     @Test

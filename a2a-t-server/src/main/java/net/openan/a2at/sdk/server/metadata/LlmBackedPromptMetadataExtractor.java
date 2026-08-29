@@ -2,9 +2,10 @@ package net.openan.a2at.sdk.server.metadata;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.prompt.analysis.exception.ScenarioRecognitionException;
 import net.openan.a2at.sdk.prompt.analysis.impl.PromptSlotValueExtractor;
 import net.openan.a2at.sdk.prompt.analysis.impl.ScenarioRecognizer;
@@ -18,14 +19,21 @@ import net.openan.a2at.sdk.prompt.resources.model.PromptSlotSchema;
 import net.openan.a2at.sdk.prompt.resources.model.ScenarioDefinition;
 import net.openan.a2at.sdk.server.exception.PromptComplianceCheckException;
 import net.openan.a2at.sdk.server.model.ProcessedPromptMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Server-side metadata extractor that mirrors the Python flow by resolving scenario and slots from
- * the processed prompt text with LLM-backed analysis steps.
+ * Server-side metadata extractor that mirrors the Python flow by resolving scenario and slots from the processed prompt
+ * text with LLM-backed analysis steps.
  *
  * @since 2026-06
  */
 public final class LlmBackedPromptMetadataExtractor implements ServerPromptMetadataExtractor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LlmBackedPromptMetadataExtractor.class);
+
+    /** Default reason rendered into {@code scenario.not_matched} when the recognizer reports none. */
+    private static final String DEFAULT_SCENARIO_REASON = "scenario recognition failed";
 
     private final ScenarioRecognizer scenarioRecognizer;
 
@@ -78,92 +86,124 @@ public final class LlmBackedPromptMetadataExtractor implements ServerPromptMetad
         try {
             ScenarioRecognitionResult result =
                     scenarioRecognizer.recognize(processedPromptText, scenarios, systemPrompt, userPrompt);
-            if (!result.matched() || result.scenarioCode() == null || result.scenarioCode().isBlank()) {
-                throw new PromptComplianceCheckException(
-                        A2ATErrorCodes.PROCESSED_PROMPT_PARSE_ERROR,
-                        result.errorMessage() == null ? "Scenario recognition failed." : result.errorMessage(),
-                        "prompt_parse");
+            if (!result.matched()
+                    || result.scenarioCode() == null
+                    || result.scenarioCode().isBlank()) {
+                throw scenarioNotMatched(result.errorMessage());
             }
             return result;
         } catch (ScenarioRecognitionException error) {
-            throw new PromptComplianceCheckException(A2ATErrorCodes.PROCESSED_PROMPT_PARSE_ERROR, error.getMessage(), "prompt_parse");
+            throw scenarioNotMatched(error.getMessage());
         }
+    }
+
+    private PromptComplianceCheckException scenarioNotMatched(String reason) {
+        String effectiveReason = reason == null || reason.isBlank() ? DEFAULT_SCENARIO_REASON : reason;
+        return new PromptComplianceCheckException(
+                ErrorCatalog.SCENARIO_NOT_MATCHED, language, Map.of("reason", effectiveReason), "prompt_parse");
     }
 
     private String loadTemplate(String scenarioCode) {
         try {
             return templateLoader.loadTemplate(scenarioCode, language);
         } catch (ResourceNotFoundException error) {
-            throw new PromptComplianceCheckException(A2ATErrorCodes.TEMPLATE_NOT_FOUND, error.getMessage(), "generation");
+            throw new PromptComplianceCheckException(
+                    ErrorCatalog.TEMPLATE_NOT_FOUND,
+                    language,
+                    Map.of("template_uri", scenarioCode, "language", language),
+                    "generation");
+        } catch (A2ATError error) {
+            LOGGER.warn(
+                    "Template load failed for scenario '{}' and language '{}': {}",
+                    scenarioCode,
+                    language,
+                    error.getMessage());
+            throw new PromptComplianceCheckException(
+                    ErrorCatalog.INFRA_RESOURCE_READ_FAILED,
+                    language,
+                    Map.of("resource_path", scenarioCode),
+                    "generation");
         }
     }
 
-    private static void validateExtractionResult(
+    private void validateExtractionResult(
             StructuredSlotExtractionResult extractionResult, PromptSlotSchema slotSchema) {
         if (!extractionResult.slotErrors().isEmpty()) {
-            throw new PromptComplianceCheckException(
-                    A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                    extractionResult.slotErrors().stream()
-                            .map(StructuredSlotValidationError::message)
-                            .filter(message -> message != null && !message.isBlank())
-                            .collect(Collectors.joining("; ")),
-                    "slot_validation");
+            throw slotFailure(extractionResult.slotErrors().get(0));
         }
 
         for (PromptSlotDefinition definition : slotSchema.slotDefinitions()) {
             String value = extractionResult.slots().get(definition.name());
             if (definition.required() && (value == null || value.isBlank())) {
                 throw new PromptComplianceCheckException(
-                        A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                        "Required slot '" + definition.name() + "' is missing.",
+                        ErrorCatalog.SLOT_NOT_PROVIDED,
+                        language,
+                        Map.of("slot_label", definition.name()),
                         "slot_validation");
             }
             if (value == null || value.isBlank()) {
                 continue;
             }
+            String trimmedValue = value.trim();
             if (definition.allowedValues() != null
                     && !definition.allowedValues().isEmpty()
-                    && !definition.allowedValues().contains(value.trim())) {
-                throw new PromptComplianceCheckException(
-                        A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                        "Slot '" + definition.name() + "' violates allowed values.",
-                        "slot_validation");
+                    && !definition.allowedValues().contains(trimmedValue)) {
+                throw constraintViolation(definition, trimmedValue);
             }
             if (definition.pattern() != null
                     && !definition.pattern().isBlank()
-                    && !value.trim().matches(definition.pattern())) {
-                throw new PromptComplianceCheckException(
-                        A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                        "Slot '" + definition.name() + "' violates pattern constraint.",
-                        "slot_validation");
+                    && !trimmedValue.matches(definition.pattern())) {
+                throw constraintViolation(definition, trimmedValue);
             }
-            validateNumericConstraint(definition, value.trim());
+            validateNumericConstraint(definition, trimmedValue);
         }
     }
 
-    private static void validateNumericConstraint(PromptSlotDefinition definition, String value) {
+    private PromptComplianceCheckException slotFailure(StructuredSlotValidationError error) {
+        String slotName = error.slotName() == null ? "" : error.slotName();
+        return new PromptComplianceCheckException(
+                resolveSlotErrorCode(error.code(), slotName),
+                language,
+                Map.of("slot_label", slotName),
+                "slot_validation");
+    }
+
+    private static ErrorCatalog resolveSlotErrorCode(String code, String slotName) {
+        Optional<ErrorCatalog> entry = ErrorCatalog.byCode(code);
+        if (entry.isPresent()) {
+            return entry.get();
+        }
+        LOGGER.warn(
+                "Unknown slot validation error code '{}' for slot '{}'; falling back to '{}'.",
+                code,
+                slotName,
+                ErrorCatalog.SLOT_RULE_VIOLATION.getCode());
+        return ErrorCatalog.SLOT_RULE_VIOLATION;
+    }
+
+    private PromptComplianceCheckException constraintViolation(PromptSlotDefinition definition, String actual) {
+        return new PromptComplianceCheckException(
+                ErrorCatalog.SLOT_CONSTRAINT_VIOLATED,
+                language,
+                Map.of("slot_label", definition.name(), "actual", actual),
+                "slot_validation");
+    }
+
+    private void validateNumericConstraint(PromptSlotDefinition definition, String value) {
         if (!"integer".equalsIgnoreCase(definition.jsonType()) && !"number".equalsIgnoreCase(definition.jsonType())) {
             return;
         }
+        double numericValue;
         try {
-            double numericValue = Double.parseDouble(value);
-            if (definition.minimum() != null && numericValue < definition.minimum()) {
-                throw new PromptComplianceCheckException(
-                        A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                        "Slot '" + definition.name() + "' is smaller than minimum.",
-                        "slot_validation");
-            }
-            if (definition.maximum() != null && numericValue > definition.maximum()) {
-                throw new PromptComplianceCheckException(
-                        A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                        "Slot '" + definition.name() + "' is larger than maximum.",
-                        "slot_validation");
-            }
+            numericValue = Double.parseDouble(value);
         } catch (NumberFormatException error) {
-            throw new PromptComplianceCheckException(
-                    A2ATErrorCodes.SLOT_VALIDATION_ERROR,
-                    "Slot '" + definition.name() + "' is not numeric.",
-                    "slot_validation");
+            throw constraintViolation(definition, value);
+        }
+        if (definition.minimum() != null && numericValue < definition.minimum()) {
+            throw constraintViolation(definition, value);
+        }
+        if (definition.maximum() != null && numericValue > definition.maximum()) {
+            throw constraintViolation(definition, value);
         }
     }
 }

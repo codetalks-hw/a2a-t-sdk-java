@@ -5,8 +5,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * Validates path segment values used to compose classpath or filesystem resource paths.
  *
- * <p>A simple segment is non-null, non-blank and free of slashes, backslashes and {@code ..} sequences, so that it
- * can never escape the resource root it is resolved against.
+ * <p>A simple segment is non-null, non-blank and free of slashes, backslashes and {@code ..} sequences, so that it can
+ * never escape the resource root it is resolved against.
  *
  * @since 2026-08
  */
@@ -31,8 +31,7 @@ public final class PathSegments {
     }
 
     /**
-     * Requires the value to be a non-blank simple path segment, throwing an {@link IllegalArgumentException}
-     * otherwise.
+     * Requires the value to be a non-blank simple path segment, throwing an {@link IllegalArgumentException} otherwise.
      *
      * @param value candidate path segment such as a language or category identifier; may be {@code null}
      * @param label human-readable label describing the segment, used in the failure message
@@ -46,8 +45,8 @@ public final class PathSegments {
     }
 
     /**
-     * Requires the value to be a non-blank relative path whose slash-separated segments are each simple path
-     * segments, throwing an {@link IllegalArgumentException} otherwise.
+     * Requires the value to be a non-blank relative path whose slash-separated segments are each simple path segments,
+     * throwing an {@link IllegalArgumentException} otherwise.
      *
      * @param value candidate relative path such as a scenario code; may be {@code null}
      * @param label human-readable label describing the path, used in the failure message

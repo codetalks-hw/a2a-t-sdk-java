@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.resources.PathSegments;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotJsonSchema;
@@ -13,8 +12,8 @@ import net.openan.a2at.sdk.prompt.resources.model.PromptSlotSchema;
 /**
  * Loads shared slot schemas from one local prompt resource root.
  *
- * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch
- * the filesystem, so changes to the local files only take effect after the SDK is restarted.
+ * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch the
+ * filesystem, so changes to the local files only take effect after the SDK is restarted.
  *
  * @since 2026-06
  */
@@ -54,7 +53,7 @@ public final class LocalFilePromptSlotSchemaLoader implements PromptSlotSchemaLo
             return PromptResourceJsonParser.parse(snapshot.get(pathKey), PromptSlotJsonSchema.class)
                     .toPromptSlotSchema(scenarioCode);
         } catch (JsonProcessingException exception) {
-            throw new A2ATError("Failed to read slot schema resource: " + promptRootDir.resolve(pathKey), exception);
+            throw ResourceReadErrors.readFailed(promptRootDir.resolve(pathKey).toString(), language, exception);
         }
     }
 

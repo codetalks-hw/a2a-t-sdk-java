@@ -10,9 +10,10 @@ import org.junit.jupiter.api.Test;
  * Unit tests for {@link PromptRuntimeConfig}.
  *
  * <p>Tests cover the following scenarios:
+ *
  * <ul>
- *   <li>Default values when configuration keys are missing</li>
- *   <li>Overriding defaults with environment variable values</li>
+ *   <li>Default values when configuration keys are missing
+ *   <li>Overriding defaults with environment variable values
  * </ul>
  *
  * @since 2026-06
@@ -20,14 +21,11 @@ import org.junit.jupiter.api.Test;
 class PromptRuntimeConfigTest {
 
     /**
-     * Verifies that {@link PromptRuntimeConfig#fromMap(Map)} applies default values
-     * when no configuration keys are provided.
+     * Verifies that {@link PromptRuntimeConfig#fromMap(Map)} applies default values when no configuration keys are
+     * provided.
      *
-     * <p>Scenario: An empty map is passed to fromMap().
-     * Expected result: All fields use predefined defaults:
-     * - language: "en-US"
-     * - sourceType: "classpath"
-     * - localRootDir: null (unset)
+     * <p>Scenario: An empty map is passed to fromMap(). Expected result: All fields use predefined defaults: -
+     * language: "en-US" - sourceType: "classpath" - localRootDir: null (unset)
      */
     @Test
     void should_useDefaults_When_keysAreMissing() {
@@ -41,11 +39,11 @@ class PromptRuntimeConfigTest {
     }
 
     /**
-     * Verifies that {@link PromptRuntimeConfig#fromMap(Map)} overrides default values
-     * with values from the provided map.
+     * Verifies that {@link PromptRuntimeConfig#fromMap(Map)} overrides default values with values from the provided
+     * map.
      *
-     * <p>Scenario: A map containing language, source type, and local root directory.
-     * Expected result: All fields use the values from the map instead of defaults.
+     * <p>Scenario: A map containing language, source type, and local root directory. Expected result: All fields use
+     * the values from the map instead of defaults.
      */
     @Test
     void should_overrideDefaults_When_keysAreProvided() {

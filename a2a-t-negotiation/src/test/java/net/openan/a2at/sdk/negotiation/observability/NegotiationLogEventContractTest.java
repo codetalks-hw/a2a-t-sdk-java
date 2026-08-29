@@ -14,16 +14,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import net.openan.a2at.sdk.core.model.StandardTemplates;
-import net.openan.a2at.sdk.core.model.TemplateUri;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
-import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.FilledParamData;
-import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.StandardTemplates;
+import net.openan.a2at.sdk.core.model.TemplateUri;
+import net.openan.a2at.sdk.llm.LLMClient;
+import net.openan.a2at.sdk.llm.LLMResponse;
+import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -54,6 +54,7 @@ class NegotiationLogEventContractTest {
             Map.entry("negotiation_template_loaded", Set.of(Level.DEBUG)),
             Map.entry("negotiation_generator_dispatched", Set.of(Level.DEBUG)),
             Map.entry("negotiation_content_extraction_completed", Set.of(Level.INFO)),
+            Map.entry("negotiation_content_extraction_response_invalid", Set.of(Level.WARN)),
             Map.entry("negotiation_semantic_validation_completed", Set.of(Level.INFO)),
             Map.entry("negotiation_generation_completed", Set.of(Level.INFO)),
             Map.entry("negotiation_llm_retry", Set.of(Level.WARN)),
@@ -134,7 +135,7 @@ class NegotiationLogEventContractTest {
         assertTrue(retryMessages.get(0).contains("step="));
         assertTrue(retryMessages.get(0).contains("attempt=1"));
         assertTrue(retryMessages.get(0).contains("max_attempts="));
-        assertTrue(retryMessages.get(0).contains("code=" + A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR));
+        assertTrue(retryMessages.get(0).contains("code=" + ErrorCatalog.LLM_INVOCATION_FAILED.getCode()));
         assertTrue(exhaustedMessages.get(0).contains("step="));
 
         NegotiationGenerationException failure = generationFailureOfExhaustedExtraction();
@@ -259,7 +260,7 @@ class NegotiationLogEventContractTest {
                     new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
                     INFORMATION_PROPOSE_URI);
         } catch (NegotiationGenerationException failure) {
-            assertEquals(A2ATErrorCodes.NEGOTIATION_LLM_INFRASTRUCTURE_ERROR, failure.getCode());
+            assertEquals(ErrorCatalog.LLM_INVOCATION_FAILED.getCode(), failure.getCode());
             return failure;
         }
         return null;
@@ -288,8 +289,8 @@ class NegotiationLogEventContractTest {
                 .language("zh-CN")
                 .llmClient(new ScriptedClient(
                         "{\"semantic_verdict\":false,\"negotiation_type\":null,\"errors\":[{\"slot_name\":"
-                                + "\"section.info_static\",\"code\":\"template_type_mismatch\",\"message\":"
-                                + "\"inconsistent\"}],\"params\":{}}"))
+                                + "\"section.info_static\",\"code\":\"negotiation.type_mismatch\",\"facts\":"
+                                + "{\"implied\":\"information\",\"declared\":\"information\"}}],\"params\":{}}"))
                 .build();
         try {
             orchestrator.validateProposePromptAndDataFilling(
@@ -298,7 +299,7 @@ class NegotiationLogEventContractTest {
                     Map.of("type", "object"),
                     INFORMATION_PROPOSE_URI);
         } catch (NegotiationParamExtractionException expected) {
-            assertEquals(A2ATErrorCodes.NEGOTIATION_SEMANTIC_REJECTED, expected.getCode());
+            assertEquals(ErrorCatalog.NEGOTIATION_SEMANTIC_REJECTED.getCode(), expected.getCode());
         }
     }
 
@@ -314,7 +315,7 @@ class NegotiationLogEventContractTest {
                     Map.of("type", "object"),
                     INFORMATION_PROPOSE_URI);
         } catch (NegotiationParamExtractionException expected) {
-            assertEquals(A2ATErrorCodes.NEGOTIATION_RULE_VIOLATION, expected.getCode());
+            assertEquals(ErrorCatalog.NEGOTIATION_RULE_VIOLATION.getCode(), expected.getCode());
         }
     }
 

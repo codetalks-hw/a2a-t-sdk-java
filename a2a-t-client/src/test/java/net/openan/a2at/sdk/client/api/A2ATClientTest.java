@@ -456,9 +456,9 @@ A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
                 PromptGenerationException.class,
                 () -> client.generateNotificationPromptFromText(overLimitText, StandardTemplates.ENERGY_SAVING));
 
-        assertEquals("input_text_too_long", taskEx.getCode());
-        assertEquals("input_text_too_long", authEx.getCode());
-        assertEquals("input_text_too_long", notificationEx.getCode());
+        assertEquals("input.text_too_long", taskEx.getCode());
+        assertEquals("input.text_too_long", authEx.getCode());
+        assertEquals("input.text_too_long", notificationEx.getCode());
         assertEquals(0, RecordingClient.REQUEST_COUNT.get(), "over-limit input must fail before any LLM call");
     }
 
@@ -470,16 +470,14 @@ A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
         PromptGenerationResult result = client.generateTaskPrompt("a".repeat(101));
 
         assertFalse(result.success());
-        assertEquals("input_text_too_long", result.failure().code());
+        assertEquals("input.text_too_long", result.failure().code());
         assertEquals(0, RecordingClient.REQUEST_COUNT.get(), "over-limit input must fail before any LLM call");
     }
 
     private static Path writeMinimalClientEnvWithInputLimit(String provider, int maxTextChars) throws IOException {
         Path envFile = writeMinimalClientEnv(provider);
         Files.writeString(
-                envFile,
-                "A2AT_INPUT_TEXT_MAX_CHARS=" + maxTextChars + "\n",
-                java.nio.file.StandardOpenOption.APPEND);
+                envFile, "A2AT_INPUT_TEXT_MAX_CHARS=" + maxTextChars + "\n", java.nio.file.StandardOpenOption.APPEND);
         return envFile;
     }
 

@@ -3,12 +3,13 @@ package net.openan.a2at.sdk.negotiation.generation;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.content.NegotiationConclusion;
 import net.openan.a2at.sdk.negotiation.content.NegotiationContent;
-import net.openan.a2at.sdk.core.model.NegotiationContext;
+import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 
 /**
  * Shared plumbing of the six negotiation generators.
@@ -53,7 +54,8 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
      */
     protected static NegotiationConclusion renderableConclusion(NegotiationConclusion conclusion) {
         Objects.requireNonNull(
-                conclusion, "Negotiation conclusion must not be null; accept and reject are the renderable"
+                conclusion,
+                "Negotiation conclusion must not be null; accept and reject are the renderable"
                         + " conclusions of a typed negotiation.");
         if (conclusion == NegotiationConclusion.ABORT) {
             throw new IllegalArgumentException(
@@ -68,14 +70,16 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
      * Validates that a required text field is present.
      *
      * @param value field value
-     * @param field field path used in the failure
-     * @param description field description used in the failure message
+     * @param field field path used in the failure facts
+     * @param description field description used in the failure reason
+     * @param vocabulary vocabulary of the message language, used to render the failure message
      * @return the validated text
-     * @throws IllegalArgumentException if the value is null or blank
+     * @throws NegotiationGenerationException with the code {@code negotiation.content_invalid} if the value is null or
+     *     blank
      */
-    protected static String requiredText(String value, String field, String description) {
+    protected static String requiredText(String value, String field, String description, Vocabulary vocabulary) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(description + " must not be blank.");
+            throw contentInvalid(field, description + " must not be blank.", vocabulary);
         }
         return value;
     }
@@ -84,17 +88,34 @@ abstract class AbstractNegotiationGenerator implements NegotiationGenerator {
      * Validates that a required item list is present and non-empty.
      *
      * @param items item list
-     * @param field field path used in the failure
-     * @param description field description used in the failure message
+     * @param field field path used in the failure facts
+     * @param description field description used in the failure reason
+     * @param vocabulary vocabulary of the message language, used to render the failure message
      * @return the validated item list
-     * @throws IllegalArgumentException if the list is null or empty
+     * @throws NegotiationGenerationException with the code {@code negotiation.content_invalid} if the list is null or
+     *     empty
      */
     protected static List<NegotiationItem> requiredItems(
-            List<NegotiationItem> items, String field, String description) {
+            List<NegotiationItem> items, String field, String description, Vocabulary vocabulary) {
         if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException(description + " must contain at least one item.");
+            throw contentInvalid(field, description + " must contain at least one item.", vocabulary);
         }
         return items;
+    }
+
+    /**
+     * Builds the coded failure for invalid negotiation content data of a from-data generation.
+     *
+     * @param field content field path
+     * @param reason failure reason
+     * @param vocabulary vocabulary of the message language, used to render the failure message
+     * @return generation failure carrying the code {@code negotiation.content_invalid}
+     */
+    protected static NegotiationGenerationException contentInvalid(String field, String reason, Vocabulary vocabulary) {
+        return new NegotiationGenerationException(
+                ErrorCatalog.NEGOTIATION_CONTENT_INVALID,
+                vocabulary.language(),
+                Map.of("field", field, "reason", reason));
     }
 
     /**

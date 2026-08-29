@@ -7,8 +7,8 @@ Output format (strict):
   "errors": [
     {
       "slot_name": "string",
-      "code": "semantic_mismatch|fabricated_value|cross_scenario_pollution|insufficient_grounding",
-      "message": "string"
+      "code": "slot.semantic_conflict|slot.fabricated_value|slot.cross_scenario_pollution|slot.insufficient_grounding",
+      "facts": { ... }
     }
   ]
 }
@@ -16,6 +16,7 @@ Output format (strict):
 Requirements:
 - Follow the system prompt's relaxed-by-default policy and apply strict validation only when explicit strong constraints exist.
 - Judge only from `slot_json_schema` and `extracted_slots`; do not invent missing context.
+- Use only the 4 codes defined in the system prompt's error code definitions, never invent others; fill `facts` with the keys listed for the chosen code.
 - If passed=true, errors must be an empty array.
 - If passed=false, errors must contain at least one item.
 - Output JSON only. No markdown, no explanatory prefix/suffix.

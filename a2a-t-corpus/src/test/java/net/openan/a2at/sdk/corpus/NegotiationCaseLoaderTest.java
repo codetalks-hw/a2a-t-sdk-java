@@ -26,14 +26,16 @@ class NegotiationCaseLoaderTest {
 
     private static final String SESSION_ID = "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3";
 
-    private static final String SHARED_RESPONSES = """
+    private static final String SHARED_RESPONSES =
+            """
             {
               "extract.information.accept.full": "{\\"conclusion\\": \\"Accept\\", \\"items\\": []}",
               "extract.information.propose.full": "{\\"items\\": [{\\"name\\": \\"节能区域信息\\", \\"value\\": \\"松山湖\\"}]}"
             }
             """;
 
-    private static final String SHARED_SCHEMAS = """
+    private static final String SHARED_SCHEMAS =
+            """
             {
               "flat": {"type": "object", "properties": {"id": {"type": "string"}}}
             }
@@ -67,14 +69,16 @@ class NegotiationCaseLoaderTest {
         assertTrue(acceptZh.expect().differential());
         assertEquals(2, acceptZh.expect().llmCalls());
         assertEquals("information_accept", acceptZh.expect().promptTextEqualsGolden());
-        assertEquals("Negotiation-T/information-negotiation/accept-reject/v1",
+        assertEquals(
+                "Negotiation-T/information-negotiation/accept-reject/v1",
                 acceptZh.expect().metadata().templateUriEcho());
         assertEquals(Boolean.TRUE, acceptZh.expect().metadata().contextEcho());
 
         LlmScriptStep firstStep = acceptZh.llm().steps().get(0);
         LlmScriptStep.Fail failStep = assertInstanceOf(LlmScriptStep.Fail.class, firstStep);
         assertEquals(LlmFailMarker.NON_JSON, failStep.marker());
-        LlmScriptStep.Payload payloadStep = assertInstanceOf(LlmScriptStep.Payload.class, acceptZh.llm().steps().get(1));
+        LlmScriptStep.Payload payloadStep = assertInstanceOf(
+                LlmScriptStep.Payload.class, acceptZh.llm().steps().get(1));
         assertEquals("{\"conclusion\": \"Accept\", \"items\": []}", payloadStep.json());
         assertEquals(3, acceptZh.llm().maxAttempts());
 
@@ -82,7 +86,9 @@ class NegotiationCaseLoaderTest {
         PromptSource.Golden golden = assertInstanceOf(PromptSource.Golden.class, validateZh.prompt());
         assertEquals("information_propose", golden.golden());
         assertEquals(corpus.sharedSchemas().get("flat"), validateZh.schema());
-        assertEquals(Map.of("id", SESSION_ID, "round", 1, "maxRounds", 5), validateZh.expect().params());
+        assertEquals(
+                Map.of("id", SESSION_ID, "round", 1, "maxRounds", 5),
+                validateZh.expect().params());
 
         ScenarioCase scenario = corpus.scenarios().get(0);
         assertEquals("SC-INFO-01/zh-CN", scenario.id());
@@ -90,9 +96,13 @@ class NegotiationCaseLoaderTest {
         assertEquals(2, scenario.steps().size());
         assertEquals(1, scenario.steps().get(0).step());
         assertEquals("A", scenario.steps().get(0).role());
-        assertEquals("SC-INFO-01/zh-CN#step-1", scenario.steps().get(0).caseData().id());
-        assertEquals(NegotiationApi.GENERATE_PROPOSE_FROM_TEXT, scenario.steps().get(0).caseData().api());
-        PromptSource.FromStep fromStep = assertInstanceOf(PromptSource.FromStep.class, scenario.steps().get(1).caseData().prompt());
+        assertEquals(
+                "SC-INFO-01/zh-CN#step-1", scenario.steps().get(0).caseData().id());
+        assertEquals(
+                NegotiationApi.GENERATE_PROPOSE_FROM_TEXT,
+                scenario.steps().get(0).caseData().api());
+        PromptSource.FromStep fromStep = assertInstanceOf(
+                PromptSource.FromStep.class, scenario.steps().get(1).caseData().prompt());
         assertEquals(1, fromStep.step());
         assertEquals("reject", scenario.expectFlow().terminalCondition());
         assertEquals(1, scenario.expectFlow().roundsUsed());
@@ -100,9 +110,10 @@ class NegotiationCaseLoaderTest {
 
         NegotiationCase failedStep = scenario.steps().get(1).caseData();
         assertFalse(failedStep.expect().success());
-        assertEquals("negotiation_semantic_rejected", failedStep.expect().code());
+        assertEquals("negotiation.semantic_rejected", failedStep.expect().code());
         assertEquals(1, failedStep.expect().llmCalls());
-        LlmScriptStep.Fail llmErrorStep = assertInstanceOf(LlmScriptStep.Fail.class, failedStep.llm().steps().get(0));
+        LlmScriptStep.Fail llmErrorStep = assertInstanceOf(
+                LlmScriptStep.Fail.class, failedStep.llm().steps().get(0));
         assertEquals(LlmFailMarker.LLM_ERROR, llmErrorStep.marker());
     }
 
@@ -130,7 +141,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAnUnknownKey(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -151,7 +165,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnADanglingRef(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -173,7 +190,10 @@ class NegotiationCaseLoaderTest {
     @Test
     void failsFastOnAnOutOfScopeRef(@TempDir Path root) throws IOException {
         write(root, "shared/schemas.json", SHARED_SCHEMAS);
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -193,13 +213,19 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnANestedRef(@TempDir Path root) throws IOException {
-        write(root, "shared/schemas.json", """
+        write(
+                root,
+                "shared/schemas.json",
+                """
                 {
                   "a": {"$ref": "schemas/b"},
                   "b": {"type": "object"}
                 }
                 """);
-        write(root, "validate/bad.json", """
+        write(
+                root,
+                "validate/bad.json",
+                """
                 [
                   {
                     "id": "VAL-BAD-01",
@@ -221,12 +247,18 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnACircularRef(@TempDir Path root) throws IOException {
-        write(root, "shared/schemas.json", """
+        write(
+                root,
+                "shared/schemas.json",
+                """
                 {
                   "a": {"$ref": "schemas/a"}
                 }
                 """);
-        write(root, "validate/bad.json", """
+        write(
+                root,
+                "validate/bad.json",
+                """
                 [
                   {
                     "id": "VAL-BAD-01",
@@ -258,7 +290,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnADuplicateExpandedId(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -276,7 +311,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAnIncompleteFailureExpectation(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -295,26 +333,33 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnFailureOnlyFieldsOnASuccessExpectation(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
                     "api": "generateAcceptFromText",
                     "languages": ["zh-CN"],
-                    "expect": {"outcome": "success", "code": "negotiation_invalid_input"}
+                    "expect": {"outcome": "success", "code": "negotiation.invalid_input"}
                   }
                 ]
                 """);
 
         CorpusLoadException exception = assertThrows(CorpusLoadException.class, () -> NegotiationCaseLoader.load(root));
 
-        assertTrue(exception.getMessage().contains("success expectation must not carry failure-only fields"),
+        assertTrue(
+                exception.getMessage().contains("success expectation must not carry failure-only fields"),
                 exception.getMessage());
     }
 
     @Test
     void failsFastOnAnUnknownApi(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -333,7 +378,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAnUnknownFailMarker(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -353,7 +401,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAnUnsupportedLanguage(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -371,7 +422,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAMissingLanguageTextEntry(@TempDir Path root) throws IOException {
-        write(root, "from-text/bad.json", """
+        write(
+                root,
+                "from-text/bad.json",
+                """
                 [
                   {
                     "id": "FT-BAD-01",
@@ -390,7 +444,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnNonConsecutiveScenarioSteps(@TempDir Path root) throws IOException {
-        write(root, "scenarios/bad.json", """
+        write(
+                root,
+                "scenarios/bad.json",
+                """
                 [
                   {
                     "id": "SC-BAD-01",
@@ -405,7 +462,8 @@ class NegotiationCaseLoaderTest {
                     ]
                   }
                 ]
-                """.formatted(SESSION_ID));
+                """
+                        .formatted(SESSION_ID));
 
         CorpusLoadException exception = assertThrows(CorpusLoadException.class, () -> NegotiationCaseLoader.load(root));
 
@@ -415,7 +473,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAnUnknownKeyInsideAScenarioStep(@TempDir Path root) throws IOException {
-        write(root, "scenarios/bad.json", """
+        write(
+                root,
+                "scenarios/bad.json",
+                """
                 [
                   {
                     "id": "SC-BAD-01",
@@ -431,7 +492,8 @@ class NegotiationCaseLoaderTest {
                     ]
                   }
                 ]
-                """.formatted(SESSION_ID));
+                """
+                        .formatted(SESSION_ID));
 
         CorpusLoadException exception = assertThrows(CorpusLoadException.class, () -> NegotiationCaseLoader.load(root));
 
@@ -444,7 +506,10 @@ class NegotiationCaseLoaderTest {
     @Test
     void loadsTaskFamilyRecordsWithTheClosedLoopExpectationFields(@TempDir Path root) throws IOException {
         write(root, "shared/llm-responses.json", SHARED_RESPONSES);
-        write(root, "task/happy.json", """
+        write(
+                root,
+                "task/happy.json",
+                """
                 [
                   {
                     "id": "TASK-FT-01",
@@ -464,7 +529,10 @@ class NegotiationCaseLoaderTest {
                   }
                 ]
                 """);
-        write(root, "scenarios/task-closed-loop.json", """
+        write(
+                root,
+                "scenarios/task-closed-loop.json",
+                """
                 [
                   {
                     "id": "SC-TASK-01",
@@ -519,7 +587,8 @@ class NegotiationCaseLoaderTest {
                     "expectFlow": {"terminalCondition": "accept", "missingParamsFilled": 2}
                   }
                 ]
-                """.formatted(SESSION_ID));
+                """
+                        .formatted(SESSION_ID));
 
         LoadedCorpus corpus = NegotiationCaseLoader.load(root);
 
@@ -528,21 +597,24 @@ class NegotiationCaseLoaderTest {
         assertEquals(List.of("## 任务类型", "## 任务对象"), taskCase.expect().promptTextContains());
 
         ScenarioCase scenario = corpus.scenarios().get(0);
-        assertEquals(
-                Map.of("A", "工作台（client，任务发起/补数方）", "B", "OMC（server，执行/要数方，协商发起方）"),
-                scenario.rolesDesc());
+        assertEquals(Map.of("A", "工作台（client，任务发起/补数方）", "B", "OMC（server，执行/要数方，协商发起方）"), scenario.rolesDesc());
         assertEquals("A=工作台（client，任务发起/补数方）", scenario.describeRole("A"));
         NegotiationCase validationStep = scenario.steps().get(1).caseData();
         assertEquals(NegotiationApi.VALIDATE_TASK_PROMPT_AND_DATA_FILLING, validationStep.api());
         assertEquals(List.of("accessPort"), validationStep.expect().missingParams());
-        assertEquals(Map.of("faultTime", "2026-05-11T08:21:46Z"), validationStep.expect().params());
+        assertEquals(
+                Map.of("faultTime", "2026-05-11T08:21:46Z"),
+                validationStep.expect().params());
         assertEquals(2, scenario.steps().get(2).caseData().expect().paramsFromStep());
         assertEquals(2, scenario.expectFlow().missingParamsFilled());
     }
 
     @Test
     void failsFastOnTaskSuccessFieldsOnAFailureExpectation(@TempDir Path root) throws IOException {
-        write(root, "task/bad.json", """
+        write(
+                root,
+                "task/bad.json",
+                """
                 [
                   {
                     "id": "TASK-BAD-01",
@@ -554,7 +626,7 @@ class NegotiationCaseLoaderTest {
                     "llm": {"script": ["{}"]},
                     "expect": {
                       "outcome": "failure",
-                      "code": "validation_semantic_rejected",
+                      "code": "negotiation.semantic_rejected",
                       "missingParams": ["accessPort"]
                     }
                   }
@@ -569,7 +641,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnAJsonNullInsideParams(@TempDir Path root) throws IOException {
-        write(root, "task/bad.json", """
+        write(
+                root,
+                "task/bad.json",
+                """
                 [
                   {
                     "id": "TASK-BAD-02",
@@ -597,7 +672,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnParamsFromStepBelowOne(@TempDir Path root) throws IOException {
-        write(root, "task/bad.json", """
+        write(
+                root,
+                "task/bad.json",
+                """
                 [
                   {
                     "id": "TASK-BAD-03",
@@ -622,7 +700,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnARolesDescEntryOutsideTheDeclaredRoles(@TempDir Path root) throws IOException {
-        write(root, "scenarios/bad.json", """
+        write(
+                root,
+                "scenarios/bad.json",
+                """
                 [
                   {
                     "id": "SC-BAD-02",
@@ -639,7 +720,8 @@ class NegotiationCaseLoaderTest {
                     ]
                   }
                 ]
-                """.formatted(SESSION_ID));
+                """
+                        .formatted(SESSION_ID));
 
         CorpusLoadException exception = assertThrows(CorpusLoadException.class, () -> NegotiationCaseLoader.load(root));
 
@@ -653,7 +735,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void loadsLiveRecordsIntoTheDedicatedLiveCasesList(@TempDir Path root) throws IOException {
-        write(root, "live/generate.json", """
+        write(
+                root,
+                "live/generate.json",
+                """
                 [
                   {
                     "id": "LIVE-GEN-01",
@@ -693,14 +778,19 @@ class NegotiationCaseLoaderTest {
         assertEquals("private-line-complaint", live.liveExpect().scenarioCode());
         assertEquals(Map.of("accessPort", "P533-01"), live.liveExpect().paramsContains());
         assertEquals(List.of("faultTime"), live.liveExpect().paramsAbsent());
-        assertEquals(List.of("## instruction", "event-id-20260511-09013"), live.liveExpect().promptTextContains());
+        assertEquals(
+                List.of("## instruction", "event-id-20260511-09013"),
+                live.liveExpect().promptTextContains());
         assertEquals(4, live.liveExpect().maxLlmCalls());
         assertEquals("live/generate.json [LIVE-GEN-01/zh-CN]", live.errorPrefix());
     }
 
     @Test
     void failsFastOnALiveRecordWithoutTheLiveIdPrefix(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "TASK-LIVE-01",
@@ -719,7 +809,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnALiveRecordOutsideThePhaseOneLanguages(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "LIVE-BAD-01",
@@ -737,7 +830,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnALiveRecordOutsideTheTaskFamily(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "LIVE-BAD-01",
@@ -757,7 +853,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnALiveExpectationWithoutSuccess(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "LIVE-BAD-01",
@@ -776,7 +875,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnALiveGenerateRecordWithoutInputText(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "LIVE-BAD-01",
@@ -795,7 +897,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnALiveRecordWithAGoldenOrFromStepPrompt(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "LIVE-BAD-01",
@@ -815,7 +920,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void failsFastOnALiveValidateRecordDeclaringPromptTextContains(@TempDir Path root) throws IOException {
-        write(root, "live/bad.json", """
+        write(
+                root,
+                "live/bad.json",
+                """
                 [
                   {
                     "id": "LIVE-BAD-01",
@@ -835,7 +943,10 @@ class NegotiationCaseLoaderTest {
 
     @Test
     void defaultsTheLiveMaxLlmCallsToFourWhenTheRecordOmitsIt(@TempDir Path root) throws IOException {
-        write(root, "live/generate.json", """
+        write(
+                root,
+                "live/generate.json",
+                """
                 [
                   {
                     "id": "LIVE-GEN-01",
@@ -855,7 +966,10 @@ class NegotiationCaseLoaderTest {
     @Test
     void failsFastOnALiveIdCollidingWithAnOfflineCase(@TempDir Path root) throws IOException {
         write(root, "from-text/dup.json", minimalCase("LIVE-DUP-01"));
-        write(root, "live/dup.json", """
+        write(
+                root,
+                "live/dup.json",
+                """
                 [
                   {
                     "id": "LIVE-DUP-01",
@@ -885,7 +999,10 @@ class NegotiationCaseLoaderTest {
     private static void writeGoodCorpus(Path root) throws IOException {
         write(root, "shared/llm-responses.json", SHARED_RESPONSES);
         write(root, "shared/schemas.json", SHARED_SCHEMAS);
-        write(root, "from-text/happy.json", """
+        write(
+                root,
+                "from-text/happy.json",
+                """
                 [
                   {
                     "id": "FT-HAPPY-01",
@@ -917,8 +1034,12 @@ class NegotiationCaseLoaderTest {
                     }
                   }
                 ]
-                """.formatted(SESSION_ID));
-        write(root, "validate/happy.json", """
+                """
+                        .formatted(SESSION_ID));
+        write(
+                root,
+                "validate/happy.json",
+                """
                 [
                   {
                     "id": "VAL-HAPPY-01",
@@ -936,8 +1057,12 @@ class NegotiationCaseLoaderTest {
                     }
                   }
                 ]
-                """.formatted(SESSION_ID, SESSION_ID));
-        write(root, "scenarios/flows.json", """
+                """
+                        .formatted(SESSION_ID, SESSION_ID));
+        write(
+                root,
+                "scenarios/flows.json",
+                """
                 [
                   {
                     "id": "SC-INFO-01",
@@ -964,13 +1089,14 @@ class NegotiationCaseLoaderTest {
                         "templateUri": "Negotiation-T/information-negotiation/propose/v1",
                         "schema": {"$ref": "schemas/flat"},
                         "llm": {"script": [{"$fail": "llm-error"}]},
-                        "expect": {"outcome": "failure", "code": "negotiation_semantic_rejected", "llmCalls": 1}
+                        "expect": {"outcome": "failure", "code": "negotiation.semantic_rejected", "llmCalls": 1}
                       }
                     ],
                     "expectFlow": {"terminalCondition": "reject", "roundsUsed": 1, "distinctMessages": true}
                   }
                 ]
-                """.formatted(SESSION_ID, SESSION_ID));
+                """
+                        .formatted(SESSION_ID, SESSION_ID));
     }
 
     private static String minimalCase(String id) {
@@ -987,7 +1113,8 @@ class NegotiationCaseLoaderTest {
                     "expect": {"outcome": "success"}
                   }
                 ]
-                """.formatted(id, SESSION_ID);
+                """
+                .formatted(id, SESSION_ID);
     }
 
     private static NegotiationCase caseById(LoadedCorpus corpus, String id) {

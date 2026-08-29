@@ -12,9 +12,9 @@ import org.jspecify.annotations.Nullable;
 /**
  * Loads prompt resources from the classpath bundle packaged with the SDK.
  *
- * <p>Classpath resources are frozen at assembly time: each resource path is resolved once and cached at the
- * JVM level, so every subsequent load returns the cached copy. Missing resources throw on every call and are never
- * cached. The loader is thread-safe.
+ * <p>Classpath resources are frozen at assembly time: each resource path is resolved once and cached at the JVM level,
+ * so every subsequent load returns the cached copy. Missing resources throw on every call and are never cached. The
+ * loader is thread-safe.
  *
  * @since 2026-06
  */

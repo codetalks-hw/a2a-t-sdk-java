@@ -1,21 +1,22 @@
 package net.openan.a2at.sdk.core.model;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.openan.a2at.sdk.core.exception.ConfigFileNotFoundException;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Unit tests for {@link A2ATConfig}.
  *
  * <p>Tests cover the following scenarios:
+ *
  * <ul>
- *   <li>Loading unified SDK configuration from .env files</li>
- *   <li>Default values for missing configuration keys</li>
- *   <li>Error handling for missing configuration files</li>
+ *   <li>Loading unified SDK configuration from .env files
+ *   <li>Default values for missing configuration keys
+ *   <li>Error handling for missing configuration files
  * </ul>
  *
  * @since 2026-06
@@ -23,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class A2ATConfigTest {
 
     /**
-     * Verifies that {@link A2ATConfig#load(Path)} correctly builds a unified configuration
-     * from a complete .env file with all keys specified.
+     * Verifies that {@link A2ATConfig#load(Path)} correctly builds a unified configuration from a complete .env file
+     * with all keys specified.
      *
-     * <p>Scenario: A .env file contains all configuration keys for prompt, LLM, and negotiation.
-     * Expected result: All configuration values are correctly parsed and accessible via
-     * {@link A2ATConfig#prompt()}, {@link A2ATConfig#llm()}, and {@link A2ATConfig#negotiation()}.
+     * <p>Scenario: A .env file contains all configuration keys for prompt, LLM, and negotiation. Expected result: All
+     * configuration values are correctly parsed and accessible via {@link A2ATConfig#prompt()},
+     * {@link A2ATConfig#llm()}, and {@link A2ATConfig#negotiation()}.
      *
      * @throws IOException if temp directory creation fails
      */
@@ -76,12 +77,10 @@ class A2ATConfigTest {
     }
 
     /**
-     * Verifies that {@link A2ATConfig#load(Path)} applies default values for missing
-     * configuration keys.
+     * Verifies that {@link A2ATConfig#load(Path)} applies default values for missing configuration keys.
      *
-     * <p>Scenario: A .env file contains only minimal required keys (LLM provider and negotiation).
-     * Expected result: Default values are applied for prompt configuration (classpath source type,
-     * unset local root directory).
+     * <p>Scenario: A .env file contains only minimal required keys (LLM provider and negotiation). Expected result:
+     * Default values are applied for prompt configuration (classpath source type, unset local root directory).
      *
      * @throws IOException if temp directory creation fails
      */
@@ -103,11 +102,11 @@ class A2ATConfigTest {
     }
 
     /**
-     * Verifies that {@link A2ATConfig#load(Path)} throws {@link ConfigFileNotFoundException}
-     * when the specified file does not exist.
+     * Verifies that {@link A2ATConfig#load(Path)} throws {@link ConfigFileNotFoundException} when the specified file
+     * does not exist.
      *
-     * <p>Scenario: Attempt to load configuration from a non-existent file path.
-     * Expected result: ConfigFileNotFoundException is thrown.
+     * <p>Scenario: Attempt to load configuration from a non-existent file path. Expected result:
+     * ConfigFileNotFoundException is thrown.
      */
     @Test
     void should_throwConfigFileNotFoundException_When_envFileDoesNotExist() {
@@ -117,11 +116,11 @@ class A2ATConfigTest {
     }
 
     /**
-     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} resolves
-     * a relative local root directory to an absolute normalized path against the environment file parent.
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} resolves a relative local
+     * root directory to an absolute normalized path against the environment file parent.
      *
-     * <p>Scenario: A .env file configures a relative local root directory. Expected result: the returned config
-     * carries the local root resolved to an absolute normalized path relative to the .env file parent.
+     * <p>Scenario: A .env file configures a relative local root directory. Expected result: the returned config carries
+     * the local root resolved to an absolute normalized path relative to the .env file parent.
      *
      * @throws IOException if temp directory creation fails
      */
@@ -137,8 +136,7 @@ class A2ATConfigTest {
                 A2AT_LLM_PROVIDER=openai
                 """);
 
-        A2ATConfig resolved =
-                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
+        A2ATConfig resolved = A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
 
         assertEquals(
                 tempDir.resolve("prompt_resources").toAbsolutePath().normalize().toString(),
@@ -146,8 +144,8 @@ class A2ATConfigTest {
     }
 
     /**
-     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} normalizes
-     * an already-absolute local root directory without re-resolving it against the environment file parent.
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} normalizes an
+     * already-absolute local root directory without re-resolving it against the environment file parent.
      *
      * <p>Scenario: A .env file configures an absolute local root directory. Expected result: the returned config
      * carries the normalized absolute path unchanged.
@@ -165,15 +163,14 @@ class A2ATConfigTest {
                         + "A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=" + absoluteRoot + "\n"
                         + "A2AT_LLM_PROVIDER=openai\n");
 
-        A2ATConfig resolved =
-                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
+        A2ATConfig resolved = A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
 
         assertEquals(absoluteRoot.normalize().toString(), resolved.prompt().localRootDir());
     }
 
     /**
-     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} preserves
-     * an unset (null) local root directory instead of throwing.
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} preserves an unset (null)
+     * local root directory instead of throwing.
      *
      * <p>Scenario: A .env file does not configure a local root directory (classpath source). Expected result: the
      * returned config keeps the local root as null.
@@ -184,25 +181,22 @@ class A2ATConfigTest {
     void should_preserveNullLocalRoot_When_resolvingPromptResourceLocalRootDir() throws IOException {
         Path tempDir = Files.createTempDirectory("a2at-resolve-null");
         Path envFile = tempDir.resolve("client.env");
-        Files.writeString(
-                envFile,
-                """
+        Files.writeString(envFile, """
                 A2AT_LLM_PROVIDER=openai
                 """);
 
-        A2ATConfig resolved =
-                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
+        A2ATConfig resolved = A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
 
         assertNull(resolved.prompt().localRootDir());
     }
 
     /**
-     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} preserves
-     * a blank local root directory instead of resolving it to a legal absolute path.
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} preserves a blank local root
+     * directory instead of resolving it to a legal absolute path.
      *
      * <p>Scenario: A config carries a blank local root directory. Expected result: the method returns the original
-     * config unchanged, treating a blank root like an unset root (matching the downstream
-     * {@code PromptResourceAccess} and {@code PromptTemplateCatalog} "blank == unset" convention).
+     * config unchanged, treating a blank root like an unset root (matching the downstream {@code PromptResourceAccess}
+     * and {@code PromptTemplateCatalog} "blank == unset" convention).
      *
      * @throws IOException if temp directory creation fails
      */
@@ -214,7 +208,8 @@ class A2ATConfigTest {
 
         A2ATConfig loaded = A2ATConfig.load(envFile);
         A2ATConfig config = new A2ATConfig(
-                new PromptRuntimeConfig(loaded.prompt().language(), loaded.prompt().sourceType(), "   "),
+                new PromptRuntimeConfig(
+                        loaded.prompt().language(), loaded.prompt().sourceType(), "   "),
                 loaded.llm(),
                 loaded.inputLimits(),
                 loaded.negotiation(),
@@ -253,29 +248,34 @@ class A2ATConfigTest {
         A2ATConfig resolved = A2ATConfig.resolvePromptResourceLocalRootDir(config, Path.of(".env"));
 
         assertEquals(
-                Path.of("").toAbsolutePath().normalize().resolve("prompt_resources").normalize().toString(),
+                Path.of("")
+                        .toAbsolutePath()
+                        .normalize()
+                        .resolve("prompt_resources")
+                        .normalize()
+                        .toString(),
                 resolved.prompt().localRootDir());
     }
 
     /**
-     * Verifies that the repository's env.example file exists and optionally matches
-     * an upstream template.
+     * Verifies that the repository's env.example file exists and optionally matches an upstream template.
      *
-     * <p>Scenario: Check for the existence of env.example in the repository root.
-     * If an upstream template exists, verify they match (ignoring line ending differences).
+     * <p>Scenario: Check for the existence of env.example in the repository root. If an upstream template exists,
+     * verify they match (ignoring line ending differences).
      *
      * @throws IOException if file reading fails
      */
     @Test
     void should_matchUpstreamTemplate_When_envExampleExists() throws IOException {
         Path repoEnvExample = Path.of("..", "env.example").normalize();
-        Path upstreamEnvExample = Path.of("..", ".upstream-src", "package_data", "env.example").normalize();
+        Path upstreamEnvExample =
+                Path.of("..", ".upstream-src", "package_data", "env.example").normalize();
 
         assertTrue(Files.exists(repoEnvExample), "repo root env.example should exist");
         if (Files.exists(upstreamEnvExample)) {
-            assertEquals(Files.readString(upstreamEnvExample).replace("\r\n", "\n"),
+            assertEquals(
+                    Files.readString(upstreamEnvExample).replace("\r\n", "\n"),
                     Files.readString(repoEnvExample).replace("\r\n", "\n"));
         }
     }
-
 }

@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,16 +83,16 @@ class AuthzScenarioExecutorTest {
         AuthzScenarioRunner runner = new AuthzScenarioRunner(generator, validator);
         AuthzScenarioExecutor executor = new AuthzScenarioExecutor(runner);
 
-        List<AuthzScenario> scenarios = List.of(
-                scenario("ok1"), scenario("boom-runtime"), scenario("ok2"), scenario("boom-assert"));
+        List<AuthzScenario> scenarios =
+                List.of(scenario("ok1"), scenario("boom-runtime"), scenario("ok2"), scenario("boom-assert"));
         List<ScenarioOutcome> outcomes = executor.executeAll(scenarios, PARAM_SCHEMA, TEMPLATE_URI, 4, null);
 
         assertEquals(4, outcomes.size());
         assertTrue(outcomes.get(0).result().match());
-        assertEquals("sdk_internal_error", outcomes.get(1).result().outcome());
+        assertEquals("infra.internal_error", outcomes.get(1).result().outcome());
         assertFalse(outcomes.get(1).result().match());
         assertTrue(outcomes.get(2).result().match());
-        assertEquals("sdk_internal_error", outcomes.get(3).result().outcome());
+        assertEquals("infra.internal_error", outcomes.get(3).result().outcome());
         assertFalse(outcomes.get(3).result().match());
         assertNotNull(outcomes.get(3).result().slotErrors());
         assertEquals(1, outcomes.get(3).result().slotErrors().size());
@@ -102,8 +101,8 @@ class AuthzScenarioExecutorTest {
 
     @Test
     void should_deliverProgressCallbacks_WithDistinctCompletionIndices() {
-        AuthzPromptGenerator generator = scenario ->
-                new MetadataContent(TEMPLATE_URI.uri(), "generated prompt", "Authorization-T/v1");
+        AuthzPromptGenerator generator =
+                scenario -> new MetadataContent(TEMPLATE_URI.uri(), "generated prompt", "Authorization-T/v1");
         AuthzPromptValidator validator = (prompt, schema, templateUri) -> new FilledParamData(Map.of());
         AuthzScenarioRunner runner = new AuthzScenarioRunner(generator, validator);
         AuthzScenarioExecutor executor = new AuthzScenarioExecutor(runner);
@@ -111,8 +110,8 @@ class AuthzScenarioExecutorTest {
         ConcurrentHashMap<Integer, Double> seen = new ConcurrentHashMap<>();
         List<AuthzScenario> scenarios = List.of(scenario("a"), scenario("b"), scenario("c"), scenario("d"));
 
-        List<ScenarioOutcome> outcomes = executor.executeAll(scenarios, PARAM_SCHEMA, TEMPLATE_URI, 4,
-                (index, outcome, elapsed) -> {
+        List<ScenarioOutcome> outcomes =
+                executor.executeAll(scenarios, PARAM_SCHEMA, TEMPLATE_URI, 4, (index, outcome, elapsed) -> {
                     assertTrue(elapsed >= 0.0);
                     seen.put(index, elapsed);
                 });
@@ -123,8 +122,8 @@ class AuthzScenarioExecutorTest {
 
     @Test
     void should_runAllScenariosSerially_WhenSingleWorker() {
-        AuthzPromptGenerator generator = scenario ->
-                new MetadataContent(TEMPLATE_URI.uri(), "generated prompt", "Authorization-T/v1");
+        AuthzPromptGenerator generator =
+                scenario -> new MetadataContent(TEMPLATE_URI.uri(), "generated prompt", "Authorization-T/v1");
         AuthzPromptValidator validator = (prompt, schema, templateUri) -> new FilledParamData(Map.of());
         AuthzScenarioRunner runner = new AuthzScenarioRunner(generator, validator);
         AuthzScenarioExecutor executor = new AuthzScenarioExecutor(runner);
@@ -141,14 +140,12 @@ class AuthzScenarioExecutorTest {
     @Test
     void should_returnEmptyList_WhenNoScenarios() {
         AuthzScenarioRunner runner = new AuthzScenarioRunner(
-                s -> new MetadataContent("uri", "prompt", "ext"),
-                (p, s, t) -> new FilledParamData(Map.of()));
+                s -> new MetadataContent("uri", "prompt", "ext"), (p, s, t) -> new FilledParamData(Map.of()));
         AuthzScenarioExecutor executor = new AuthzScenarioExecutor(runner);
 
         AtomicInteger callbackCalls = new AtomicInteger();
         List<ScenarioOutcome> outcomes = executor.executeAll(
-                List.of(), PARAM_SCHEMA, TEMPLATE_URI, 8,
-                (index, outcome, elapsed) -> callbackCalls.incrementAndGet());
+                List.of(), PARAM_SCHEMA, TEMPLATE_URI, 8, (index, outcome, elapsed) -> callbackCalls.incrementAndGet());
 
         assertTrue(outcomes.isEmpty());
         assertEquals(0, callbackCalls.get());
@@ -156,14 +153,14 @@ class AuthzScenarioExecutorTest {
 
     @Test
     void should_notThrow_WhenProgressListenerIsNull() {
-        AuthzPromptGenerator generator = scenario ->
-                new MetadataContent(TEMPLATE_URI.uri(), "generated prompt", "Authorization-T/v1");
+        AuthzPromptGenerator generator =
+                scenario -> new MetadataContent(TEMPLATE_URI.uri(), "generated prompt", "Authorization-T/v1");
         AuthzPromptValidator validator = (prompt, schema, templateUri) -> new FilledParamData(Map.of());
         AuthzScenarioRunner runner = new AuthzScenarioRunner(generator, validator);
         AuthzScenarioExecutor executor = new AuthzScenarioExecutor(runner);
 
-        List<ScenarioOutcome> outcomes = executor.executeAll(
-                List.of(scenario("a")), PARAM_SCHEMA, TEMPLATE_URI, 1, null);
+        List<ScenarioOutcome> outcomes =
+                executor.executeAll(List.of(scenario("a")), PARAM_SCHEMA, TEMPLATE_URI, 1, null);
 
         assertEquals(1, outcomes.size());
         assertTrue(outcomes.get(0).result().match());
