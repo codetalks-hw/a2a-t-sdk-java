@@ -47,8 +47,8 @@ public final class A2ATClient {
      */
     public A2ATClient(Path envPath) {
         Path resolvedEnvPath = envPath.toAbsolutePath().normalize();
-        A2ATConfig config = NegotiationContentService.resolvePromptResourceLocalRootDir(
-                A2ATConfig.load(resolvedEnvPath), resolvedEnvPath);
+        A2ATConfig config =
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(resolvedEnvPath), resolvedEnvPath);
         DefaultA2ATClientBuilder builder =
                 DefaultA2ATClientBuilder.builder().envPath(resolvedEnvPath).config(config);
         this.promptGenerationOrchestrator = builder.buildPromptGenerationOrchestrator();
@@ -254,7 +254,6 @@ public final class A2ATClient {
      */
     public MetadataContent generateNegotiationProposePromptFromData(
             @NonNull NegotiationProposeData data, @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateProposeFromData(data, templateUri);
     }
 
@@ -277,7 +276,6 @@ public final class A2ATClient {
      */
     public MetadataContent generateNegotiationAcceptPromptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateAcceptFromData(data, templateUri);
     }
 
@@ -300,7 +298,6 @@ public final class A2ATClient {
      */
     public MetadataContent generateNegotiationRejectPromptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateRejectFromData(data, templateUri);
     }
 
@@ -322,7 +319,6 @@ public final class A2ATClient {
      */
     public MetadataContent generateNegotiationAbortPromptFromData(
             @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateAbortFromData(data, templateUri);
     }
 
@@ -354,7 +350,6 @@ public final class A2ATClient {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateProposeFromText(text, context, templateUri);
     }
 
@@ -385,7 +380,6 @@ public final class A2ATClient {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateAcceptFromText(text, context, templateUri);
     }
 
@@ -416,7 +410,6 @@ public final class A2ATClient {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateRejectFromText(text, context, templateUri);
     }
 
@@ -446,7 +439,6 @@ public final class A2ATClient {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.generateAbortFromText(text, context, templateUri);
     }
 
@@ -475,35 +467,7 @@ public final class A2ATClient {
      * @return the addressed template, or an empty optional when no template exists for it in the configured language
      */
     public Optional<PromptTemplate> getPrompt(@NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return templateQueryService.getPrompt(templateUri);
-    }
-
-    /**
-     * Lists every negotiation template available for the configured language.
-     *
-     * <p>This query never throws: templates that exist nowhere for the language are skipped and an empty list is
-     * returned when no template can be loaded at all.
-     *
-     * @return loadable negotiation templates of the configured language, in a fixed type and phase order; empty when
-     *     none can be loaded
-     */
-    public List<PromptTemplate> getNegotiationPrompts() {
-        return negotiationContentService.getNegotiationPrompts();
-    }
-
-    /**
-     * Loads one negotiation template by its URI.
-     *
-     * <p>This query never throws: a missing template yields an empty result together with a warning log instead of a
-     * failure.
-     *
-     * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}
-     * @return the addressed template, or an empty optional when no template exists for it in the configured language
-     */
-    public Optional<PromptTemplate> getNegotiationPrompt(@NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
-        return negotiationContentService.getNegotiationPrompt(templateUri);
     }
 
     /**
@@ -536,7 +500,6 @@ public final class A2ATClient {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.validateProposePromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -568,7 +531,6 @@ public final class A2ATClient {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.validateAcceptPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -600,7 +562,6 @@ public final class A2ATClient {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.validateRejectPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -632,7 +593,6 @@ public final class A2ATClient {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "templateUri");
         return negotiationContentService.validateAbortPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 }

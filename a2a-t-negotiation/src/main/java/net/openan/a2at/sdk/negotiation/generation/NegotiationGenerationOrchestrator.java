@@ -3,7 +3,6 @@ package net.openan.a2at.sdk.negotiation.generation;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.core.exception.A2ATParamExtractionError;
@@ -52,10 +51,6 @@ public final class NegotiationGenerationOrchestrator {
     private static final Logger DEFAULT_LOGGER = LoggerFactory.getLogger(NegotiationGenerationOrchestrator.class);
 
     private static final String STEP_CONTENT_EXTRACT = "negotiation_content_extract";
-
-    private static final String LANGUAGE_HINT =
-            "set A2AT_LANGUAGE to a language with bundled templates (zh-CN or en-US) or provide the template under"
-                    + " the local resource root";
 
     private final String language;
 
@@ -304,59 +299,6 @@ public final class NegotiationGenerationOrchestrator {
     }
 
     /**
-     * Lists every negotiation template available for the configured language.
-     *
-     * <p>This query never throws: templates that exist nowhere for the language are skipped and an empty list is
-     * returned when no template can be loaded at all.
-     *
-     * @return loadable negotiation templates of the configured language, in a fixed type and phase order; empty when
-     *     none can be loaded
-     */
-    public List<PromptTemplate> getNegotiationPrompts() {
-        try {
-            return templateLoader.loadAll();
-        } catch (ResourceNotFoundException exception) {
-            logger.atWarn().log("negotiation_template_not_found uri=all language={} hint={}", language, LANGUAGE_HINT);
-            return List.of();
-        }
-    }
-
-    /**
-     * Loads one negotiation template addressed by its URI.
-     *
-     * <p>This query never throws: a URI that does not address a negotiation template or a template that exists nowhere
-     * for the configured language returns an empty result and logs an actionable warning.
-     *
-     * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}
-     * @return the addressed template, or an empty result when the URI does not address a negotiation template or the
-     *     template does not exist for the configured language
-     * @throws NullPointerException if the template URI is null
-     */
-    public Optional<PromptTemplate> getNegotiationPrompt(@NonNull TemplateUri templateUri) {
-        Optional<NegotiationReference> reference = parseQueryReference(templateUri);
-        if (reference.isEmpty()) {
-            logger.atWarn()
-                    .log(
-                            "negotiation_template_not_found uri={} language={} reason=invalid_template_uri hint={}",
-                            templateUri.uri(),
-                            language,
-                            LANGUAGE_HINT);
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(templateLoader.load(reference.get()));
-        } catch (ResourceNotFoundException exception) {
-            logger.atWarn()
-                    .log(
-                            "negotiation_template_not_found uri={} language={} hint={}",
-                            templateUri.uri(),
-                            language,
-                            LANGUAGE_HINT);
-            return Optional.empty();
-        }
-    }
-
-    /**
      * Validates a propose-phase negotiation message and extracts its parameters.
      *
      * <p>The pipeline checks the template URI before any LLM call, runs the deterministic rule gate, then performs one
@@ -576,15 +518,8 @@ public final class NegotiationGenerationOrchestrator {
         Objects.requireNonNull(schema, "Parameter schema must not be null.");
         requirePromptWithinLimit(prompt);
         NegotiationReference reference = requireReference(templateUri, performative);
-        String templateContent;
         try {
-            templateContent = loadTemplate(reference).content();
-        } catch (NegotiationGenerationException exception) {
-            throw new NegotiationParamExtractionException(
-                    exception.getCode(), exception.getMessage(), List.of(), exception);
-        }
-        try {
-            return paramExtractor.extract(prompt, context, schema, reference, templateContent);
+            return paramExtractor.extract(prompt, context, schema, reference);
         } catch (NegotiationParamExtractionException failure) {
             logger.atWarn()
                     .log(
@@ -609,22 +544,6 @@ public final class NegotiationGenerationOrchestrator {
                         "Template URI does not address a negotiation template of the expected performative "
                                 + performative + " (" + NegotiationReference.uriSegmentOf(performative) + "): "
                                 + templateUri.uri() + "."));
-    }
-
-    private Optional<NegotiationReference> parseQueryReference(TemplateUri templateUri) {
-        // The URI layer cannot distinguish accept from reject because both performatives share the accept-reject
-        // template segment. The query therefore addresses the shared template through the ACCEPT performative; the
-        // parsed performative is an addressing artifact only and must never be read as the performative of any
-        // message. The abort performative addresses the type-independent common abort template.
-        for (NegotiationPerformative performative :
-                List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT, NegotiationPerformative.ABORT)) {
-            Optional<NegotiationReference> reference =
-                    NegotiationReference.fromTemplateUri(templateUri, performative, language);
-            if (reference.isPresent()) {
-                return reference;
-            }
-        }
-        return Optional.empty();
     }
 
     /**

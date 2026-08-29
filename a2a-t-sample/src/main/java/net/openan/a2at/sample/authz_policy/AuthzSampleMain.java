@@ -33,7 +33,6 @@ import net.openan.a2at.sdk.core.validation.ContentValidator;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.llm.LLMClientConfig;
 import net.openan.a2at.sdk.llm.LLMClientFactory;
-import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
 import net.openan.a2at.sdk.server.A2ATServer;
 import net.openan.a2at.sdk.server.assembly.DefaultA2ATServerBuilder;
 
@@ -209,7 +208,7 @@ public final class AuthzSampleMain {
                 return client.generateAuthPromptFromDataWithSchema(data, schema, templateUri);
             };
         }
-        A2ATConfig config = NegotiationContentService.resolvePromptResourceLocalRootDir(
+        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(
                 A2ATConfig.load(envPath), envPath);
         LLMClient real = LLMClientFactory.create(
                 config.llm().provider(), LLMClientConfig.from(config.llm()));
@@ -235,7 +234,7 @@ public final class AuthzSampleMain {
             A2ATServer server = new A2ATServer(envPath);
             return server::validateAuthPromptAndDataFilling;
         }
-        A2ATConfig config = NegotiationContentService.resolvePromptResourceLocalRootDir(
+        A2ATConfig config = A2ATConfig.resolvePromptResourceLocalRootDir(
                 A2ATConfig.load(envPath), envPath);
         LLMClient real = LLMClientFactory.create(
                 config.llm().provider(), LLMClientConfig.from(config.llm()));

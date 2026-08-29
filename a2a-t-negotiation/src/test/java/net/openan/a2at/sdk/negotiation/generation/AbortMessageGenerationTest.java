@@ -20,6 +20,7 @@ import net.openan.a2at.sdk.negotiation.content.NegotiationAbortData;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
+import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -128,8 +129,8 @@ class AbortMessageGenerationTest {
 
     @Test
     void singleQueryResolvesTheCommonAbortTemplateUri() {
-        assertTrue(orchestrator("zh-CN").getNegotiationPrompt(ABORT_URI).isPresent());
-        assertTrue(orchestrator("en-US").getNegotiationPrompt(ABORT_URI).isPresent());
+        assertTrue(new TemplateQueryService("zh-CN", "classpath", null).getPrompt(ABORT_URI).isPresent());
+        assertTrue(new TemplateQueryService("en-US", "classpath", null).getPrompt(ABORT_URI).isPresent());
     }
 
     @Test

@@ -42,7 +42,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Verifies the output symmetry of the negotiation content layer across the client and the server facade.
  *
- * <p>Both facades expose the eleven negotiation API methods as one symmetric surface and produce, for identical inputs,
+ * <p>Both facades expose the twelve negotiation API methods as one symmetric surface and produce, for identical inputs,
  * identical generation results: the whole MetadataContent record and the metadata map built from it are equal on both
  * sides. The inputs are the fixed golden fixture inputs of the negotiation module, so this test also proves that both
  * facades are wired to the same built-in resources.
@@ -67,8 +67,6 @@ class NegotiationFacadeOutputSymmetryTest {
             "generateNegotiationAcceptPromptFromText",
             "generateNegotiationRejectPromptFromText",
             "generateNegotiationAbortPromptFromText",
-            "getNegotiationPrompts",
-            "getNegotiationPrompt",
             "validateProposePromptAndDataFilling",
             "validateAcceptPromptAndDataFilling",
             "validateRejectPromptAndDataFilling",
@@ -78,7 +76,7 @@ class NegotiationFacadeOutputSymmetryTest {
     Path tempDir;
 
     @Test
-    void bothFacadesExposeTheSameFourteenMethodSignatures() {
+    void bothFacadesExposeTheSameTwelveMethodSignatures() {
         Map<String, String> clientSurface = negotiationApiSurface(A2ATClient.class);
         Map<String, String> serverSurface = negotiationApiSurface(A2ATServer.class);
 

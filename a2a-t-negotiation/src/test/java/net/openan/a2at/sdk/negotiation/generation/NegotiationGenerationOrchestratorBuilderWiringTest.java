@@ -2,6 +2,7 @@ package net.openan.a2at.sdk.negotiation.generation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.qos.logback.classic.Level;
@@ -23,10 +24,14 @@ import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
+import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
+import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
+import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationComplianceChecker;
 import net.openan.a2at.sdk.negotiation.validation.NegotiationRuleCheckResult;
 import org.junit.jupiter.api.AfterEach;
@@ -133,6 +138,26 @@ class NegotiationGenerationOrchestratorBuilderWiringTest {
                 INFORMATION_PROPOSE_URI);
 
         assertTrue(checker.calls.get() >= 1, "the injected compliance checker must be used");
+    }
+
+    @Test
+    void nullTemplateContentFromCustomLoaderIsReportedAsTemplateNotFoundNotNpe() {
+        NegotiationTemplateLoader nullContentLoader = reference -> new PromptTemplate(
+                reference.templateUri(), "", null, PromptTemplate.SOURCE_CLASSPATH);
+        NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
+                .language("zh-CN")
+                .templateLoader(nullContentLoader)
+                .build();
+
+        NegotiationParamExtractionException exception = assertThrows(
+                NegotiationParamExtractionException.class,
+                () -> orchestrator.validateProposePromptAndDataFilling(
+                        "## 所需信息项\n1. 区域\n",
+                        new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE),
+                        Map.of("type", "object"),
+                        INFORMATION_PROPOSE_URI));
+
+        assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, exception.getCode());
     }
 
     @Test

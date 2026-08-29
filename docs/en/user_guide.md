@@ -153,7 +153,7 @@ The client will:
 | --- | --- |
 | `A2AT_LANGUAGE` | Prompt resource language, commonly `zh-CN` |
 | `A2AT_PROMPT_SOURCE_TYPE` | Prompt resource source, supports `classpath` and `local_file`; default is `classpath` |
-| `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` | Local prompt resource root directory |
+| `A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR` | Local prompt resource root directory; required in `local_file` mode (assembly-time fail-fast if unset or the path does not exist); only business content (templates/slots/scenarios of Task-T/Notification-T/Authorization-T) is read from this root, while negotiation resources and LLM prompts are always loaded from the classpath |
 | `A2AT_LLM_PROVIDER` | LLM provider, sample uses `openai` |
 | `A2AT_LLM_MODEL` | Model name |
 | `A2AT_LLM_BASE_URL` | LLM service address |

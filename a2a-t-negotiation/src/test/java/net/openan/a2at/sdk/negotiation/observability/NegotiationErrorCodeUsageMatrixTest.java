@@ -382,11 +382,6 @@ class NegotiationErrorCodeUsageMatrixTest {
             public PromptTemplate load(NegotiationReference reference) {
                 throw new ResourceNotFoundException("Negotiation template does not exist.", reference.uri());
             }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                return List.of();
-            }
         };
     }
 
@@ -394,12 +389,7 @@ class NegotiationErrorCodeUsageMatrixTest {
         return new NegotiationTemplateLoader() {
             @Override
             public PromptTemplate load(NegotiationReference reference) {
-                return new PromptTemplate(reference.templateUri(), "broken template", null);
-            }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                return List.of();
+                return new PromptTemplate(reference.templateUri(), "broken template", null, "classpath");
             }
         };
     }

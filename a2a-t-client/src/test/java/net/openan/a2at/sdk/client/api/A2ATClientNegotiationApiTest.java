@@ -83,10 +83,8 @@ class A2ATClientNegotiationApiTest {
 
     @Test
     void listsAllSevenNegotiationTemplatesPerLanguage() throws IOException {
-        assertEquals(
-                7, new A2ATClient(writeEnv("zh-CN")).getNegotiationPrompts().size());
-        assertEquals(
-                7, new A2ATClient(writeEnv("en-US")).getNegotiationPrompts().size());
+        assertEquals(7, negotiationPrompts(new A2ATClient(writeEnv("zh-CN"))).size());
+        assertEquals(7, negotiationPrompts(new A2ATClient(writeEnv("en-US"))).size());
     }
 
     @Test
@@ -127,7 +125,7 @@ class A2ATClientNegotiationApiTest {
         A2ATClient client = new A2ATClient(writeEnv("zh-CN"));
 
         PromptTemplate template =
-                client.getNegotiationPrompt(StandardTemplates.NEGOTIATION_ABORT).orElseThrow();
+                client.getPrompt(StandardTemplates.NEGOTIATION_ABORT).orElseThrow();
         assertEquals(StandardTemplates.NEGOTIATION_ABORT, template.templateUri());
         assertFalse(template.content().isBlank());
     }
@@ -136,16 +134,23 @@ class A2ATClientNegotiationApiTest {
     void queriesSingleNegotiationTemplateWithoutThrowing() throws IOException {
         A2ATClient client = new A2ATClient(writeEnv("zh-CN"));
 
-        assertTrue(client.getNegotiationPrompt(INFORMATION_PROPOSE).isPresent());
+        assertTrue(client.getPrompt(INFORMATION_PROPOSE).isPresent());
         assertTrue(client
-                .getNegotiationPrompt(StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT)
+                .getPrompt(StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT)
                 .isPresent());
         assertFalse(client
-                .getNegotiationPrompt(TemplateUri.of("Negotiation-T", List.of("information-negotiation", "propose"), "v9"))
+                .getPrompt(TemplateUri.of("Negotiation-T", List.of("information-negotiation", "propose"), "v9"))
                 .isPresent());
-        PromptTemplate template = client.getNegotiationPrompt(INFORMATION_PROPOSE).orElseThrow();
+        PromptTemplate template = client.getPrompt(INFORMATION_PROPOSE).orElseThrow();
         assertEquals(INFORMATION_PROPOSE, template.templateUri());
         assertFalse(template.content().isBlank());
+    }
+
+    private static List<PromptTemplate> negotiationPrompts(A2ATClient client) {
+        return client.getPrompts().stream()
+                .filter(template -> StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
     }
 
     private static Path writeEnv(String language) throws IOException {

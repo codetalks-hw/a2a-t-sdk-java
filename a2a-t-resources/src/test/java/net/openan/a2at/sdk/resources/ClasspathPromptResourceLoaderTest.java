@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.TemplateUri;
@@ -65,5 +69,38 @@ class ClasspathPromptResourceLoaderTest {
         assertTrue(text.contains("high"));
         assertTrue(text.contains("medium"));
         assertTrue(text.contains("low"));
+    }
+
+    @Test
+    void servesTheCachedValueAfterTheClasspathResourceIsAlteredOnDisk() throws Exception {
+        PromptResourceKey key = PromptResourceKey.prompt("slot_extraction", "en-US", "system.md");
+        String first = loader.loadText(key);
+
+        Path resourceFile = testResourceFile("prompt_resources/prompts/slot_extraction/en-US/system.md");
+        String original = Files.readString(resourceFile, StandardCharsets.UTF_8);
+        Files.writeString(resourceFile, "changed on disk", StandardCharsets.UTF_8);
+        try {
+            assertEquals(first, loader.loadText(key));
+        } finally {
+            Files.writeString(resourceFile, original, StandardCharsets.UTF_8);
+        }
+    }
+
+    @Test
+    void doesNotCacheMissingResourcesAndKeepsThrowing() {
+        PromptResourceKey key = PromptResourceKey.template(
+                TemplateUri.of("Task-T", "network-layer", "missing_scenario"), "en-US", "template.md");
+
+        assertThrows(ResourceNotFoundException.class, () -> loader.loadText(key));
+        assertThrows(ResourceNotFoundException.class, () -> loader.loadText(key));
+    }
+
+    private static Path testResourceFile(String classpathPath) throws Exception {
+        URL resource = ClasspathPromptResourceLoaderTest.class.getClassLoader().getResource(classpathPath);
+        if (resource == null || !"file".equals(resource.getProtocol())) {
+            throw new IllegalStateException(
+                    "test resource not reachable as a file URL: " + classpathPath + " -> " + resource);
+        }
+        return Path.of(resource.toURI());
     }
 }

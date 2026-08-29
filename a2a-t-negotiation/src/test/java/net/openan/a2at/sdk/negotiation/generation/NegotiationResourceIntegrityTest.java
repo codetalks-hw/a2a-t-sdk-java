@@ -60,7 +60,7 @@ class NegotiationResourceIntegrityTest {
     void allTwelveTemplatesExistAndAreNonEmptyOnTheClasspath() {
         int templateCount = 0;
         for (String language : NegotiationGoldenCases.LANGUAGES) {
-            DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader(language, null);
+            DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader(language);
             for (NegotiationType type : NegotiationType.values()) {
                 for (NegotiationPerformative performative :
                         List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT)) {
@@ -84,7 +84,7 @@ class NegotiationResourceIntegrityTest {
         List<String> allSlotNames = new ArrayList<>();
         List<String> slotsDifferingFromTheirTitle = new ArrayList<>();
 
-        for (PromptTemplate template : new DefaultNegotiationTemplateLoader(language, null).loadAll()) {
+        for (PromptTemplate template : allTemplates(language)) {
             for (Section section : sectionsOf(template.content())) {
                 if (section.slotMarkerLine == null) {
                     continue;
@@ -199,6 +199,19 @@ class NegotiationResourceIntegrityTest {
             valuesToKeys.put(vocabulary.get(key), key);
         }
         return valuesToKeys;
+    }
+
+    private static List<PromptTemplate> allTemplates(String language) {
+        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader(language);
+        List<PromptTemplate> templates = new ArrayList<>();
+        for (NegotiationType type : NegotiationType.values()) {
+            for (NegotiationPerformative performative :
+                    List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT)) {
+                templates.add(loader.load(new NegotiationReference(type, performative, language)));
+            }
+        }
+        templates.add(loader.load(new NegotiationReference(null, NegotiationPerformative.ABORT, language)));
+        return templates;
     }
 
     private static List<Section> sectionsOf(String templateContent) {

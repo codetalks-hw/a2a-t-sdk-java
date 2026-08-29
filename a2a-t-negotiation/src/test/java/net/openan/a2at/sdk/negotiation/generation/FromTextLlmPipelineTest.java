@@ -603,11 +603,6 @@ class FromTextLlmPipelineTest {
             public PromptTemplate load(NegotiationReference reference) {
                 throw new ResourceNotFoundException("Negotiation template does not exist.", reference.uri());
             }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                return List.of();
-            }
         };
     }
 
