@@ -8,20 +8,19 @@
         "type": "string",
         "description": "业务字段：接入端口名称，唯一标识被投诉的专线对象,物理端口格式为：网元名称-单板号-单板型号-端口号；逻辑端口在末尾追加(cvlan=接入vlanid)",
         "examples": [
-          "P781-珠江新城-PTN7900-23-TPA1EG24-17",
-          "P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100)"
+          "P781-KXVN-PTN7900-23-TPA1EG24-17",
+          "P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100)"
         ]
       },
       "complaintScenario": {
         "type": "string",
-        "description": "业务字段：投诉分类场景，专线中断或专线质差二者必选其一",
+        "description": "业务字段：投诉分类场景，专线中断或专线质差",
         "enum": [
           "专线中断",
           "专线质差"
         ],
         "examples": [
-          "专线中断",
-          "专线质差"
+          "专线中断"
         ]
       },
       "faultStartTime": {
@@ -33,7 +32,7 @@
       },
       "ticketNo": {
         "type": "string",
-        "description": "业务字段：OSS 侧受理的投诉工单或事件流水号，供诊断回溯关联",
+        "description": "业务字段：OSS 侧受理的投诉工单或事件流水号，供诊断回溯关联,必填字段",
         "examples": [
           "event-id-20260511-09013"
         ]
@@ -60,8 +59,8 @@
         "type": "string",
         "description": "接入端口名称，唯一标识被投诉的专线对象，必填，须与投诉对象一致",
         "examples": [
-          "P781-珠江新城-PTN7900-23-TPA1EG24-17",
-          "P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100)"
+          "P781-KXVN-PTN7900-23-TPA1EG24-17",
+          "P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100)"
         ]
       },
       "bizScenario": {
@@ -72,7 +71,6 @@
           "专线质差"
         ],
         "examples": [
-          "专线中断",
           "专线质差"
         ]
       },
@@ -85,7 +83,7 @@
       },
       "eventSerialNo": {
         "type": "string",
-        "description": "OSS 侧受理的投诉工单或事件流水号",
+        "description": "OSS 侧受理的投诉工单或事件流水号，必填",
         "examples": [
           "event-id-20260511-09013"
         ]
@@ -107,11 +105,11 @@
     {
       "name": "text-private-line-quality",
       "kind": "text",
-      "text": "帮我创建专线投诉诊断任务，P781-珠江新城-PTN7900-23-TPA1EG24-17 这个端口，客户报的是专线质差，从2026年5月11号早上8点半开始，深圳访问广州的核心系统非常慢，时延从12ms飙到320ms，柜面和手机银行老是报连接超时，OSS流水号是event-id-20260511-09013。",
+      "text": "帮我创建专线投诉诊断任务，P781-KXVN-PTN7900-23-TPA1EG24-17 这个端口，客户报的是专线质差，从2026年5月11号早上8点半开始，深圳访问广州的核心系统非常慢，时延从12ms飙到320ms，柜面和手机银行老是报连接超时，OSS流水号是event-id-20260511-09013。",
       "expected": {
-        "accessPort": "P781-珠江新城-PTN7900-23-TPA1EG24-17",
+        "accessPort": "P781-KXVN-PTN7900-23-TPA1EG24-17",
         "bizScenario": "专线质差",
-        "faultTime": "2026-05-11",
+        "faultTime": "5月11号",
         "eventSerialNo": "event-id-20260511-09013",
         "faultDetail": "320ms"
       }
@@ -119,11 +117,11 @@
     {
       "name": "text-logical-port-interruption",
       "kind": "text",
-      "text": "创建专线业务投诉诊断，P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100) 这条链路，2026年5月16号中午12点10分以后深圳到上海专线完全中断，核心系统都访问不了，分类是专线中断，流水号fault-id-1-017-20260516-11234。",
+      "text": "创建专线业务投诉诊断，P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100) 这条链路，2026年5月16号中午12点10分以后深圳到上海专线完全中断，核心系统都访问不了，分类是专线中断，流水号fault-id-1-017-20260516-11234。",
       "expected": {
-        "accessPort": "P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100)",
+        "accessPort": "P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100)",
         "bizScenario": "专线中断",
-        "faultTime": "2026-05-16",
+        "faultTime": "5月16号",
         "eventSerialNo": "fault-id-1-017-20260516-11234",
         "faultDetail": "完全中断"
       }
@@ -131,11 +129,11 @@
     {
       "name": "text-port-quality-jitter",
       "kind": "text",
-      "text": "麻烦看下 P781-惠州江北-PTN7900-7-TPA1EG24-21 这条专线，5月22号下午两点多起时延跳得厉害，丢包最高到15%，视频会议一直卡，分类是专线质差，流水号event-id-20260522-00812。",
+      "text": "麻烦看下 P781-PTZS-PTN7900-7-TPA1EG24-21 这条专线，5月22号下午两点多起时延跳得厉害，丢包最高到15%，视频会议一直卡，分类是专线质差，流水号event-id-20260522-00812。",
       "expected": {
-        "accessPort": "P781-惠州江北-PTN7900-7-TPA1EG24-21",
+        "accessPort": "P781-PTZS-PTN7900-7-TPA1EG24-21",
         "bizScenario": "专线质差",
-        "faultTime": "2026-05-22",
+        "faultTime": "5月22号",
         "eventSerialNo": "event-id-20260522-00812",
         "faultDetail": "丢包"
       }
@@ -143,11 +141,11 @@
     {
       "name": "text-port-interruption-route",
       "kind": "text",
-      "text": "创建专线投诉诊断，P781-南沙-PTN7900-9-TPA1EG24-31 这条专线，6月3号早上9点40分起彻底不通，上海到北京核心系统全部访问不了，客户报的是专线中断，流水号event-id-20260603-02341。",
+      "text": "创建专线投诉诊断，P781-FDWC-PTN7900-9-TPA1EG24-31 这条专线，6月3号早上9点40分起彻底不通，上海到北京核心系统全部访问不了，客户报的是专线中断，流水号event-id-20260603-02341。",
       "expected": {
-        "accessPort": "P781-南沙-PTN7900-9-TPA1EG24-31",
+        "accessPort": "P781-FDWC-PTN7900-9-TPA1EG24-31",
         "bizScenario": "专线中断",
-        "faultTime": "2026-06-03",
+        "faultTime": "6月3号",
         "eventSerialNo": "event-id-20260603-02341",
         "faultDetail": "彻底不通"
       }
@@ -155,11 +153,11 @@
     {
       "name": "text-port-quality-latency",
       "kind": "text",
-      "text": "帮我诊断下 P781-天河体育西-PTN7900-4-TPA1EG24-11 端口的问题，6月8号下午3点多开始网络变差，深圳到上海时延忽高忽低最高接近500ms，视频会议直接开不了，分类专线质差，流水号event-id-20260608-01102。",
+      "text": "帮我诊断下 P781-LJVK-PTN7900-4-TPA1EG24-11 端口的问题，6月8号下午3点多开始网络变差，深圳到上海时延忽高忽低最高接近500ms，视频会议直接开不了，分类专线质差，流水号event-id-20260608-01102。",
       "expected": {
-        "accessPort": "P781-天河体育西-PTN7900-4-TPA1EG24-11",
+        "accessPort": "P781-LJVK-PTN7900-4-TPA1EG24-11",
         "bizScenario": "专线质差",
-        "faultTime": "2026-06-08",
+        "faultTime": "6月8号",
         "eventSerialNo": "event-id-20260608-01102",
         "faultDetail": "时延"
       }
@@ -167,11 +165,11 @@
     {
       "name": "text-logical-port-interruption-vlan",
       "kind": "text",
-      "text": "看下 P781-宝安中心-PTN7900-6-TPA1EG24-27(cvlan=200) 这条链路，2026年6月12号晚上8点起就彻底连不上了，柜面交易全部失败，客户说是专线中断，流水号fault-id-9-023-20260612-04578。",
+      "text": "看下 P781-NRQF-PTN7900-6-TPA1EG24-27(cvlan=200) 这条链路，2026年6月12号晚上8点起就彻底连不上了，柜面交易全部失败，客户说是专线中断，流水号fault-id-9-023-20260612-04578。",
       "expected": {
-        "accessPort": "P781-宝安中心-PTN7900-6-TPA1EG24-27(cvlan=200)",
+        "accessPort": "P781-NRQF-PTN7900-6-TPA1EG24-27(cvlan=200)",
         "bizScenario": "专线中断",
-        "faultTime": "2026-06-12",
+        "faultTime": "6月12号",
         "eventSerialNo": "fault-id-9-023-20260612-04578",
         "faultDetail": "连不上"
       }
@@ -180,14 +178,14 @@
       "name": "data-port-quality",
       "kind": "data",
       "data": {
-        "portName": "P781-福田中心-PTN7900-2-TPA1EG24-03",
-        "complaintScenario": "专线质差",
+        "portName": "P781-YSXR-PTN7900-2-TPA1EG24-03",
+        "complaintScenario": "",
         "faultStartTime": "2026-05-11T08:21:46Z",
         "ticketNo": "event-id-20260511-09013",
-        "faultDetailText": "从5月11号早上8点半开始，深圳访问广州的响应时延从平均12ms骤升至320ms、峰值达480ms，访问广州机房的核心交易系统响应非常慢，柜面和手机银行的交易接口频繁报\"连接超时\"，正常业务操作要等十几秒甚至半分钟才能返回结果；OSS侧预处理：该时段无割接与网元告警，初步判断链路存在拥塞或丢包。"
+        "faultDetailText": "深圳访问广州的响应时延从平均12ms骤升至320ms、峰值达480ms，访问广州机房的核心交易系统响应非常慢，柜面和手机银行的交易接口频繁报\"连接超时\"，正常业务操作要等十几秒甚至半分钟才能返回结果；OSS侧预处理：该时段无割接与网元告警，初步判断链路存在拥塞或丢包。"
       },
       "expected": {
-        "accessPort": "P781-福田中心-PTN7900-2-TPA1EG24-03",
+        "accessPort": "P781-YSXR-PTN7900-2-TPA1EG24-03",
         "bizScenario": "专线质差",
         "faultTime": "2026-05-11T08:21:46Z",
         "eventSerialNo": "event-id-20260511-09013",
@@ -198,14 +196,14 @@
       "name": "data-logical-port-interruption",
       "kind": "data",
       "data": {
-        "portName": "P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100)",
+        "portName": "P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100)",
         "complaintScenario": "专线中断",
         "faultStartTime": "2026-05-16T12:10:00Z",
         "ticketNo": "fault-id-1-017-20260516-11234",
-        "faultDetailText": "2026年5月16日12时10分起，深圳前海机房至上海数据中心的专线业务完全中断，业务流量归零，核心交易系统无法访问，影响柜面及手机银行交易；对端网关ping丢包率100%，测试光功率正常、端口无物理告警，OSS预处理无割接操作，怀疑中间路由或设备转发存在问题。"
+        "faultDetailText": "深圳前海机房至上海数据中心的专线业务完全中断，业务流量归零，核心交易系统无法访问，影响柜面及手机银行交易；对端网关ping丢包率100%，测试光功率正常、端口无物理告警，OSS预处理无割接操作，怀疑中间路由或设备转发存在问题。"
       },
       "expected": {
-        "accessPort": "P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100)",
+        "accessPort": "P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100)",
         "bizScenario": "专线中断",
         "faultTime": "2026-05-16T12:10:00Z",
         "eventSerialNo": "fault-id-1-017-20260516-11234",
@@ -216,14 +214,14 @@
       "name": "data-port-jitter",
       "kind": "data",
       "data": {
-        "portName": "P781-惠州江北-PTN7900-7-TPA1EG24-21",
+        "portName": "P781-PTZS-PTN7900-7-TPA1EG24-21",
         "complaintScenario": "专线质差",
         "faultStartTime": "2026-05-22T14:05:00Z",
         "ticketNo": "event-id-20260522-00812",
-        "faultDetailText": "2026年5月22日14:05起晚间高峰，专线时延抖动明显，ping对端时延在60ms~200ms间波动，平均丢包率约5%、峰值达15%，视频会议频繁卡顿、语音断续，核心业务交易超时；OSS未见割接告警，初步判断城域网链路拥塞并伴路由震荡。"
+        "faultDetailText": "晚间高峰，专线时延抖动明显，ping对端时延在60ms~200ms间波动，平均丢包率约5%、峰值达15%，视频会议频繁卡顿、语音断续，核心业务交易超时；OSS未见割接告警，初步判断城域网链路拥塞并伴路由震荡。"
       },
       "expected": {
-        "accessPort": "P781-惠州江北-PTN7900-7-TPA1EG24-21",
+        "accessPort": "P781-PTZS-PTN7900-7-TPA1EG24-21",
         "bizScenario": "专线质差",
         "faultTime": "2026-05-22T14:05:00Z",
         "eventSerialNo": "event-id-20260522-00812",
@@ -234,14 +232,14 @@
       "name": "data-logical-port-interruption-route",
       "kind": "data",
       "data": {
-        "portName": "P781-云浮-PTN7900-1-TPA1EG24-08(cvlan=300)",
+        "portName": "P781-GHMT-PTN7900-1-TPA1EG24-08(cvlan=300)",
         "complaintScenario": "专线中断",
         "faultStartTime": "2026-06-03T09:40:00Z",
         "ticketNo": "event-id-20260603-02341",
-        "faultDetailText": "2026年6月3日09:40起，深圳云浮机房至北京数据中心的专线业务完全中断，业务流量归零，核心交易系统无法访问，影响柜面及手机银行交易；对端网关ping丢包率100%，两端光功率正常、端口无物理告警，OSS预处理无割接操作，怀疑中间路由或设备转发异常。"
+        "faultDetailText": "深圳云浮机房至北京数据中心的专线业务完全中断，业务流量归零，核心交易系统无法访问，影响柜面及手机银行交易；对端网关ping丢包率100%，两端光功率正常、端口无物理告警，OSS预处理无割接操作，怀疑中间路由或设备转发异常。"
       },
       "expected": {
-        "accessPort": "P781-云浮-PTN7900-1-TPA1EG24-08(cvlan=300)",
+        "accessPort": "P781-GHMT-PTN7900-1-TPA1EG24-08(cvlan=300)",
         "bizScenario": "专线中断",
         "faultTime": "2026-06-03T09:40:00Z",
         "eventSerialNo": "event-id-20260603-02341",
@@ -252,14 +250,14 @@
       "name": "data-port-quality-loss",
       "kind": "data",
       "data": {
-        "portName": "P781-珠海吉大-PTN7900-6-TPA1EG24-13",
+        "portName": "P781-CWDV-PTN7900-6-TPA1EG24-13",
         "complaintScenario": "专线质差",
         "faultStartTime": "2026-06-08T15:20:00Z",
         "ticketNo": "event-id-20260608-01102",
-        "faultDetailText": "2026年6月8日15:20起晚间时段，专线时延剧烈波动，ping对端时延在80ms~500ms间跳动、峰值达480ms，平均丢包率约8%、峰值15%，视频会议频繁卡顿、语音断续，核心业务交易超时；OSS未见割接告警，初步判断城域网链路拥塞并伴路由震荡。"
+        "faultDetailText": "晚间时段，专线时延剧烈波动，ping对端时延在80ms~500ms间跳动、峰值达480ms，平均丢包率约8%、峰值15%，视频会议频繁卡顿、语音断续，核心业务交易超时；OSS未见割接告警，初步判断城域网链路拥塞并伴路由震荡。"
       },
       "expected": {
-        "accessPort": "P781-珠海吉大-PTN7900-6-TPA1EG24-13",
+        "accessPort": "P781-CWDV-PTN7900-6-TPA1EG24-13",
         "bizScenario": "专线质差",
         "faultTime": "2026-06-08T15:20:00Z",
         "eventSerialNo": "event-id-20260608-01102",
@@ -270,14 +268,14 @@
       "name": "data-port-quality-core-slow",
       "kind": "data",
       "data": {
-        "portName": "P781-罗湖东门-PTN7900-8-TPA1EG24-15",
+        "portName": "P781-TJPN-PTN7900-8-TPA1EG24-15",
         "complaintScenario": "专线质差",
         "faultStartTime": "2026-06-18T10:05:00Z",
         "ticketNo": "event-id-20260618-03342",
-        "faultDetailText": "2026年6月18日10:05起，深圳访问香港核心系统的响应时延从平均8ms骤升至180ms、峰值达250ms，柜面及手机银行接口频繁报\"连接超时\"，正常操作需等待数十秒；OSS侧预处理该时段无割接与网元告警，初步判断链路存在拥塞或丢包。"
+        "faultDetailText": "深圳访问香港核心系统的响应时延从平均8ms骤升至180ms、峰值达250ms，柜面及手机银行接口频繁报\"连接超时\"，正常操作需等待数十秒；OSS侧预处理该时段无割接与网元告警，初步判断链路存在拥塞或丢包。"
       },
       "expected": {
-        "accessPort": "P781-罗湖东门-PTN7900-8-TPA1EG24-15",
+        "accessPort": "P781-TJPN-PTN7900-8-TPA1EG24-15",
         "bizScenario": "专线质差",
         "faultTime": "2026-06-18T10:05:00Z",
         "eventSerialNo": "event-id-20260618-03342",
@@ -287,9 +285,9 @@
     {
       "name": "text-optional-slots-missing",
       "kind": "text",
-      "text": "麻烦看下 P781-番禺广场-PTN7900-3-TPA1EG24-19 这条专线，客户报的是专线质差，视频会议频繁卡顿，时延抖动快到300ms，帮我创建投诉诊断任务。",
+      "text": "麻烦看下 P781-BZHK-PTN7900-3-TPA1EG24-19 这条专线，客户报的是专线质差，视频会议频繁卡顿，时延抖动快到300ms，帮我创建投诉诊断任务。",
       "expected": {
-        "accessPort": "P781-番禺广场-PTN7900-3-TPA1EG24-19",
+        "accessPort": "P781-BZHK-PTN7900-3-TPA1EG24-19",
         "bizScenario": "专线质差",
         "faultDetail": "卡顿"
       }
@@ -298,12 +296,12 @@
       "name": "data-optional-slots-missing",
       "kind": "data",
       "data": {
-        "portName": "P781-番禺市桥-PTN7900-7-TPA1EG24-18",
+        "portName": "P781-RMQF-PTN7900-7-TPA1EG24-18",
         "complaintScenario": "专线中断",
         "faultDetailText": "专线业务完全中断，核心交易系统无法访问，对端网关ping丢包率100%，流量归零。"
       },
       "expected": {
-        "accessPort": "P781-番禺市桥-PTN7900-7-TPA1EG24-18",
+        "accessPort": "P781-RMQF-PTN7900-7-TPA1EG24-18",
         "bizScenario": "专线中断",
         "faultDetail": "完全中断"
       }
@@ -318,7 +316,7 @@
     {
       "name": "text-missing-scenario",
       "kind": "text",
-      "text": "创建专线业务投诉诊断，P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100) 这条链路，从2026年5月16号中午12点10分开始，深圳到上海专线访问质量明显下降，核心系统访问变慢，麻烦帮忙处理一下，流水号fault-id-1-017-20260516-11234。"
+      "text": "创建专线业务投诉诊断，P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100) 这条链路，发生时间2026年5月16号中午12点10分，流水号fault-id-1-017-20260516-11234。"
     },
     {
       "name": "text-minimal-no-key-fields",
@@ -328,7 +326,7 @@
     {
       "name": "text-missing-scenario-and-serial",
       "kind": "text",
-      "text": "帮忙看下 P781-珠江新城-PTN7900-23-TPA1EG24-17 这条专线，5月11号早上8点半开始访问广州核心系统非常慢，时延从12ms飙到320ms，柜面银行老是超时，帮我诊断一下。"
+      "text": "帮忙看下 P781-KXVN-PTN7900-23-TPA1EG24-17 这条专线，5月11号早上8点半，帮我诊断一下。"
     },
     {
       "name": "data-missing-port",
@@ -344,17 +342,17 @@
       "name": "data-missing-scenario",
       "kind": "data",
       "data": {
-        "portName": "P781-福田中心-PTN7900-2-TPA1EG24-03",
+        "portName": "P781-YSXR-PTN7900-2-TPA1EG24-03",
         "faultStartTime": "2026-05-16T12:10:00Z",
         "ticketNo": "fault-id-1-017-20260516-11234",
-        "faultDetailText": "深圳前海机房至上海数据中心专线访问质量明显下降，核心系统访问变慢，业务流量下降。"
+        "faultDetailText": "深圳前海机房至上海数据中心专线需要诊断。"
       }
     },
     {
       "name": "data-invalid-scenario-value",
       "kind": "data",
       "data": {
-        "portName": "P781-惠州江北-PTN7900-7-TPA1EG24-21",
+        "portName": "P781-PTZS-PTN7900-7-TPA1EG24-21",
         "complaintScenario": "专线掉线",
         "faultStartTime": "2026-05-22T14:05:00Z",
         "ticketNo": "event-id-20260522-00812",

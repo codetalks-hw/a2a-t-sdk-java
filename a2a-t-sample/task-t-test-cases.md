@@ -30,25 +30,25 @@
 
 | # | 样例名 | 端口 | 分类 | 时间 | 流水号 | 详情期望关键词 |
 |---|---|---|---|---|---|---|
-| TC-01 | text-private-line-quality | P781-珠江新城-PTN7900-23-TPA1EG24-17 | 专线质差 | 2026-05-11 | event-id-20260511-09013 | 320ms |
-| TC-02 | text-logical-port-interruption | P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100) | 专线中断 | 2026-05-16 | fault-id-1-017-20260516-11234 | 完全中断 |
-| TC-03 | text-port-quality-jitter | P781-惠州江北-PTN7900-7-TPA1EG24-21 | 专线质差 | 2026-05-22 | event-id-20260522-00812 | 丢包 |
-| TC-04 | text-port-interruption-route | P781-南沙-PTN7900-9-TPA1EG24-31 | 专线中断 | 2026-06-03 | event-id-20260603-02341 | 彻底不通 |
-| TC-05 | text-port-quality-latency | P781-天河体育西-PTN7900-4-TPA1EG24-11 | 专线质差 | 2026-06-08 | event-id-20260608-01102 | 时延 |
-| TC-06 | text-logical-port-interruption-vlan | P781-宝安中心-PTN7900-6-TPA1EG24-27(cvlan=200) | 专线中断 | 2026-06-12 | fault-id-9-023-20260612-04578 | 连不上 |
-| TC-07 | text-optional-slots-missing | P781-番禺广场-PTN7900-3-TPA1EG24-19 | 专线质差 | — | — | 卡顿 |
+| TC-01 | text-private-line-quality | P781-KXVN-PTN7900-23-TPA1EG24-17 | 专线质差 | 2026-05-11 | event-id-20260511-09013 | 320ms |
+| TC-02 | text-logical-port-interruption | P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100) | 专线中断 | 2026-05-16 | fault-id-1-017-20260516-11234 | 完全中断 |
+| TC-03 | text-port-quality-jitter | P781-PTZS-PTN7900-7-TPA1EG24-21 | 专线质差 | 2026-05-22 | event-id-20260522-00812 | 丢包 |
+| TC-04 | text-port-interruption-route | P781-FDWC-PTN7900-9-TPA1EG24-31 | 专线中断 | 2026-06-03 | event-id-20260603-02341 | 彻底不通 |
+| TC-05 | text-port-quality-latency | P781-LJVK-PTN7900-4-TPA1EG24-11 | 专线质差 | 2026-06-08 | event-id-20260608-01102 | 时延 |
+| TC-06 | text-logical-port-interruption-vlan | P781-NRQF-PTN7900-6-TPA1EG24-27(cvlan=200) | 专线中断 | 2026-06-12 | fault-id-9-023-20260612-04578 | 连不上 |
+| TC-07 | text-optional-slots-missing | P781-BZHK-PTN7900-3-TPA1EG24-19 | 专线质差 | — | — | 卡顿 |
 
 ## 用例二：generateTaskPromptFromDataWithSchema（结构化英文业务字段 + 语义 schema）
 
 | # | 样例名 | 端口 | 分类 | 时间（ISO-8601） | 流水号 | 详情期望关键词 |
 |---|---|---|---|---|---|---|
-| TC-08 | data-port-quality | P781-福田中心-PTN7900-2-TPA1EG24-03 | 专线质差 | 2026-05-11T08:21:46Z | event-id-20260511-09013 | 320ms |
-| TC-09 | data-logical-port-interruption | P781-前海-PTN7900-5-TPA1EG24-09(cvlan=100) | 专线中断 | 2026-05-16T12:10:00Z | fault-id-1-017-20260516-11234 | 完全中断 |
-| TC-10 | data-port-jitter | P781-惠州江北-PTN7900-7-TPA1EG24-21 | 专线质差 | 2026-05-22T14:05:00Z | event-id-20260522-00812 | 时延抖动 |
-| TC-11 | data-logical-port-interruption-route | P781-云浮-PTN7900-1-TPA1EG24-08(cvlan=300) | 专线中断 | 2026-06-03T09:40:00Z | event-id-20260603-02341 | 完全中断 |
-| TC-12 | data-port-quality-loss | P781-珠海吉大-PTN7900-6-TPA1EG24-13 | 专线质差 | 2026-06-08T15:20:00Z | event-id-20260608-01102 | 丢包 |
-| TC-13 | data-port-quality-core-slow | P781-罗湖东门-PTN7900-8-TPA1EG24-15 | 专线质差 | 2026-06-18T10:05:00Z | event-id-20260618-03342 | 时延 |
-| TC-14 | data-optional-slots-missing | P781-番禺市桥-PTN7900-7-TPA1EG24-18 | 专线中断 | — | — | 完全中断 |
+| TC-08 | data-port-quality | P781-YSXR-PTN7900-2-TPA1EG24-03 | 专线质差 | 2026-05-11T08:21:46Z | event-id-20260511-09013 | 320ms |
+| TC-09 | data-logical-port-interruption | P781-QMBR-PTN7900-5-TPA1EG24-09(cvlan=100) | 专线中断 | 2026-05-16T12:10:00Z | fault-id-1-017-20260516-11234 | 完全中断 |
+| TC-10 | data-port-jitter | P781-PTZS-PTN7900-7-TPA1EG24-21 | 专线质差 | 2026-05-22T14:05:00Z | event-id-20260522-00812 | 时延抖动 |
+| TC-11 | data-logical-port-interruption-route | P781-GHMT-PTN7900-1-TPA1EG24-08(cvlan=300) | 专线中断 | 2026-06-03T09:40:00Z | event-id-20260603-02341 | 完全中断 |
+| TC-12 | data-port-quality-loss | P781-CWDV-PTN7900-6-TPA1EG24-13 | 专线质差 | 2026-06-08T15:20:00Z | event-id-20260608-01102 | 丢包 |
+| TC-13 | data-port-quality-core-slow | P781-TJPN-PTN7900-8-TPA1EG24-15 | 专线质差 | 2026-06-18T10:05:00Z | event-id-20260618-03342 | 时延 |
+| TC-14 | data-optional-slots-missing | P781-RMQF-PTN7900-7-TPA1EG24-18 | 专线中断 | — | — | 完全中断 |
 
 > 说明：
 > 1. 用例一（text）的时间期望取日期前缀（如 `2026-05-11`）——口语文本不含 ISO 字面量，日期是稳定事实；
