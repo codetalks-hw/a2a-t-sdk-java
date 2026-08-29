@@ -9,7 +9,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
+import net.openan.a2at.sdk.core.exception.ErrorMessages;
 import net.openan.a2at.sdk.core.model.PromptMessage;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.prompt.analysis.model.StructuredSlotExtractionResult;
@@ -17,13 +20,24 @@ import net.openan.a2at.sdk.prompt.analysis.model.StructuredSlotValidationError;
 import net.openan.a2at.sdk.prompt.resources.loader.PromptSlotSchemaLoader;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotDefinition;
 import net.openan.a2at.sdk.prompt.resources.model.PromptSlotSchema;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Shared LLM-backed structured slot extractor.
  *
+ * <p>The LLM reports each slot error as {@code {slot_name, code, facts}} from the closed {@code slot.*} code set; the
+ * human-readable message is rendered by the SDK from the code's message template. Codes outside the {@code slot.}
+ * domain are mapped to the {@code slot.rule_violation} fallback and logged as a warning.
+ *
  * @since 2026-06
  */
 public final class DefaultStructuredPromptSlotValueExtractor implements PromptSlotValueExtractor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStructuredPromptSlotValueExtractor.class);
+
+    private static final String SLOT_CODE_DOMAIN = "slot.";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -68,7 +82,7 @@ public final class DefaultStructuredPromptSlotValueExtractor implements PromptSl
                         null,
                         null)
                 .content();
-        return parseExtractionResult(slotSchema, payload);
+        return parseExtractionResult(slotSchema, payload, language);
     }
 
     private List<PromptMessage> buildMessages(
@@ -120,10 +134,11 @@ public final class DefaultStructuredPromptSlotValueExtractor implements PromptSl
                 .toList();
     }
 
-    private StructuredSlotExtractionResult parseExtractionResult(PromptSlotSchema slotSchema, String payload) {
+    private StructuredSlotExtractionResult parseExtractionResult(
+            PromptSlotSchema slotSchema, String payload, String language) {
         Map<String, Object> response = parseObject(payload);
         Map<String, String> normalized = normalizeSlots(response.get("slots"), slotSchema);
-        List<StructuredSlotValidationError> slotErrors = normalizeSlotErrors(response.get("slot_errors"));
+        List<StructuredSlotValidationError> slotErrors = normalizeSlotErrors(response.get("slot_errors"), language);
         return new StructuredSlotExtractionResult(Map.copyOf(normalized), List.copyOf(slotErrors));
     }
 
@@ -146,7 +161,7 @@ public final class DefaultStructuredPromptSlotValueExtractor implements PromptSl
         return values;
     }
 
-    private static List<StructuredSlotValidationError> normalizeSlotErrors(Object errorsValue) {
+    private static List<StructuredSlotValidationError> normalizeSlotErrors(Object errorsValue, String language) {
         if (!(errorsValue instanceof List<?> errors)) {
             return List.of();
         }
@@ -156,10 +171,55 @@ public final class DefaultStructuredPromptSlotValueExtractor implements PromptSl
                 continue;
             }
             Map<String, Object> fields = normalizeMap(errorMap);
+            String slotName = asString(fields.get("slot_name"));
+            String code = asString(fields.get("code"));
+            Map<String, String> facts = stringFacts(fields.get("facts"));
+            ErrorCatalog entry = resolveCode(code);
+            if (!entry.getCode().equals(code)) {
+                LOGGER.atWarn()
+                        .log("slot_extraction_unknown_code original_code={} fallback_code={}", code, entry.getCode());
+                facts = Map.of("slot_label", slotName);
+            } else if (!facts.containsKey("slot_label") && entry.hasFactParameter("slot_label")) {
+                facts = withSlotLabel(facts, slotName);
+            }
             normalized.add(new StructuredSlotValidationError(
-                    asString(fields.get("slot_name")), asString(fields.get("code")), asString(fields.get("message"))));
+                    slotName, entry.getCode(), ErrorMessages.render(entry, language, facts), facts));
         }
         return normalized;
+    }
+
+    /** Resolves one LLM-reported code to its catalog entry, falling back to {@code slot.rule_violation}. */
+    private static ErrorCatalog resolveCode(String code) {
+        Optional<ErrorCatalog> entry = ErrorCatalog.byCode(code);
+        if (entry.isPresent() && entry.get().getCode().startsWith(SLOT_CODE_DOMAIN)) {
+            return entry.get();
+        }
+        return ErrorCatalog.SLOT_RULE_VIOLATION;
+    }
+
+    private static Map<String, String> stringFacts(@Nullable Object factsValue) {
+        if (!(factsValue instanceof Map<?, ?> rawFacts)) {
+            return Map.of();
+        }
+        Map<String, String> facts = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawFacts.entrySet()) {
+            if (!(entry.getKey() instanceof String key)) {
+                continue;
+            }
+            Object value = entry.getValue();
+            if (value instanceof String text) {
+                facts.put(key, text);
+            } else if (value instanceof Number || value instanceof Boolean) {
+                facts.put(key, String.valueOf(value));
+            }
+        }
+        return Map.copyOf(facts);
+    }
+
+    private static Map<String, String> withSlotLabel(Map<String, String> facts, String slotName) {
+        Map<String, String> enriched = new LinkedHashMap<>(facts);
+        enriched.put("slot_label", slotName);
+        return Map.copyOf(enriched);
     }
 
     private static Map<String, Object> normalizeMap(Map<?, ?> source) {

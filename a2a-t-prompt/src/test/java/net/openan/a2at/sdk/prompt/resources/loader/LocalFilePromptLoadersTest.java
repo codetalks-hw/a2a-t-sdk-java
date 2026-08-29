@@ -170,7 +170,8 @@ class LocalFilePromptLoadersTest {
                 assertThrows(A2ATError.class, () -> new LocalFilePromptSlotSchemaLoader(snapshot(), promptRootDir)
                         .loadSlotSchema("incident_triage", "en"));
 
-        assertTrue(exception.getMessage().startsWith("Failed to read slot schema resource: "));
+        assertEquals("infra.resource_read_failed", exception.getCode());
+        assertTrue(exception.getMessage().startsWith("Failed to read resource '"));
     }
 
     @Test
