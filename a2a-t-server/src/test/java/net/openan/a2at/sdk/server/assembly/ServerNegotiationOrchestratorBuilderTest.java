@@ -21,7 +21,7 @@ class ServerNegotiationOrchestratorBuilderTest {
                 new RecordingPromptComplianceOrchestrator(new PromptComplianceResult(
                         false,
                         new PromptComplianceFailure(
-                                "slot_validation_error", "Need more information", "slot_validation")));
+                                "slot.semantic_conflict", "Need more information", "slot_validation")));
 
         RoleBoundNegotiationOrchestrator orchestrator = new ServerNegotiationOrchestratorBuilder()
                 .promptComplianceOrchestrator(complianceOrchestrator)

@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
+import net.openan.a2at.sdk.core.exception.ErrorCatalog;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.validation.ContentValidationException;
 import net.openan.a2at.sdk.llm.LLMClient;
@@ -51,7 +51,8 @@ class InputTextLengthLimitTest {
         PromptComplianceResult result = server.checkTaskPrompt(oversizedInput);
 
         assertEquals(false, result.success());
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, result.failure().code());
+        assertEquals(
+                ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), result.failure().code());
         assertEquals("input_gate", result.failure().stage());
         assertEquals(0, CountingClient.callCount(), "No LLM call may happen for an oversized input");
     }
@@ -64,7 +65,7 @@ class InputTextLengthLimitTest {
         PromptComplianceResult result = server.checkTaskPrompt(boundaryInput);
 
         assertNotEquals(
-                A2ATErrorCodes.INPUT_TEXT_TOO_LONG,
+                ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(),
                 result.success() ? null : result.failure().code(),
                 "An input exactly at the default limit must not be rejected for its length");
     }
@@ -78,7 +79,8 @@ class InputTextLengthLimitTest {
 
         ContentValidationException taskError = assertThrows(
                 ContentValidationException.class,
-                () -> server.validateTaskPromptAndDataFilling(oversizedPrompt, schema, StandardTemplates.ENERGY_SAVING));
+                () -> server.validateTaskPromptAndDataFilling(
+                        oversizedPrompt, schema, StandardTemplates.ENERGY_SAVING));
         ContentValidationException notificationError = assertThrows(
                 ContentValidationException.class,
                 () -> server.validateNotificationPromptAndDataFilling(
@@ -88,9 +90,9 @@ class InputTextLengthLimitTest {
                 () -> server.validateAuthPromptAndDataFilling(
                         oversizedPrompt, schema, StandardTemplates.AUTHORIZATION_POLICY_MANAGEMENT));
 
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, taskError.getCode());
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, notificationError.getCode());
-        assertEquals(A2ATErrorCodes.INPUT_TEXT_TOO_LONG, authError.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), taskError.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), notificationError.getCode());
+        assertEquals(ErrorCatalog.INPUT_TEXT_TOO_LONG.getCode(), authError.getCode());
         assertEquals(0, CountingClient.callCount(), "No LLM call may happen for an oversized prompt");
     }
 
@@ -109,7 +111,7 @@ class InputTextLengthLimitTest {
                 A2AT_LLM_API_KEY=test-key
                 A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
                 """
-                + limitEntry);
+                        + limitEntry);
         return envFile;
     }
 

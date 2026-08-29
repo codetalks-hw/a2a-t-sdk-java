@@ -133,8 +133,10 @@ public final class DefaultA2ATServerBuilder {
                         slotSchemaLoader,
                         new DefaultStructuredPromptSlotValueExtractor(
                                 client, slotSchemaLoader, slotSystemPrompt, slotUserPrompt)),
-                new LlmBackedPromptSemanticValidator(client, slotSchemaLoader, semanticSystemPrompt, semanticUserPrompt),
-                config.inputLimits().maxTextChars());
+                new LlmBackedPromptSemanticValidator(
+                        client, slotSchemaLoader, semanticSystemPrompt, semanticUserPrompt),
+                config.inputLimits().maxTextChars(),
+                language);
         return promptComplianceOrchestrator;
     }
 
@@ -229,7 +231,8 @@ public final class DefaultA2ATServerBuilder {
                         config.llm().maxAttempts(),
                         llmClient(),
                         promptResourceAccess().templateLoader()),
-                config.inputLimits().maxTextChars());
+                config.inputLimits().maxTextChars(),
+                config.prompt().language());
     }
 
     private static void require(Object value, String message) {
@@ -268,4 +271,4 @@ public final class DefaultA2ATServerBuilder {
         }
         return promptResourceAccess;
     }
-}
+} 
