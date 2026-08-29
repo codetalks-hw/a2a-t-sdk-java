@@ -14,6 +14,7 @@ import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.exception.PromptGenerationException;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.ExtensionUriConstants;
+import net.openan.a2at.sdk.core.model.InputLimitConfig;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.SlotValidationError;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
@@ -48,7 +49,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
         DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
                 recognizer,
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -62,10 +63,10 @@ class DefaultClientPromptGenerationOrchestratorTest {
         assertTrue(result.success());
         assertEquals("Site: Site A\nNotes: critical", result.promptText());
         assertEquals("Analyze Site A.", recognizer.lastNormalizedInput);
-        assertEquals("energy-saving", templateLoader.lastScenarioCode);
+        assertEquals("ran-energy-saving", templateLoader.lastScenarioCode);
         assertEquals("en-US", templateLoader.lastLanguage);
         assertEquals("Analyze Site A.", slotValueExtractor.lastUserInput);
-        assertEquals("energy-saving", slotValueExtractor.lastScenarioCode);
+        assertEquals("ran-energy-saving", slotValueExtractor.lastScenarioCode);
         assertEquals("en-US", slotValueExtractor.lastLanguage);
     }
 
@@ -75,7 +76,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
                 (normalizedInput, scenarios, systemPrompt, userPrompt) ->
                         new ScenarioRecognitionResult(false, null, "No scenario matched."),
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -97,9 +98,9 @@ class DefaultClientPromptGenerationOrchestratorTest {
     void generateTaskPromptReturnsFailureWhenTemplateIsMissing() {
         DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
                 (normalizedInput, scenarios, systemPrompt, userPrompt) ->
-                        new ScenarioRecognitionResult(true, "energy-saving", null),
+                        new ScenarioRecognitionResult(true, "ran-energy-saving", null),
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -123,9 +124,9 @@ class DefaultClientPromptGenerationOrchestratorTest {
     void generateTaskPromptReturnsFailureWhenRenderingFails() {
         DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
                 (normalizedInput, scenarios, systemPrompt, userPrompt) ->
-                        new ScenarioRecognitionResult(true, "energy-saving", null),
+                        new ScenarioRecognitionResult(true, "ran-energy-saving", null),
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -152,7 +153,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
                             "prompt_resources/prompts/scenario_recognition/zh-CN/system.md");
                 },
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "zh-CN",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -177,7 +178,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
         return new DefaultClientPromptGenerationOrchestrator(
                 recognizer,
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -196,7 +197,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
                 String normalizedInput, List<ScenarioDefinition> scenarios, String systemPrompt, String userPrompt) {
             this.invocationCount++;
             this.lastNormalizedInput = normalizedInput;
-            return new ScenarioRecognitionResult(true, "energy-saving", null);
+            return new ScenarioRecognitionResult(true, "ran-energy-saving", null);
         }
     }
 
@@ -522,7 +523,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
                 new RecordingScenarioRecognizer(),
                 new FakeTemplateLoader("Site: {site}"),
                 new FailingSlotValueExtractor(
-                        new ResourceNotFoundException("Slot schema file does not exist.", "energy-saving")));
+                        new ResourceNotFoundException("Slot schema file does not exist.", "ran-energy-saving")));
 
         PromptGenerationException ex = assertThrows(
                 PromptGenerationException.class,
@@ -851,7 +852,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
         DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
                 recognizer,
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -895,9 +896,9 @@ class DefaultClientPromptGenerationOrchestratorTest {
     void generateTaskPromptEscapesLlmRuntimeErrorFromExtractor() {
         DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
                 (normalizedInput, scenarios, systemPrompt, userPrompt) ->
-                        new ScenarioRecognitionResult(true, "energy-saving", null),
+                        new ScenarioRecognitionResult(true, "ran-energy-saving", null),
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -917,7 +918,7 @@ class DefaultClientPromptGenerationOrchestratorTest {
         DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
                 recognizer,
                 List.of(new ScenarioDefinition(
-                        "energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
+                        "ran-energy-saving", "Energy Saving", "Energy analysis", "Analyze site power")),
                 "en-US",
                 "Identify the best matching scenario.",
                 "Choose from the provided scenario list.",
@@ -982,5 +983,115 @@ class DefaultClientPromptGenerationOrchestratorTest {
         assertEquals(1, ex.failedParameters().size());
         assertEquals("site", ex.failedParameters().get(0).slotName());
         assertEquals("missing_required", ex.failedParameters().get(0).code());
+    }
+
+    // --- free-text input length limit tests ---
+
+    @Test
+    void fromTextEntryPointsRejectTextOverTheDefaultLimitBeforeAnyLlmCall() {
+        String overLimitText = "a".repeat(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS + 1);
+        RecordingScenarioRecognizer recognizer = new RecordingScenarioRecognizer();
+        CountingFailingTemplateLoader templateLoader = new CountingFailingTemplateLoader();
+        DefaultClientPromptGenerationOrchestrator orchestrator =
+                newTemplateUriOrchestrator(recognizer, templateLoader, new FakeSlotValueExtractor(Map.of()));
+
+        PromptGenerationException taskEx = assertThrows(
+                PromptGenerationException.class,
+                () -> orchestrator.generateTaskPromptFromText(overLimitText, StandardTemplates.ENERGY_SAVING));
+        PromptGenerationException authEx = assertThrows(
+                PromptGenerationException.class,
+                () -> orchestrator.generateAuthPromptFromText(overLimitText, AUTH_DATABASE_READ));
+        PromptGenerationException notificationEx = assertThrows(
+                PromptGenerationException.class,
+                () -> orchestrator.generateNotificationPromptFromText(overLimitText, StandardTemplates.ENERGY_SAVING));
+
+        assertEquals("input_text_too_long", taskEx.getCode());
+        assertEquals("input_text_too_long", authEx.getCode());
+        assertEquals("input_text_too_long", notificationEx.getCode());
+        assertTrue(taskEx.getMessage().contains(String.valueOf(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS + 1)));
+        assertEquals(0, recognizer.invocationCount, "over-limit input must fail before any LLM call");
+        assertEquals(0, templateLoader.loadCount, "over-limit input must fail before template loading");
+    }
+
+    @Test
+    void fromTextAcceptsTextAtExactlyTheDefaultLimit() {
+        String limitText = "a".repeat(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS);
+        DefaultClientPromptGenerationOrchestrator orchestrator = newTemplateUriOrchestrator(
+                new RecordingScenarioRecognizer(),
+                new FakeTemplateLoader("Site: {site}"),
+                new FakeSlotValueExtractor(Map.of("site", "Site A")));
+
+        MetadataContent result =
+                orchestrator.generateTaskPromptFromText(limitText, StandardTemplates.ENERGY_SAVING);
+
+        assertEquals("Site: Site A", result.promptText());
+    }
+
+    @Test
+    void fromTextRejectsTextOverOneConfiguredLimit() {
+        DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
+                new RecordingScenarioRecognizer(),
+                List.of(new ScenarioDefinition("energy_saving", "Energy Saving", "Energy analysis", "Analyze")),
+                "en-US",
+                "",
+                "",
+                new FakeTemplateLoader("Site: {site}"),
+                new FakeSlotValueExtractor(Map.of("site", "Site A")),
+                new TaskPromptRenderer(),
+                EMPTY_SCHEMA_LOADER,
+                10);
+
+        PromptGenerationException overEx = assertThrows(
+                PromptGenerationException.class,
+                () -> orchestrator.generateTaskPromptFromText("a".repeat(11), StandardTemplates.ENERGY_SAVING));
+        assertEquals("input_text_too_long", overEx.getCode());
+
+        MetadataContent atLimit =
+                orchestrator.generateTaskPromptFromText("a".repeat(10), StandardTemplates.ENERGY_SAVING);
+        assertEquals("Site: Site A", atLimit.promptText());
+    }
+
+    @Test
+    void generateTaskPromptReturnsFailureWhenStringInputExceedsTheDefaultLimit() {
+        String overLimitText = "a".repeat(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS + 1);
+        RecordingScenarioRecognizer recognizer = new RecordingScenarioRecognizer();
+        DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
+                recognizer,
+                List.of(new ScenarioDefinition("energy_saving", "Energy Saving", "Energy analysis", "Analyze")),
+                "en-US",
+                "",
+                "",
+                new FakeTemplateLoader("Site: {site}"),
+                new FakeSlotValueExtractor(Map.of("site", "Site A")),
+                new TaskPromptRenderer(),
+                EMPTY_SCHEMA_LOADER);
+
+        PromptGenerationResult result = orchestrator.generateTaskPrompt(overLimitText);
+
+        assertFalse(result.success());
+        assertEquals("input_text_too_long", result.failure().code());
+        assertEquals("input", result.failure().stage());
+        assertEquals(0, recognizer.invocationCount, "over-limit input must fail before any LLM call");
+    }
+
+    @Test
+    void generateTaskPromptDoesNotCheckLengthForMapInput() {
+        Map<String, Object> mapInputWithLongStringValue =
+                Map.of("notes", "a".repeat(InputLimitConfig.DEFAULT_MAX_TEXT_CHARS + 1));
+        DefaultClientPromptGenerationOrchestrator orchestrator = new DefaultClientPromptGenerationOrchestrator(
+                new RecordingScenarioRecognizer(),
+                List.of(new ScenarioDefinition("energy_saving", "Energy Saving", "Energy analysis", "Analyze")),
+                "en-US",
+                "",
+                "",
+                new FakeTemplateLoader("Site: {site}"),
+                new FakeSlotValueExtractor(Map.of("site", "Site A")),
+                new TaskPromptRenderer(),
+                EMPTY_SCHEMA_LOADER);
+
+        PromptGenerationResult result = orchestrator.generateTaskPrompt(mapInputWithLongStringValue);
+
+        assertTrue(result.success(), "map input must not be length-checked");
+        assertEquals("Site: Site A", result.promptText());
     }
 }

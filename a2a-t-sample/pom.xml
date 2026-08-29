@@ -141,6 +141,14 @@ net.openan.a2at.sample.private_line_complaint.negotiation.client.NegotiationClie
 ${sample.jar.path}${path.separator}${sample.runtime.classpath}
 net.openan.a2at.sample.private_line_complaint.negotiation.evaluation.NegotiationQwenEvaluationMain
 </echo>
+                                <echo file="${project.build.directory}/negotiation-abnormal-evaluation.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.private_line_complaint.negotiation.evaluation.NegotiationAbnormalEvaluationMain
+</echo>
+                                <echo file="${project.build.directory}/negotiation-business-abnormal-evaluation.javaargs.txt">-cp
+${sample.jar.path}${path.separator}${sample.runtime.classpath}
+net.openan.a2at.sample.private_line_complaint.negotiation.evaluation.NegotiationBusinessAbnormalEvaluationMain
+</echo>
                                 <echo file="${project.build.directory}/negotiation.javaargs.txt">-cp
 ${sample.jar.path}${path.separator}${sample.runtime.classpath}
 net.openan.a2at.sample.negotiation.NegotiationDemoApp
@@ -152,14 +160,6 @@ net.openan.a2at.sample.negotiation.eval.NegotiationEvalApp
                                 <echo file="${project.build.directory}/fromdata-eval.javaargs.txt">-cp
 ${sample.jar.path}${path.separator}${sample.runtime.classpath}
 net.openan.a2at.sample.negotiation.eval.NegotiationFromDataApiEvalApp
-</echo>
-                                <echo file="${project.build.directory}/fromdata.javaargs.txt">-cp
-${sample.jar.path}${path.separator}${sample.runtime.classpath}
-net.openan.a2at.sample.negotiation.fromdata.FromDataNegotiationSample
-</echo>
-                                <echo file="${project.build.directory}/fromtext.javaargs.txt">-cp
-${sample.jar.path}${path.separator}${sample.runtime.classpath}
-net.openan.a2at.sample.negotiation.fromtext.FromTextNegotiationSample
 </echo>
 <echo file="${project.build.directory}/taskt.javaargs.txt">-cp
 ${sample.jar.path}${path.separator}${sample.runtime.classpath}

@@ -3,12 +3,12 @@ package net.openan.a2at.sdk.negotiation.generation;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import net.openan.a2at.sdk.core.exception.A2ATErrorCodes;
 import net.openan.a2at.sdk.core.exception.A2ATParamExtractionError;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
 import net.openan.a2at.sdk.core.model.ExtensionUriConstants;
+import net.openan.a2at.sdk.core.model.InputLimitConfig;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.FilledParamData;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
@@ -52,13 +52,11 @@ public final class NegotiationGenerationOrchestrator {
 
     private static final String STEP_CONTENT_EXTRACT = "negotiation_content_extract";
 
-    private static final String LANGUAGE_HINT =
-            "set A2AT_LANGUAGE to a language with bundled templates (zh-CN or en-US) or provide the template under"
-                    + " the local resource root";
-
     private final String language;
 
     private final int maxAttempts;
+
+    private final int maxTextChars;
 
     private final NegotiationTemplateLoader templateLoader;
 
@@ -75,6 +73,7 @@ public final class NegotiationGenerationOrchestrator {
     NegotiationGenerationOrchestrator(
             String language,
             int maxAttempts,
+            int maxTextChars,
             NegotiationTemplateLoader templateLoader,
             NegotiationContentExtractor contentExtractor,
             ParamExtractor paramExtractor,
@@ -83,6 +82,7 @@ public final class NegotiationGenerationOrchestrator {
             Logger logger) {
         this.language = language;
         this.maxAttempts = maxAttempts;
+        this.maxTextChars = maxTextChars;
         this.templateLoader = templateLoader;
         this.contentExtractor = contentExtractor;
         this.paramExtractor = paramExtractor;
@@ -206,7 +206,8 @@ public final class NegotiationGenerationOrchestrator {
      *     resource exists for the URI and language, {@code negotiation_content_extract_failed} or
      *     {@code negotiation_llm_infrastructure_error} when the extraction step fails after exhausting its retries,
      *     {@code negotiation_slot_missing} when the extracted content misses a required field, or
-     *     {@code negotiation_invalid_input} when the text is blank or the extracted content contradicts the phase
+     *     {@code negotiation_invalid_input} when the text is blank or the extracted content contradicts the phase,
+     *     or {@code input_text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateProposeFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -233,7 +234,8 @@ public final class NegotiationGenerationOrchestrator {
      *     resource exists for the URI and language, {@code negotiation_content_extract_failed} or
      *     {@code negotiation_llm_infrastructure_error} when the extraction step fails after exhausting its retries,
      *     {@code negotiation_slot_missing} when the extracted content misses a required field, or
-     *     {@code negotiation_invalid_input} when the text is blank or the extracted conclusion is not {@code Accept}
+     *     {@code negotiation_invalid_input} when the text is blank or the extracted conclusion is not {@code Accept},
+     *     or {@code input_text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateAcceptFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -260,7 +262,8 @@ public final class NegotiationGenerationOrchestrator {
      *     resource exists for the URI and language, {@code negotiation_content_extract_failed} or
      *     {@code negotiation_llm_infrastructure_error} when the extraction step fails after exhausting its retries,
      *     {@code negotiation_slot_missing} when the extracted content misses a required field, or
-     *     {@code negotiation_invalid_input} when the text is blank or the extracted conclusion is not {@code Reject}
+     *     {@code negotiation_invalid_input} when the text is blank or the extracted conclusion is not {@code Reject},
+     *     or {@code input_text_too_long} when the text exceeds the configured maximum length
      */
     public MetadataContent generateRejectFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
@@ -287,64 +290,12 @@ public final class NegotiationGenerationOrchestrator {
      *     resource exists for the URI and language, {@code negotiation_content_extract_failed} or
      *     {@code negotiation_llm_infrastructure_error} when the extraction step fails after exhausting its retries,
      *     {@code negotiation_slot_missing} when the extracted content misses the termination reason, or
-     *     {@code negotiation_invalid_input} when the text is blank
+     *     {@code negotiation_invalid_input} when the text is blank, or {@code input_text_too_long} when the text
+     *     exceeds the configured maximum length
      */
     public MetadataContent generateAbortFromText(
             String text, @NonNull NegotiationContext context, @NonNull TemplateUri templateUri) {
         return generateFromText(text, context, templateUri, NegotiationPerformative.ABORT);
-    }
-
-    /**
-     * Lists every negotiation template available for the configured language.
-     *
-     * <p>This query never throws: templates that exist nowhere for the language are skipped and an empty list is
-     * returned when no template can be loaded at all.
-     *
-     * @return loadable negotiation templates of the configured language, in a fixed type and phase order; empty when
-     *     none can be loaded
-     */
-    public List<PromptTemplate> getNegotiationPrompts() {
-        try {
-            return templateLoader.loadAll();
-        } catch (ResourceNotFoundException exception) {
-            logger.atWarn().log("negotiation_template_not_found uri=all language={} hint={}", language, LANGUAGE_HINT);
-            return List.of();
-        }
-    }
-
-    /**
-     * Loads one negotiation template addressed by its URI.
-     *
-     * <p>This query never throws: a URI that does not address a negotiation template or a template that exists nowhere
-     * for the configured language returns an empty result and logs an actionable warning.
-     *
-     * @param templateUri template URI such as {@code Negotiation-T/target-negotiation/propose/v1}
-     * @return the addressed template, or an empty result when the URI does not address a negotiation template or the
-     *     template does not exist for the configured language
-     * @throws NullPointerException if the template URI is null
-     */
-    public Optional<PromptTemplate> getNegotiationPrompt(@NonNull TemplateUri templateUri) {
-        Optional<NegotiationReference> reference = parseQueryReference(templateUri);
-        if (reference.isEmpty()) {
-            logger.atWarn()
-                    .log(
-                            "negotiation_template_not_found uri={} language={} reason=invalid_template_uri hint={}",
-                            templateUri.uri(),
-                            language,
-                            LANGUAGE_HINT);
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(templateLoader.load(reference.get()));
-        } catch (ResourceNotFoundException exception) {
-            logger.atWarn()
-                    .log(
-                            "negotiation_template_not_found uri={} language={} hint={}",
-                            templateUri.uri(),
-                            language,
-                            LANGUAGE_HINT);
-            return Optional.empty();
-        }
     }
 
     /**
@@ -367,7 +318,8 @@ public final class NegotiationGenerationOrchestrator {
      *     negotiation context violates a rule,
      *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
      *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
      */
     public FilledParamData validateProposePromptAndDataFilling(
             String prompt,
@@ -398,7 +350,8 @@ public final class NegotiationGenerationOrchestrator {
      *     negotiation context violates a rule,
      *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
      *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
      */
     public FilledParamData validateAcceptPromptAndDataFilling(
             String prompt,
@@ -429,7 +382,8 @@ public final class NegotiationGenerationOrchestrator {
      *     negotiation context violates a rule,
      *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
      *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
      */
     public FilledParamData validateRejectPromptAndDataFilling(
             String prompt,
@@ -459,7 +413,8 @@ public final class NegotiationGenerationOrchestrator {
      *     negotiation context violates a rule,
      *     {@code negotiation_semantic_rejected} when the semantic validation rejects the message,
      *     {@code negotiation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
-     *     {@code template_not_found} when the semantic validation prompt resources are missing
+     *     {@code template_not_found} when the semantic validation prompt resources are missing, or
+     *     {@code input_text_too_long} when the prompt exceeds the configured maximum length
      */
     public FilledParamData validateAbortPromptAndDataFilling(
             String prompt,
@@ -490,6 +445,7 @@ public final class NegotiationGenerationOrchestrator {
     private MetadataContent generateFromText(
             String text, NegotiationContext context, TemplateUri templateUri, NegotiationPerformative performative) {
         requireContext(context);
+        requireTextWithinLimit(text);
         try {
             NegotiationReference reference = requireReference(templateUri, performative);
             PromptTemplate template = loadTemplate(reference);
@@ -560,16 +516,10 @@ public final class NegotiationGenerationOrchestrator {
             TemplateUri templateUri,
             NegotiationPerformative performative) {
         Objects.requireNonNull(schema, "Parameter schema must not be null.");
+        requirePromptWithinLimit(prompt);
         NegotiationReference reference = requireReference(templateUri, performative);
-        String templateContent;
         try {
-            templateContent = loadTemplate(reference).content();
-        } catch (NegotiationGenerationException exception) {
-            throw new NegotiationParamExtractionException(
-                    exception.getCode(), exception.getMessage(), List.of(), exception);
-        }
-        try {
-            return paramExtractor.extract(prompt, context, schema, reference, templateContent);
+            return paramExtractor.extract(prompt, context, schema, reference);
         } catch (NegotiationParamExtractionException failure) {
             logger.atWarn()
                     .log(
@@ -594,22 +544,6 @@ public final class NegotiationGenerationOrchestrator {
                         "Template URI does not address a negotiation template of the expected performative "
                                 + performative + " (" + NegotiationReference.uriSegmentOf(performative) + "): "
                                 + templateUri.uri() + "."));
-    }
-
-    private Optional<NegotiationReference> parseQueryReference(TemplateUri templateUri) {
-        // The URI layer cannot distinguish accept from reject because both performatives share the accept-reject
-        // template segment. The query therefore addresses the shared template through the ACCEPT performative; the
-        // parsed performative is an addressing artifact only and must never be read as the performative of any
-        // message. The abort performative addresses the type-independent common abort template.
-        for (NegotiationPerformative performative :
-                List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT, NegotiationPerformative.ABORT)) {
-            Optional<NegotiationReference> reference =
-                    NegotiationReference.fromTemplateUri(templateUri, performative, language);
-            if (reference.isPresent()) {
-                return reference;
-            }
-        }
-        return Optional.empty();
     }
 
     /**
@@ -673,5 +607,21 @@ public final class NegotiationGenerationOrchestrator {
 
     private static void requireContext(NegotiationContext context) {
         Objects.requireNonNull(context, "Negotiation context must not be null.");
+    }
+
+    private void requireTextWithinLimit(String text) {
+        if (InputLimitConfig.isTooLong(text, maxTextChars)) {
+            throw new NegotiationGenerationException(
+                    A2ATErrorCodes.INPUT_TEXT_TOO_LONG, InputLimitConfig.violationMessage(text, maxTextChars));
+        }
+    }
+
+    private void requirePromptWithinLimit(String prompt) {
+        if (InputLimitConfig.isTooLong(prompt, maxTextChars)) {
+            throw new NegotiationParamExtractionException(
+                    A2ATErrorCodes.INPUT_TEXT_TOO_LONG,
+                    InputLimitConfig.violationMessage(prompt, maxTextChars),
+                    List.of());
+        }
     }
 }

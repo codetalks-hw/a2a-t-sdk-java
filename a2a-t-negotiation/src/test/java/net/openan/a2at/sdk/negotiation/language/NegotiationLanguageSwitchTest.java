@@ -14,6 +14,7 @@ import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestra
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGoldenCases.GoldenCase;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
+import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -54,11 +55,10 @@ class NegotiationLanguageSwitchTest {
     @ParameterizedTest(name = "the query methods list the templates of one language only [{0}]")
     @ValueSource(strings = {NegotiationGoldenCases.ZH_CN, NegotiationGoldenCases.EN_US})
     void templateQueriesReturnTheTemplatesOfTheConfiguredLanguage(String language) {
-        NegotiationGenerationOrchestrator orchestrator = orchestrator(language);
         String requirementLabel = NegotiationGoldenCases.ZH_CN.equals(language) ? "要求：" : "Requirement:";
         String otherLanguageLabel = NegotiationGoldenCases.ZH_CN.equals(language) ? "Requirement:" : "要求：";
 
-        List<PromptTemplate> templates = orchestrator.getNegotiationPrompts();
+        List<PromptTemplate> templates = negotiationPrompts(language);
 
         assertEquals(7, templates.size());
         for (PromptTemplate template : templates) {
@@ -70,30 +70,40 @@ class NegotiationLanguageSwitchTest {
                     template.templateUri().uri() + " must not leak the other language");
         }
 
-        PromptTemplate queriedTemplate =
-                orchestrator.getNegotiationPrompt(INFORMATION_PROPOSE_URI).orElseThrow();
+        PromptTemplate queriedTemplate = queryService(language).getPrompt(INFORMATION_PROPOSE_URI).orElseThrow();
         assertTrue(queriedTemplate.content().contains(requirementLabel));
     }
 
     @Test
     void bothLanguagesAnswerQueriesWithDifferentTemplatesForTheSameUri() {
-        PromptTemplate zhCnTemplate = orchestrator(NegotiationGoldenCases.ZH_CN)
-                .getNegotiationPrompt(INFORMATION_PROPOSE_URI)
+        PromptTemplate zhCnTemplate = queryService(NegotiationGoldenCases.ZH_CN)
+                .getPrompt(INFORMATION_PROPOSE_URI)
                 .orElseThrow();
-        PromptTemplate enUsTemplate = orchestrator(NegotiationGoldenCases.EN_US)
-                .getNegotiationPrompt(INFORMATION_PROPOSE_URI)
+        PromptTemplate enUsTemplate = queryService(NegotiationGoldenCases.EN_US)
+                .getPrompt(INFORMATION_PROPOSE_URI)
                 .orElseThrow();
 
         assertEquals(INFORMATION_PROPOSE_URI, zhCnTemplate.templateUri());
         assertEquals(INFORMATION_PROPOSE_URI, enUsTemplate.templateUri());
         assertNotEquals(zhCnTemplate.content(), enUsTemplate.content());
         assertEquals(
-                orchestrator(NegotiationGoldenCases.ZH_CN).getNegotiationPrompts().stream()
+                negotiationPrompts(NegotiationGoldenCases.ZH_CN).stream()
                         .map(PromptTemplate::templateUri)
                         .toList(),
-                orchestrator(NegotiationGoldenCases.EN_US).getNegotiationPrompts().stream()
+                negotiationPrompts(NegotiationGoldenCases.EN_US).stream()
                         .map(PromptTemplate::templateUri)
                         .toList());
+    }
+
+    private static TemplateQueryService queryService(String language) {
+        return new TemplateQueryService(language, "classpath", null);
+    }
+
+    private static List<PromptTemplate> negotiationPrompts(String language) {
+        return queryService(language).getPrompts().stream()
+                .filter(template -> StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
     }
 
     private static NegotiationGenerationOrchestrator orchestrator(String language) {

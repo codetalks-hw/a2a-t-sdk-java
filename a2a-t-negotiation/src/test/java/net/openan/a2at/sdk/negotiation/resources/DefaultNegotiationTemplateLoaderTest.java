@@ -5,8 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
@@ -14,7 +20,6 @@ import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 class DefaultNegotiationTemplateLoaderTest {
 
@@ -27,16 +32,13 @@ class DefaultNegotiationTemplateLoaderTest {
             StandardTemplates.FEASIBILITY_NEGOTIATION_ACCEPT_REJECT.uri(),
             StandardTemplates.NEGOTIATION_ABORT.uri());
 
-    @TempDir
-    Path customRootDir;
-
     @Test
-    void loadAllReturnsAllSixBuiltinTemplatesPerLanguageInFixedOrder() {
-        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN", null);
-        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US", null);
+    void loadReturnsAllSevenBuiltinTemplatesPerLanguage() {
+        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN");
+        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US");
 
-        List<PromptTemplate> zhCnTemplates = zhCnLoader.loadAll();
-        List<PromptTemplate> enUsTemplates = enUsLoader.loadAll();
+        List<PromptTemplate> zhCnTemplates = loadAllOf(zhCnLoader, "zh-CN");
+        List<PromptTemplate> enUsTemplates = loadAllOf(enUsLoader, "en-US");
 
         assertEquals(EXPECTED_LOAD_ALL_URIS, urisOf(zhCnTemplates));
         assertEquals(EXPECTED_LOAD_ALL_URIS, urisOf(enUsTemplates));
@@ -47,8 +49,8 @@ class DefaultNegotiationTemplateLoaderTest {
 
     @Test
     void loadReturnsTheCommonAbortTemplateForTheAbortPerformative() {
-        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US", null);
-        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN", null);
+        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US");
+        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN");
 
         PromptTemplate englishTemplate =
                 enUsLoader.load(new NegotiationReference(null, NegotiationPerformative.ABORT, "en-US"));
@@ -65,33 +67,8 @@ class DefaultNegotiationTemplateLoaderTest {
     }
 
     @Test
-    void customRootOverridesTheCommonAbortTemplate() throws IOException {
-        Path customTemplatePath = customRootDir
-                .resolve("templates")
-                .resolve("Negotiation-T")
-                .resolve("common")
-                .resolve("abort")
-                .resolve("v1")
-                .resolve("zh-CN")
-                .resolve("template.md");
-        writeTemplate(customTemplatePath, "<!-- custom abort -->\n\n## 协商上下文\n自定义终止模板\n");
-        DefaultNegotiationTemplateLoader loader =
-                new DefaultNegotiationTemplateLoader("zh-CN", customRootDir.toString());
-
-        PromptTemplate overridden = loader.load(new NegotiationReference(null, NegotiationPerformative.ABORT, "zh-CN"));
-        assertTrue(overridden.content().contains("自定义终止模板"));
-        assertEquals("custom abort", overridden.description());
-
-        List<PromptTemplate> templates = loader.loadAll();
-        assertEquals(EXPECTED_LOAD_ALL_URIS, urisOf(templates));
-        PromptTemplate listedAbort = templates.get(templates.size() - 1);
-        assertEquals(StandardTemplates.NEGOTIATION_ABORT, listedAbort.templateUri());
-        assertTrue(listedAbort.content().contains("自定义终止模板"));
-    }
-
-    @Test
     void loadReturnsFullTemplateContentFromTheClasspath() {
-        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("en-US", null);
+        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("en-US");
 
         PromptTemplate template =
                 loader.load(new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "en-US"));
@@ -102,8 +79,8 @@ class DefaultNegotiationTemplateLoaderTest {
 
     @Test
     void builtinTemplatesCarryNoDescriptionCommentForEitherLanguage() {
-        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN", null);
-        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US", null);
+        DefaultNegotiationTemplateLoader zhCnLoader = new DefaultNegotiationTemplateLoader("zh-CN");
+        DefaultNegotiationTemplateLoader enUsLoader = new DefaultNegotiationTemplateLoader("en-US");
 
         PromptTemplate englishTemplate = enUsLoader.load(
                 new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "en-US"));
@@ -115,63 +92,8 @@ class DefaultNegotiationTemplateLoaderTest {
     }
 
     @Test
-    void customRootTemplateWinsWhilePresentAndBuiltinIsUsedAfterRemoval() throws IOException {
-        Path customTemplatePath = customRootDir
-                .resolve("templates")
-                .resolve("Negotiation-T")
-                .resolve("information-negotiation")
-                .resolve("propose")
-                .resolve("v1")
-                .resolve("zh-CN")
-                .resolve("template.md");
-        writeTemplate(customTemplatePath, "<!-- custom template -->\n\n## 协商上下文\n自定义标记内容\n");
-        DefaultNegotiationTemplateLoader loader =
-                new DefaultNegotiationTemplateLoader("zh-CN", customRootDir.toString());
-
-        PromptTemplate overridden =
-                loader.load(new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "zh-CN"));
-        assertTrue(overridden.content().contains("自定义标记内容"));
-        assertEquals("custom template", overridden.description());
-
-        PromptTemplate untouched =
-                loader.load(new NegotiationReference(NegotiationType.TARGET, NegotiationPerformative.PROPOSE, "zh-CN"));
-        assertTrue(untouched.content().contains("目标协商概述"));
-        assertTrue(!untouched.content().contains("自定义标记内容"));
-
-        Files.delete(customTemplatePath);
-
-        PromptTemplate fallback =
-                loader.load(new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "zh-CN"));
-        assertTrue(fallback.content().contains("## 信息协商"));
-        assertTrue(!fallback.content().contains("自定义标记内容"));
-        assertEquals("", fallback.description());
-    }
-
-    @Test
-    void loadAllWithCustomRootStillListsEveryTemplate() throws IOException {
-        Path customTemplatePath = customRootDir
-                .resolve("templates")
-                .resolve("Negotiation-T")
-                .resolve("target-negotiation")
-                .resolve("propose")
-                .resolve("v1")
-                .resolve("zh-CN")
-                .resolve("template.md");
-        writeTemplate(customTemplatePath, "<!-- custom target -->\n\n## 目标协商\n自定义目标内容\n");
-        DefaultNegotiationTemplateLoader loader =
-                new DefaultNegotiationTemplateLoader("zh-CN", customRootDir.toString());
-
-        List<PromptTemplate> templates = loader.loadAll();
-
-        assertEquals(EXPECTED_LOAD_ALL_URIS, urisOf(templates));
-        PromptTemplate overriddenTemplate = templates.get(2);
-        assertEquals(StandardTemplates.TARGET_NEGOTIATION_PROPOSE, overriddenTemplate.templateUri());
-        assertTrue(overriddenTemplate.content().contains("自定义目标内容"));
-    }
-
-    @Test
-    void missingLanguageThrowsOnLoadAndIsSkippedByLoadAll() {
-        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR", null);
+    void missingLanguageThrowsOnLoad() {
+        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR");
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
@@ -179,15 +101,74 @@ class DefaultNegotiationTemplateLoaderTest {
                         new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR")));
 
         assertTrue(exception.getMessage().contains("A2AT_LANGUAGE"));
-        assertEquals(List.of(), loader.loadAll());
+    }
+
+    @Test
+    void doesNotCacheMissingTemplatesAndKeepsThrowing() {
+        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR");
+        NegotiationReference reference =
+                new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "fr-FR");
+
+        assertThrows(ResourceNotFoundException.class, () -> loader.load(reference));
+        assertThrows(ResourceNotFoundException.class, () -> loader.load(reference));
+    }
+
+    @Test
+    void servesTheCachedValueAfterTheTemplateFileIsAlteredOnDisk() throws Exception {
+        Path tempRoot = Files.createTempDirectory("negotiation-template-cache-test");
+        Path templateFile = tempRoot.resolve(
+                "prompt_resources/templates/Negotiation-T/information-negotiation/propose/v1/en-US/template.md");
+        Files.createDirectories(templateFile.getParent());
+        Files.writeString(templateFile, "original content", StandardCharsets.UTF_8);
+
+        ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
+        try (URLClassLoader shadowingClassLoader =
+                new URLClassLoader(new URL[] {tempRoot.toUri().toURL()}, ClassLoader.getPlatformClassLoader())) {
+            Thread.currentThread().setContextClassLoader(shadowingClassLoader);
+
+            DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("en-US");
+            NegotiationReference reference =
+                    new NegotiationReference(NegotiationType.INFORMATION, NegotiationPerformative.PROPOSE, "en-US");
+
+            String first = loader.load(reference).content();
+
+            Files.writeString(templateFile, "changed on disk", StandardCharsets.UTF_8);
+
+            assertEquals(first, loader.load(reference).content());
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalContextClassLoader);
+            deleteRecursively(tempRoot);
+        }
+    }
+
+    private static void deleteRecursively(Path root) throws IOException {
+        if (!Files.exists(root)) {
+            return;
+        }
+        try (var paths = Files.walk(root)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.delete(path);
+                } catch (IOException exception) {
+                    throw new UncheckedIOException(exception);
+                }
+            });
+        }
+    }
+
+    private static List<PromptTemplate> loadAllOf(DefaultNegotiationTemplateLoader loader, String language) {
+        List<PromptTemplate> templates = new ArrayList<>();
+        for (NegotiationType type : NegotiationType.values()) {
+            for (NegotiationPerformative performative :
+                    List.of(NegotiationPerformative.PROPOSE, NegotiationPerformative.ACCEPT)) {
+                templates.add(loader.load(new NegotiationReference(type, performative, language)));
+            }
+        }
+        templates.add(loader.load(new NegotiationReference(null, NegotiationPerformative.ABORT, language)));
+        return templates;
     }
 
     private static List<String> urisOf(List<PromptTemplate> templates) {
         return templates.stream().map(template -> template.templateUri().uri()).toList();
-    }
-
-    private static void writeTemplate(Path file, String content) throws IOException {
-        Files.createDirectories(file.getParent());
-        Files.writeString(file, content);
     }
 }

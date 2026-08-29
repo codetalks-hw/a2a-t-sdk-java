@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.openan.a2at.sdk.client.model.PromptGenerationResult;
 import net.openan.a2at.sdk.client.prompt.orchestration.ClientPromptGenerationOrchestrator;
 import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.exception.PromptGenerationException;
 import net.openan.a2at.sdk.core.model.ExtensionUriConstants;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.StandardTemplates;
@@ -439,6 +440,49 @@ A2AT_NEGOTIATION_STATE_STORE_TYPE=in_memory
         assertFalse(A2ATError.class.isInstance(notifEx), "null template URI must stay outside the A2ATError tree");
     }
 
+    @Test
+    void fromTextRejectsOverLimitTextWhenConfiguredWithSmallLimit() throws IOException {
+        Path envFile = writeMinimalClientEnvWithInputLimit(TEST_MOCK_PROVIDER, 100);
+        A2ATClient client = new A2ATClient(envFile);
+        String overLimitText = "a".repeat(101);
+
+        PromptGenerationException taskEx = assertThrows(
+                PromptGenerationException.class,
+                () -> client.generateTaskPromptFromText(overLimitText, StandardTemplates.ENERGY_SAVING));
+        PromptGenerationException authEx = assertThrows(
+                PromptGenerationException.class,
+                () -> client.generateAuthPromptFromText(overLimitText, StandardTemplates.ENERGY_SAVING));
+        PromptGenerationException notificationEx = assertThrows(
+                PromptGenerationException.class,
+                () -> client.generateNotificationPromptFromText(overLimitText, StandardTemplates.ENERGY_SAVING));
+
+        assertEquals("input_text_too_long", taskEx.getCode());
+        assertEquals("input_text_too_long", authEx.getCode());
+        assertEquals("input_text_too_long", notificationEx.getCode());
+        assertEquals(0, RecordingClient.REQUEST_COUNT.get(), "over-limit input must fail before any LLM call");
+    }
+
+    @Test
+    void generateTaskPromptRejectsOverLimitStringInputWithoutLlmCall() throws IOException {
+        Path envFile = writeMinimalClientEnvWithInputLimit(TEST_MOCK_PROVIDER, 100);
+        A2ATClient client = new A2ATClient(envFile);
+
+        PromptGenerationResult result = client.generateTaskPrompt("a".repeat(101));
+
+        assertFalse(result.success());
+        assertEquals("input_text_too_long", result.failure().code());
+        assertEquals(0, RecordingClient.REQUEST_COUNT.get(), "over-limit input must fail before any LLM call");
+    }
+
+    private static Path writeMinimalClientEnvWithInputLimit(String provider, int maxTextChars) throws IOException {
+        Path envFile = writeMinimalClientEnv(provider);
+        Files.writeString(
+                envFile,
+                "A2AT_INPUT_TEXT_MAX_CHARS=" + maxTextChars + "\n",
+                java.nio.file.StandardOpenOption.APPEND);
+        return envFile;
+    }
+
     private static Path writeMinimalClientEnvWithoutRequiredSlots(String provider) throws IOException {
         Path tempDir = Files.createTempDirectory("a2at-client-env-no-required");
         Path promptRoot = tempDir.resolve("prompt_resources");
@@ -556,14 +600,14 @@ A2AT_LLM_API_KEY=test-key
                 .resolve("templates")
                 .resolve("Task-T")
                 .resolve("network-layer")
-                .resolve("energy-saving")
+                .resolve("ran-energy-saving")
                 .resolve("v1")
                 .resolve("zh-CN");
         Path slotsDir = promptRoot
                 .resolve("slots")
                 .resolve("Task-T")
                 .resolve("network-layer")
-                .resolve("energy-saving")
+                .resolve("ran-energy-saving")
                 .resolve("v1")
                 .resolve("zh-CN");
         Files.createDirectories(scenarioPromptDir);
@@ -578,7 +622,7 @@ A2AT_LLM_API_KEY=test-key
                 {
                   "scenarios": [
                     {
-                      "scenario_code": "energy-saving",
+                      "scenario_code": "ran-energy-saving",
                       "scenario_name": "Energy Saving",
                       "description": "Energy analysis",
                       "example": "Analyze site power"
@@ -636,14 +680,14 @@ A2AT_LLM_API_KEY=test-key
                 .resolve("templates")
                 .resolve("Task-T")
                 .resolve("network-layer")
-                .resolve("energy-saving")
+                .resolve("ran-energy-saving")
                 .resolve("v1")
                 .resolve("zh-CN");
         Path slotsDir = promptRoot
                 .resolve("slots")
                 .resolve("Task-T")
                 .resolve("network-layer")
-                .resolve("energy-saving")
+                .resolve("ran-energy-saving")
                 .resolve("v1")
                 .resolve("zh-CN");
         Files.createDirectories(scenarioPromptDir);
@@ -658,7 +702,7 @@ A2AT_LLM_API_KEY=test-key
                 {
                   "scenarios": [
                     {
-                      "scenario_code": "energy-saving",
+                      "scenario_code": "ran-energy-saving",
                       "scenario_name": "Energy Saving",
                       "description": "Energy analysis",
                       "example": "Analyze site power"
@@ -750,7 +794,7 @@ A2AT_LLM_API_KEY=test-key
                 slots.append("}");
                 return "{\"slots\":" + slots + ",\"slot_errors\":[]}";
             }
-            return "{\"matched\":true,\"scenario_code\":\"energy-saving\",\"error_message\":null}";
+            return "{\"matched\":true,\"scenario_code\":\"ran-energy-saving\",\"error_message\":null}";
         }
     }
 }

@@ -42,7 +42,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Verifies the output symmetry of the negotiation content layer across the client and the server facade.
  *
- * <p>Both facades expose the eleven negotiation API methods as one symmetric surface and produce, for identical inputs,
+ * <p>Both facades expose the twelve negotiation API methods as one symmetric surface and produce, for identical inputs,
  * identical generation results: the whole MetadataContent record and the metadata map built from it are equal on both
  * sides. The inputs are the fixed golden fixture inputs of the negotiation module, so this test also proves that both
  * facades are wired to the same built-in resources.
@@ -67,8 +67,6 @@ class NegotiationFacadeOutputSymmetryTest {
             "generateNegotiationAcceptPromptFromText",
             "generateNegotiationRejectPromptFromText",
             "generateNegotiationAbortPromptFromText",
-            "getNegotiationPrompts",
-            "getNegotiationPrompt",
             "validateProposePromptAndDataFilling",
             "validateAcceptPromptAndDataFilling",
             "validateRejectPromptAndDataFilling",
@@ -78,7 +76,7 @@ class NegotiationFacadeOutputSymmetryTest {
     Path tempDir;
 
     @Test
-    void bothFacadesExposeTheSameFourteenMethodSignatures() {
+    void bothFacadesExposeTheSameTwelveMethodSignatures() {
         Map<String, String> clientSurface = negotiationApiSurface(A2ATClient.class);
         Map<String, String> serverSurface = negotiationApiSurface(A2ATServer.class);
 
@@ -167,7 +165,7 @@ class NegotiationFacadeOutputSymmetryTest {
                                 new InformationProposeContent(
                                         List.of(
                                                 new NegotiationItem(
-                                                        "energy-saving area information", "e.g. Songshan Lake"),
+                                                        "ran-energy-saving area information", "e.g. Songshan Lake"),
                                                 new NegotiationItem("VLANId", null)),
                                         "OR"))),
                 new SymmetryCase(
@@ -178,10 +176,11 @@ class NegotiationFacadeOutputSymmetryTest {
                                 new NegotiationContext(
                                         "3dbc13b5-bd57-4c2b-b503-24e381b6c8d3", 1, 5, NegotiationPerformative.PROPOSE),
                                 new TargetProposeContent(
-                                        "Clarify the intent of the energy-saving task.",
-                                        List.of(new NegotiationItem("task intent", "energy-saving optimization")),
+                                        "Clarify the intent of the ran-energy-saving task.",
+                                        List.of(new NegotiationItem("task intent", "ran-energy-saving optimization")),
                                         null,
-                                        List.of(new NegotiationItem("area", "which site is covered"))))),
+                                        List.of(new NegotiationItem("area", "which site is covered")),
+                                        null))),
                 new SymmetryCase(
                         "feasibility_propose",
                         NegotiationPerformative.PROPOSE,
@@ -193,6 +192,7 @@ class NegotiationFacadeOutputSymmetryTest {
                                         "Please assess the adjusted rate target.",
                                         NegotiationAction.REQUEST_FEASIBILITY_EVALUATION,
                                         List.of(new NegotiationItem("adjusted target", "rate lowered to 2Mbps")),
+                                        null,
                                         null))),
                 endingCase(
                         "information_accept",

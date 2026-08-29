@@ -13,8 +13,6 @@
 - 订阅事件样例客户端：`net.openan.a2at.sample.subscribe_incident.client.ClientSampleMain`
 - 订阅事件样例服务端：`net.openan.a2at.sample.subscribe_incident.server.ServerSampleMain`
 - 协商端到端样例（4报文）：`net.openan.a2at.sample.negotiation.NegotiationDemoApp`
-- 结构化数据协商样例（fromData 3x3）：`net.openan.a2at.sample.negotiation.fromdata.FromDataNegotiationSample`
-- 自然语言协商样例（fromText 3x3）：`net.openan.a2at.sample.negotiation.fromtext.FromTextNegotiationSample`
 - 授权策略样例（Authorization-T）：`net.openan.a2at.sample.authz_policy.AuthzSampleMain`
 
 ## 模块内资源
@@ -52,8 +50,7 @@
 | `negotiation/` | 入口 `NegotiationDemoApp`：启动嵌入式 HTTP server + 跑 client，`--fromText` 切换策略 |
 | `negotiation/client/` | `NegotiationClient`：4 报文编排 + 传输端点选择（按 AgentCard 能力走 message:stream / message:send） |
 | `negotiation/server/` | `NegotiationAgentExecutor`（validateAndFillingTaskData→缺失检测→协商请求→诊断）+ `NegotiationServerRuntime`（HTTP server 装配）+ `DiagnosisService`（从 FilledParamData 动态生成诊断） |
-| `negotiation/shared/` | 策略层（`NegotiationStrategy` + `FromDataStrategy`/`FromTextStrategy`）、A2A metadata 桥接（`NegotiationMessage`）、扩展/模板 URI 常量（`DemoConstants`）、场景数据加载器（`ScenarioData`，数据在 `scenario.json`）、样例公共辅助（`NegotiationSampleSupport`） |
-| `negotiation/fromdata/`、`negotiation/fromtext/` | 9 用例 API 验证样例（见下文两节） |
+| `negotiation/shared/` | 策略层（`NegotiationStrategy` + `FromDataStrategy`/`FromTextStrategy`）、A2A metadata 桥接（`NegotiationMessage`）、扩展/模板 URI 常量（`DemoConstants`）、场景数据加载器（`ScenarioData`，数据在 `scenario.json`）、协商校验 schema（`InformationNegotiationSchemas`，与 private-line 样例共用） |
 
 ### 协商样例启动
 
@@ -95,32 +92,6 @@ java @a2a-t-sample/target/service-recovery-client.javaargs.txt
 
 如果不传参数，会回退到包内的 `sample/service-recovery/{client,server}/{client,server}.env`。
 
-## 结构化数据协商样例（fromData）
-
-验证 `generateNegotiationProposePromptFromData` / `generateNegotiationAcceptPromptFromData` / `generateNegotiationRejectPromptFromData` 三个 API（结构化输入，规则渲染）。覆盖 3 种协商类型 × 3 种阶段 = 9 个用例：
-
-| 类型 | propose | accept | reject |
-|---|---|---|---|
-| 信息协商 | 请求补充接入端口名称/投诉分类 | 交付补充信息 | 站点清单不可用，无法提供 |
-| 目标协商 | 意图理解 + 待澄清 | 确认节能目标 | 区域信息无法澄清 |
-| 可行性协商 | 请求评估节能可行性 | 确认可行 | 供电约束下不可行 |
-
-```bash
-java @a2a-t-sample/target/fromdata.javaargs.txt /path/to/.env
-```
-
-9 个用例的协商报文生成均为确定性规则渲染，不调 LLM；但 SDK 配置仍需有效的 `A2AT_LLM_API_KEY`（`A2ATClient` 构造即校验）。
-
-## 自然语言协商样例（fromText）
-
-验证 `generateNegotiationProposePromptFromText` / `generateNegotiationAcceptPromptFromText` / `generateNegotiationRejectPromptFromText` 三个 API（自然语言输入，LLM 结构化抽取 + 渲染）。同样覆盖 3 种类型 × 3 种阶段 = 9 个用例。与 fromData 的差异：输入是自然语言文本，SDK 用 LLM 抽取为类型化内容后渲染。**需要真实 LLM API key**。
-
-```bash
-java @a2a-t-sample/target/fromtext.javaargs.txt /path/to/.env
-```
-
-复用 `shared/NegotiationSampleSupport` 公共辅助（SessionId、模板 URI 常量、summary），fromData 和 fromText 差异仅在输入构造（record vs 自然语言文本）。
-
 ## 协商接口闭环评测（Negotiation Interface Eval）
 
 `NegotiationEvalApp` 是纯 Java 评测入口，对 `eval-suite.json` 里的每个用例按报文顺序驱动协商 prompt 接口，逐步采集证据并输出可回放的 JSON 报告：
@@ -139,6 +110,8 @@ java @a2a-t-sample/target/fromtext.javaargs.txt /path/to/.env
 **API 调用证据**：报告的每个步骤都记录 `api_calls`（SDK 方法名 + 完整输入参数，含传入的 JSON schema 全文），可从报告直接核对每次调用是否携带 schema、用了哪个模板 URI 和协商上下文。
 
 **LLM 调用证据**：每个步骤还记录 `llm_calls`——该步骤内每次大模型调用的完整请求（system + user prompt 全文、JSON schema、temperature、max_tokens）与响应（content、model、usage、耗时），调用失败时也记录请求与错误。用例失败时可直接从报告看到模型实际收到的 prompt（含槽位描述、值约束、schema 注入后的最终形态），据此反向定位是哪段提示词/约束导致了误判并调优。
+
+**校验参数 schema**：专线投诉协商样例的三个校验接口使用独立的业务无关参数 schema，定义在 `shared/InformationNegotiationSchemas`：`propose` 提取 `items[{name, requirement}]` 及可选的 `relationship`，`accept` 提取 `items[{name, value}]`，`reject` 提取 `items[{name, reason}]`。schema 只约束提取结果的结构，具体信息项名称、要求、值和原因均从协商报文中提取，不包含场景固定字段或枚举值。
 
 **协议约定**（两条常见问题）：
 
@@ -173,6 +146,62 @@ java @a2a-t-sample/target/eval.javaargs.txt --out eval-report-my-model.json /pat
 ```
 
 **换用其他模型测试**：只需在 env 文件里改 4 个 LLM 变量（`A2AT_LLM_PROVIDER` / `A2AT_LLM_MODEL` / `A2AT_LLM_API_KEY` / `A2AT_LLM_BASE_URL`），无需改任何代码或用例。报告的 `llm` 字段会记录当次使用的 provider / model / base_url，`negotiation_channel` 字段记录当次通道（`per-case` 或强制值），便于横向对比多个模型的报告。
+
+## 专线投诉信息协商 Qwen 评测
+
+入口 `NegotiationQwenEvaluationMain` 用于验证传输专线业务投诉诊断场景的信息协商闭环。每条用例按以下四个阶段执行：
+
+1. 生成 propose 协商报文
+2. 校验 propose 协商报文并提取参数
+3. 根据用例结论生成 accept 或 reject 协商报文
+4. 校验 accept 或 reject 协商报文并提取参数
+
+全量用例会覆盖三组生成/校验接口：propose、accept、reject。评测的通过条件是本条用例的四个阶段都成功返回；自然语言提取结果允许存在等义表述差异。
+
+### 运行 Qwen 评测
+
+先复制 `src/main/resources/sample/private-line-complaint-negotiation/evaluation/qwen.env.example` 到本地文件（例如 `qwen.env`），填写目标网络中的模型地址和 API key。环境文件已被 Git 忽略，不要将真实凭据提交到仓库。
+
+首次运行先打包，Maven 会生成 `target/negotiation-qwen-evaluation.javaargs.txt`：
+
+```bash
+mvn -pl a2a-t-sample -am -DskipTests package
+```
+
+评测入口参数依次为：环境文件、报告路径、过程日志路径、用例选择器。用例选择器支持 `smoke`（20 条）、`full`（100 条）或逗号分隔的用例 ID：
+
+```bash
+# 20 条 smoke 用例
+java @a2a-t-sample/target/negotiation-qwen-evaluation.javaargs.txt \
+  /path/to/qwen.env \
+  a2a-t-sample/target/negotiation-qwen-smoke-report.json \
+  a2a-t-sample/target/negotiation-qwen-smoke-process.jsonl \
+  smoke
+
+# 100 条全量用例
+java @a2a-t-sample/target/negotiation-qwen-evaluation.javaargs.txt \
+  /path/to/qwen.env \
+  a2a-t-sample/target/negotiation-qwen-report.json \
+  a2a-t-sample/target/negotiation-qwen-process.jsonl \
+  full
+
+# 只复现指定用例
+java @a2a-t-sample/target/negotiation-qwen-evaluation.javaargs.txt \
+  /path/to/qwen.env \
+  a2a-t-sample/target/negotiation-qwen-repro-report.json \
+  a2a-t-sample/target/negotiation-qwen-repro-process.jsonl \
+  P02,P14,R27
+```
+
+不传报告和过程日志路径时，默认写入 `a2a-t-sample/target/negotiation-qwen-report.json`，过程日志使用同名报告加 `-process.jsonl` 后缀；不传用例选择器时运行全量用例。
+
+### 评测产物
+
+- 报告 JSON 的 `cases` 保存每条用例的输入、四阶段结果、通过状态和错误信息。
+- 报告 JSON 的 `api_trace` 保存每次 SDK 接口调用的完整 request/response、接口名、阶段和耗时。
+- 过程日志是 JSONL，每行对应一次阶段调用，包含 `timestamp`、`case_id`、`step`、`api`、`request`、`response`、`elapsed_ms` 和 `outcome`；调用失败时额外记录 `error`。
+
+生成接口的 request 使用 `text`、`context`、`template_uri`，校验接口的 request 使用 `prompt`、`context`、`schema`、`template_uri`。生成接口的 response 包含生成的 prompt，校验接口的 response 包含 `filled_data`。这些字段可用于区分输入构造、模板渲染和校验提参环节的问题。
 
 **env 配置**：复制以下内容为 `eval.env`，填入你的模型信息即可（完整变量说明见根目录 `env.example`）：
 
@@ -226,13 +255,13 @@ java @a2a-t-sample/target/fromdata-eval.javaargs.txt --out fromdata-eval-report.
 
 ## 授权策略（Authorization-T）演示 Demo
 
-授权策略 Demo 是单进程直调 SDK 示例：客户端生成 Authorization-T prompt → 服务端校验合规性并提取参数。覆盖 3 个预置场景：
+授权策略 Demo 是单进程直调 SDK 示例：客户端生成 Authorization-T prompt → 服务端校验合规性并提取参数。题集按场景分组，覆盖新增/修改/删除/查询四种操作类型及各类校验失败路径：
 
-| 场景 | 入口 | 说明 |
+| 题集 | 入口 | 说明 |
 |---|---|---|
-| `add-from-text` | 自然语言 | 新增两条动网操作授权策略 |
-| `add-from-data` | 结构化数据 | 结构化输入新增授权策略 |
-| `invalid-request` | 自然语言 | 不在四种操作类型之内，预期拒绝 |
+| 冒烟集 `scenarios.json` | 默认题集 | 15 例，负例代表 + 多条列表 + 变异 schema 组 |
+| 全量集 `scenarios-100.json` | 全量评测 | 100 例，评分基线 |
+| 留出集 `scenarios-holdout-100.json` | 防过拟合 | 100 例，与全量同构 |
 
 入口类：`net.openan.a2at.sample.authz_policy.AuthzSampleMain`
 

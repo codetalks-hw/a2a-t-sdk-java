@@ -3,9 +3,6 @@ package net.openan.a2at.sdk.negotiation.generation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,13 +15,11 @@ import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Locks the classpath-only loading of the negotiation LLM prompt resources.
  *
- * <p>A local resource root may override negotiation templates, but the LLM prompt resources are deliberately not taken
- * from it: even with fake prompt files placed under the custom root, the system prompt sent to the LLM must remain the
+ * <p>The LLM prompt resources are deliberately not configurable: the system prompt sent to the LLM is always the
  * built-in classpath prompt of the configured language. Both prompt-consuming steps are covered: the content extraction
  * of the from-text generation and the semantic validation of the parameter extraction pipeline.
  */
@@ -34,8 +29,6 @@ class CustomRootPromptsIgnoredTest {
 
     private static final TemplateUri INFORMATION_PROPOSE_URI = StandardTemplates.INFORMATION_NEGOTIATION_PROPOSE;
 
-    private static final String FAKE_PROMPT_MARKER = "FAKE_PROMPT_MARKER_5b19";
-
     private static final String EXTRACTION_RESPONSE =
             "{\"items\":[{\"name\":\"节能区域\",\"value\":\"松山湖\"}],\"relationship\":null}";
 
@@ -43,14 +36,10 @@ class CustomRootPromptsIgnoredTest {
             "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[],"
                     + "\"params\":{\"region\":\"松山湖\"}}";
 
-    @TempDir
-    Path customRoot;
-
     @Test
-    void contentExtractionKeepsUsingTheBuiltInSystemPrompt() throws IOException {
-        writeFakePromptFiles("information_negotiation");
+    void contentExtractionKeepsUsingTheBuiltInSystemPrompt() {
         RecordingLlmClient llm = new RecordingLlmClient(EXTRACTION_RESPONSE);
-        NegotiationGenerationOrchestrator orchestrator = orchestratorWithCustomRoot(llm);
+        NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         NegotiationContext context = new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE);
 
         MetadataContent result = orchestrator.generateProposeFromText("请提供节能区域。", context, INFORMATION_PROPOSE_URI);
@@ -62,18 +51,14 @@ class CustomRootPromptsIgnoredTest {
                 builtinSystemPrompt,
                 llm.systemContentOfLastCall(),
                 "the system prompt sent to the LLM must be the built-in classpath prompt");
-        assertTrue(
-                !llm.userContentOfLastCall().contains(FAKE_PROMPT_MARKER),
-                "the user prompt must not come from the custom root");
         assertTrue(llm.userContentOfLastCall().contains("请提供节能区域。"), "the user prompt must carry the input text");
         assertTrue(result.promptText().contains("节能区域"));
     }
 
     @Test
-    void semanticValidationKeepsUsingTheBuiltInSystemPrompt() throws IOException {
-        writeFakePromptFiles("negotiation_semantic_validation");
+    void semanticValidationKeepsUsingTheBuiltInSystemPrompt() {
         RecordingLlmClient llm = new RecordingLlmClient(EXTRACTION_RESPONSE, SEMANTIC_RESPONSE);
-        NegotiationGenerationOrchestrator orchestrator = orchestratorWithCustomRoot(llm);
+        NegotiationGenerationOrchestrator orchestrator = orchestrator(llm);
         MetadataContent message = orchestrator.generateProposeFromText(
                 "请提供节能区域。", new NegotiationContext(UUID, 1, 5, NegotiationPerformative.PROPOSE), INFORMATION_PROPOSE_URI);
 
@@ -90,21 +75,12 @@ class CustomRootPromptsIgnoredTest {
                 builtinSystemPrompt,
                 llm.systemContentOfLastCall(),
                 "the semantic validation system prompt must be the built-in classpath prompt");
-        assertTrue(!llm.systemContentOfLastCall().contains(FAKE_PROMPT_MARKER));
         assertEquals("松山湖", filled.data().get("region"));
     }
 
-    private void writeFakePromptFiles(String promptCategory) throws IOException {
-        Path categoryDir = customRoot.resolve("prompts").resolve(promptCategory).resolve("zh-CN");
-        Files.createDirectories(categoryDir);
-        Files.writeString(categoryDir.resolve("system.md"), FAKE_PROMPT_MARKER + " fake system prompt\n");
-        Files.writeString(categoryDir.resolve("user.md"), FAKE_PROMPT_MARKER + " fake user prompt\n");
-    }
-
-    private NegotiationGenerationOrchestrator orchestratorWithCustomRoot(RecordingLlmClient llm) {
+    private NegotiationGenerationOrchestrator orchestrator(RecordingLlmClient llm) {
         return NegotiationGenerationOrchestratorBuilder.builder()
                 .language("zh-CN")
-                .localRootDir(customRoot.toString())
                 .llmClient(llm)
                 .build();
     }

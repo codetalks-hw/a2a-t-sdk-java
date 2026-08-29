@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
 /**
  * Locks the v3 negotiation API surface of both facades and the field faces of the result records.
  *
- * <p>The client and the server expose exactly the eleven camelCase negotiation methods with their pinned parameter
- * counts, their surface carries none of the removed v2-shape method names, and the result records expose exactly
- * their documented components.
+ * <p>The client and the server expose exactly the twelve camelCase negotiation methods with their pinned parameter
+ * counts, their surface carries none of the removed v2-shape method names nor the removed negotiation query methods, and
+ * the result records expose exactly their documented components.
  */
 class NegotiationV3ApiSurfaceTest {
 
@@ -38,20 +38,41 @@ class NegotiationV3ApiSurfaceTest {
             Map.entry("generateNegotiationAcceptPromptFromText", 3),
             Map.entry("generateNegotiationRejectPromptFromText", 3),
             Map.entry("generateNegotiationAbortPromptFromText", 3),
-            Map.entry("getNegotiationPrompts", 0),
-            Map.entry("getNegotiationPrompt", 1),
             Map.entry("validateProposePromptAndDataFilling", 4),
             Map.entry("validateAcceptPromptAndDataFilling", 4),
             Map.entry("validateRejectPromptAndDataFilling", 4),
             Map.entry("validateAbortPromptAndDataFilling", 4));
 
+    private static final List<String> REMOVED_NEGOTIATION_QUERY_METHODS =
+            List.of("getNegotiationPrompts", "getNegotiationPrompt");
+
+    private static final List<String> CROSS_EXTENSION_QUERY_METHODS = List.of("getPrompts", "getPrompt");
+
     private static final List<String> REMOVED_V2_METHOD_NAME_FRAGMENTS =
             List.of("FromNl", "FromJsonData", "validateAndExtractParams");
 
     @Test
-    void bothFacadesExposeExactlyTheFourteenV3NegotiationMethods() {
+    void bothFacadesExposeExactlyTheTwelveV3NegotiationMethods() {
         assertExactNegotiationSurface(A2ATClient.class);
         assertExactNegotiationSurface(A2ATServer.class);
+    }
+
+    @Test
+    void removedNegotiationQueryMethodsAreAbsentWhileCrossExtensionQueriesRemain() {
+        for (Class<?> facade : List.of(A2ATClient.class, A2ATServer.class)) {
+            for (String removedMethod : REMOVED_NEGOTIATION_QUERY_METHODS) {
+                assertFalse(
+                        Arrays.stream(facade.getMethods())
+                                .anyMatch(method -> method.getName().equals(removedMethod)),
+                        facade.getSimpleName() + " must not expose the removed " + removedMethod);
+            }
+            for (String queryMethod : CROSS_EXTENSION_QUERY_METHODS) {
+                assertTrue(
+                        Arrays.stream(facade.getMethods())
+                                .anyMatch(method -> method.getName().equals(queryMethod)),
+                        facade.getSimpleName() + " must expose the cross-extension query " + queryMethod);
+            }
+        }
     }
 
     @Test
@@ -107,7 +128,7 @@ class NegotiationV3ApiSurfaceTest {
         assertEquals(
                 EXPECTED_NEGOTIATION_METHOD_PARAMETERS.keySet(),
                 names,
-                facade.getSimpleName() + " must expose exactly the fourteen v3 negotiation methods");
+                facade.getSimpleName() + " must expose exactly the twelve v3 negotiation methods");
         assertEquals(
                 EXPECTED_NEGOTIATION_METHOD_PARAMETERS.size(),
                 negotiationMethods.size(),

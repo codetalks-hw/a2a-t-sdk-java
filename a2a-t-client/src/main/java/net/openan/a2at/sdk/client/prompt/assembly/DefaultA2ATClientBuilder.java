@@ -133,6 +133,7 @@ public final class DefaultA2ATClientBuilder {
                 .slotSchemaLoader(slotSchemaLoader)
                 .slotValueExtractor(slotValueExtractor)
                 .renderer(new TaskPromptRenderer())
+                .maxTextChars(config.inputLimits().maxTextChars())
                 .build();
     }
 
@@ -179,7 +180,7 @@ public final class DefaultA2ATClientBuilder {
         require(config, "Unified SDK config must be configured.");
         requireSupportedConfig();
         return new TemplateQueryService(
-                config.prompt().language(), config.prompt().localRootDir());
+                config.prompt().language(), config.prompt().sourceType(), config.prompt().localRootDir());
     }
 
     private void requireSupportedConfig() {

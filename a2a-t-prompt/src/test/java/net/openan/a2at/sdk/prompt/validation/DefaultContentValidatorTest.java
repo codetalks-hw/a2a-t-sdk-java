@@ -21,13 +21,14 @@ import org.junit.jupiter.api.Test;
 
 class DefaultContentValidatorTest {
 
-    private static final TemplateUri TASK_URI = TemplateUri.of("Task-T", "network-layer", "energy-saving");
+    private static final TemplateUri TASK_URI = TemplateUri.of("Task-T", "network-layer", "ran-energy-saving");
 
     private static final PromptTemplateTextLoader STUB_LOADER = (scenarioCode, language) -> "dummy template content";
 
     @Test
     void validatesSuccessfullyOnFirstCall() {
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
+        DefaultContentValidator validator =
+                new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
 
         FilledParamData result =
                 assertDoesNotThrow(() -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
@@ -38,23 +39,51 @@ class DefaultContentValidatorTest {
 
     @Test
     void rejectsMismatchedExtensionName() {
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
+        DefaultContentValidator validator =
+                new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
 
-        assertThrows(
-                IllegalArgumentException.class,
+        ContentValidationException exception = assertThrows(
+                ContentValidationException.class,
                 () -> validator.validate(
                         "task prompt",
                         Map.of("type", "object"),
                         TemplateUri.of("Notification-T", "network-layer", "service-recovery")));
+
+        assertEquals("validation_invalid_input", exception.getCode());
     }
 
     @Test
-    void missingPromptResourceFailsWithValidationPromptResourceNotFound() {
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "fr-FR", 3, new StubClient(), STUB_LOADER);
+    void templateVersionIsUnsupported() {
+        DefaultContentValidator validator =
+                new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
+
+        TemplateUri unsupportedVersion =
+                TemplateUri.of("Task-T", List.of("network-layer", "ran-energy-saving"), "v2");
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
-                () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
+                () -> validator.validate("task prompt", Map.of("type", "object"), unsupportedVersion));
+
+        assertEquals("validation_invalid_input", exception.getCode());
+    }
+
+    @Test
+    void templateUriIsNull() {
+        DefaultContentValidator validator =
+                new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
+
+        ContentValidationException exception = assertThrows(
+                ContentValidationException.class,
+                () -> validator.validate("task prompt", Map.of("type", "object"), null));
+
+        assertEquals("validation_invalid_input", exception.getCode());
+    }
+
+    @Test
+    void unsupportedLanguageFailsAtConstructionWithValidationPromptResourceNotFound() {
+        ContentValidationException exception = assertThrows(
+                ContentValidationException.class,
+                () -> new DefaultContentValidator("Task-T", "fr-FR", 3, new StubClient(), STUB_LOADER));
 
         assertEquals("validation_prompt_resource_not_found", exception.getCode());
         assertInstanceOf(ResourceNotFoundException.class, exception.getCause());
@@ -62,41 +91,19 @@ class DefaultContentValidatorTest {
     }
 
     @Test
-    void missingPromptResourceKeepsPipelineNullSoNextCallRetries() {
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "fr-FR", 3, new StubClient(), STUB_LOADER);
+    void constructionSucceedsWithEmptyLocalRootBecausePromptLoadsFromClasspath() {
+        PromptTemplateTextLoader emptyLocalRootLoader = (scenarioCode, language) -> {
+            throw new ResourceNotFoundException("No template in the local root for " + scenarioCode, scenarioCode);
+        };
 
-        // first call fails on the missing resource; the pipeline must stay uninitialised so the next
-        // call re-attempts the construction (transient failures can heal)
-        assertThrows(
-                ContentValidationException.class,
-                () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
-        ContentValidationException second = assertThrows(
-                ContentValidationException.class,
-                () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
-
-        assertEquals("validation_prompt_resource_not_found", second.getCode());
-    }
-
-    @Test
-    void succeedsOnSecondCallAfterTransientResourceFailureHeals() {
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "fr-FR", 3, new StubClient(), STUB_LOADER);
-
-        assertThrows(
-                ContentValidationException.class,
-                () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
-
-        // switching the language is impossible on this class; the healing path is instead proven by a
-        // fresh validator with a supported language constructed after the failing one
-        DefaultContentValidator healed = new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), STUB_LOADER);
-        FilledParamData result =
-                assertDoesNotThrow(() -> healed.validate("task prompt", Map.of("type", "object"), TASK_URI));
-
-        assertNotNull(result);
+        assertDoesNotThrow(
+                () -> new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), emptyLocalRootLoader));
     }
 
     @Test
     void retryableFailureAfterResourceLoadStillMapsLlmInfrastructureError() {
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "zh-CN", 1, new FailingClient(), STUB_LOADER);
+        DefaultContentValidator validator =
+                new DefaultContentValidator("Task-T", "zh-CN", 1, new FailingClient(), STUB_LOADER);
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
@@ -110,7 +117,8 @@ class DefaultContentValidatorTest {
         PromptTemplateTextLoader failingLoader = (scenarioCode, language) -> {
             throw new ResourceNotFoundException("Template does not exist.", scenarioCode);
         };
-        DefaultContentValidator validator = new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), failingLoader);
+        DefaultContentValidator validator =
+                new DefaultContentValidator("Task-T", "zh-CN", 3, new StubClient(), failingLoader);
 
         ContentValidationException exception = assertThrows(
                 ContentValidationException.class,
@@ -118,23 +126,6 @@ class DefaultContentValidatorTest {
 
         assertEquals("template_not_found", exception.getCode());
         assertInstanceOf(ResourceNotFoundException.class, exception.getCause());
-    }
-
-    @Test
-    void missingTemplateLoadsBeforePromptResourcesSoTemplateErrorTakesPrecedence() {
-        // template load fails on an otherwise-valid, resource-complete configuration: the template gate must
-        // short-circuit before the pipeline (and its prompt resources) are ever initialised
-        PromptTemplateTextLoader failingLoader = (scenarioCode, language) -> {
-            throw new ResourceNotFoundException("Template does not exist.", scenarioCode);
-        };
-        DefaultContentValidator validator =
-                new DefaultContentValidator("Task-T", "fr-FR", 3, new StubClient(), failingLoader);
-
-        ContentValidationException exception = assertThrows(
-                ContentValidationException.class,
-                () -> validator.validate("task prompt", Map.of("type", "object"), TASK_URI));
-
-        assertEquals("template_not_found", exception.getCode());
     }
 
     private static final class StubClient implements LLMClient {

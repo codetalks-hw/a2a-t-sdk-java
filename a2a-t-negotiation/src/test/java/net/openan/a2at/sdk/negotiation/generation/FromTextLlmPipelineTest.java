@@ -603,11 +603,6 @@ class FromTextLlmPipelineTest {
             public PromptTemplate load(NegotiationReference reference) {
                 throw new ResourceNotFoundException("Negotiation template does not exist.", reference.uri());
             }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                return List.of();
-            }
         };
     }
 
@@ -660,6 +655,8 @@ class FromTextLlmPipelineTest {
                         + itemsJson(target.alignmentAndClarification())
                         + ",\"request_for_clarification\":"
                         + itemsJson(target.requestForClarification())
+                        + ",\"target_confirm_request\":"
+                        + stringOrNull(target.targetConfirmRequest())
                         + "}";
             }
             FeasibilityProposeContent feasibility = (FeasibilityProposeContent) content;
@@ -671,6 +668,8 @@ class FromTextLlmPipelineTest {
                     + itemsJson(feasibility.contentsToEvaluate())
                     + ",\"infeasibility_details_and_proposal\":"
                     + itemsJson(feasibility.infeasibilityDetailsAndProposal())
+                    + ",\"feasibility_confirm_request\":"
+                    + stringOrNull(feasibility.feasibilityConfirmRequest())
                     + "}";
         }
         if (content instanceof NegotiationAbortContent abort) {

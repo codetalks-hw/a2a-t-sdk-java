@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
+import net.openan.a2at.sample.negotiation.shared.InformationNegotiationSchemas;
 import net.openan.a2at.sdk.client.A2ATClient;
 import net.openan.a2at.sdk.core.exception.A2ATError;
 import net.openan.a2at.sdk.core.model.FilledParamData;
@@ -114,7 +115,7 @@ public final class NegotiationFromDataApiEvalApp {
                     + testCase.get("intent"));
             long startNanos = System.nanoTime();
             Map<String, Object> record = runCase(envPath, testCase);
-            record.put("duration_seconds", Math.round((System.nanoTime() - startNanos) / 100_000.0) / 10.0);
+            record.put("duration_seconds", Math.round((System.nanoTime() - startNanos) / 100_000_000.0) / 10.0);
             cases.add(record);
             writeReport(report, outPath);
         }
@@ -133,7 +134,9 @@ public final class NegotiationFromDataApiEvalApp {
         boolean expectSuccess = Boolean.TRUE.equals(expect.get("succeeds"));
 
         Map<String, Object> itemsInput = asMap(input.get("items"));
-        String relationship = String.valueOf(input.get("relationship"));
+        String relationship = input.containsKey("relationship")
+                ? String.valueOf(input.get("relationship"))
+                : null;
         TemplateUri template = resolveTemplate(api, input);
 
         NegotiationPerformative performative = "propose".equals(api)
@@ -243,21 +246,24 @@ public final class NegotiationFromDataApiEvalApp {
 
         // -- step 2: validation and parameter extraction of the generated message --
         if (prompt != null && !itemsInput.isEmpty()) {
+            // The caller schema describes the business facts to extract, not the SDK's internal
+            // NegotiationItem wire model. It is the same shared contract the fromText samples use.
+            Map<String, Object> extractionSchema = extractionSchema(api);
             Map<String, Object> validateInput = new LinkedHashMap<>();
             validateInput.put("prompt", prompt);
             validateInput.put("context", contextJson(context));
-            validateInput.put("schema", itemsSchema(itemsInput));
+            validateInput.put("schema", extractionSchema);
             validateInput.put("template_uri", template.uri());
             Map<String, Object> validateStep = step("2. validate + extract " + api + " (fromData)", validateRole);
             api(validateStep, apiCall(validateMethod, validateInput));
             try {
                 FilledParamData params = switch (api) {
                     case "propose" -> new A2ATClient(envPath).validateProposePromptAndDataFilling(
-                            prompt, context, itemsSchema(itemsInput), template);
+                            prompt, context, extractionSchema, template);
                     case "accept" -> new A2ATServer(envPath).validateAcceptPromptAndDataFilling(
-                            prompt, context, itemsSchema(itemsInput), template);
+                            prompt, context, extractionSchema, template);
                     case "reject" -> new A2ATServer(envPath).validateRejectPromptAndDataFilling(
-                            prompt, context, itemsSchema(itemsInput), template);
+                            prompt, context, extractionSchema, template);
                     default -> throw new IllegalArgumentException("Unknown api: " + api);
                 };
                 Map<String, Object> extracted =
@@ -273,11 +279,7 @@ public final class NegotiationFromDataApiEvalApp {
                 validation.put("extracted_params", extractedJson);
                 validateStep.put("validation", validation);
                 check(checks, "validation passed", true);
-                for (Map.Entry<String, Object> entry : itemsInput.entrySet()) {
-                    Object value = extracted.get(entry.getKey());
-                    check(checks, "extracted param matches input: " + entry.getKey(),
-                            valueMatches(value, String.valueOf(entry.getValue())));
-                }
+                checkExtractedFields(checks, api, extractedJson, itemsInput, input);
             } catch (RuntimeException error) {
                 Map<String, Object> validation = new LinkedHashMap<>();
                 validation.put("outcome", "rejected");
@@ -305,17 +307,53 @@ public final class NegotiationFromDataApiEvalApp {
         return record;
     }
 
-    /** Parameter schema for the extraction: one string property per input item, all items required. */
-    private static Map<String, Object> itemsSchema(Map<String, Object> items) {
-        Map<String, Object> properties = new LinkedHashMap<>();
-        for (String name : items.keySet()) {
-            properties.put(name, Map.of("type", "string"));
+    /**
+     * Caller-owned extraction schema, shared with the fromText samples: the same information-negotiation
+     * contracts work for both generation paths because the validate*AndDataFilling interfaces and the rendered
+     * wire format are identical.
+     */
+    static Map<String, Object> extractionSchema(String api) {
+        return switch (api) {
+            case "propose" -> InformationNegotiationSchemas.propose();
+            case "accept" -> InformationNegotiationSchemas.accept();
+            case "reject" -> InformationNegotiationSchemas.reject();
+            default -> throw new IllegalArgumentException("Unknown api: " + api);
+        };
+    }
+
+    /**
+     * Asserts that semantic extraction returns exactly the negotiated business field names, and that
+     * accept/reject payloads transport the input item text (supplied value / reason).
+     */
+    private static void checkExtractedFields(
+            List<Map<String, Object>> checks,
+            String api,
+            Map<String, Object> extractedJson,
+            Map<String, Object> itemsInput,
+            Map<String, Object> input) {
+        List<Map<String, Object>> extractedItems = asMapList(extractedJson.get("items"));
+        Set<String> extractedNames = new TreeSet<>();
+        for (Map<String, Object> item : extractedItems) {
+            extractedNames.add(String.valueOf(item.get("name")));
         }
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
-        schema.put("properties", properties);
-        schema.put("required", new ArrayList<>(items.keySet()));
-        return schema;
+        check(checks, "extracted field names match the negotiated items",
+                extractedNames.equals(new TreeSet<>(itemsInput.keySet())));
+        if ("propose".equals(api) && input.containsKey("relationship")) {
+            String relationship = String.valueOf(input.get("relationship"));
+            check(checks, "extracted relationship matches input",
+                    valueMatches(extractedJson.get("relationship"), relationship));
+        } else {
+            check(checks, "relationship is absent for a single field or ending message",
+                    extractedJson.get("relationship") == null);
+        }
+        if ("accept".equals(api) || "reject".equals(api)) {
+            String payloadKey = "accept".equals(api) ? "value" : "reason";
+            for (Map<String, Object> item : extractedItems) {
+                String name = String.valueOf(item.get("name"));
+                check(checks, "extracted " + payloadKey + " matches input item: " + name,
+                        valueMatches(item.get(payloadKey), String.valueOf(itemsInput.get(name))));
+            }
+        }
     }
 
     /** Bidirectional whitespace-free containment: the extracted value may carry the field label or the bare value. */

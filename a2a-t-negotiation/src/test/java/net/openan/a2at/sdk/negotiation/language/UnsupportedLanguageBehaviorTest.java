@@ -11,6 +11,7 @@ import net.openan.a2at.sdk.negotiation.content.NegotiationType;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
 import net.openan.a2at.sdk.negotiation.resources.DefaultNegotiationTemplateLoader;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
+import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -40,22 +41,31 @@ class UnsupportedLanguageBehaviorTest {
 
     @Test
     void templateQueriesOfAnUnsupportedLanguageNeverFallBackToAnotherLanguage() {
-        DefaultNegotiationTemplateLoader frFrLoader = new DefaultNegotiationTemplateLoader("fr-FR", null);
+        TemplateQueryService frFrQueryService = new TemplateQueryService("fr-FR", "classpath", null);
 
-        assertEquals(List.of(), frFrLoader.loadAll(), "no template of another language may be listed for fr-FR");
+        assertEquals(
+                List.of(),
+                negotiationPrompts(frFrQueryService),
+                "no template of another language may be listed for fr-FR");
         for (String bundledLanguage : List.of("zh-CN", "en-US")) {
             assertEquals(
                     7,
-                    new DefaultNegotiationTemplateLoader(bundledLanguage, null)
-                            .loadAll()
-                            .size(),
+                    negotiationPrompts(new TemplateQueryService(bundledLanguage, "classpath", null)).size(),
                     "the bundled languages keep their full template set");
         }
     }
 
+    private static List<net.openan.a2at.sdk.core.model.PromptTemplate> negotiationPrompts(
+            TemplateQueryService queryService) {
+        return queryService.getPrompts().stream()
+                .filter(template -> net.openan.a2at.sdk.core.model.StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
+    }
+
     @Test
     void loadingASingleTemplateOfAnUnsupportedLanguageFailsWithTheLanguageHint() {
-        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR", null);
+        DefaultNegotiationTemplateLoader loader = new DefaultNegotiationTemplateLoader("fr-FR");
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,

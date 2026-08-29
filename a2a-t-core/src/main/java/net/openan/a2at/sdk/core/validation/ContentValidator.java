@@ -21,10 +21,10 @@ public interface ContentValidator {
      * @param prompt content prompt text
      * @param schema caller-provided parameter JSON schema
      * @param templateUri URI of the template the content is validated against, such as
-     *     {@code Task-T/network-layer/energy-saving/v1}
+     *     {@code Task-T/network-layer/ran-energy-saving/v1}
      * @return filled parameter data carrying the merged parameters
-     * @throws NullPointerException if the prompt, schema or template URI is null
-     * @throws IllegalArgumentException if the prompt is blank
+     * @throws ContentValidationException with {@code validation_invalid_input} if the template URI is null or malformed,
+     *     the prompt is null or blank, or the schema is null
      * @throws ContentValidationException if the validation fails at any stage
      */
     FilledParamData validate(

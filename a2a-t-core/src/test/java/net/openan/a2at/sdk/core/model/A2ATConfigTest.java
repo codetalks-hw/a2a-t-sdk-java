@@ -81,7 +81,7 @@ class A2ATConfigTest {
      *
      * <p>Scenario: A .env file contains only minimal required keys (LLM provider and negotiation).
      * Expected result: Default values are applied for prompt configuration (classpath source type,
-     * current directory root).
+     * unset local root directory).
      *
      * @throws IOException if temp directory creation fails
      */
@@ -99,7 +99,7 @@ class A2ATConfigTest {
         A2ATConfig config = A2ATConfig.load(envFile);
 
         assertEquals("classpath", config.prompt().sourceType());
-        assertEquals(".", config.prompt().localRootDir());
+        assertNull(config.prompt().localRootDir());
     }
 
     /**
@@ -114,6 +114,147 @@ class A2ATConfigTest {
         Path missing = Path.of("build", "missing", "a2at.env");
 
         assertThrows(ConfigFileNotFoundException.class, () -> A2ATConfig.load(missing));
+    }
+
+    /**
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} resolves
+     * a relative local root directory to an absolute normalized path against the environment file parent.
+     *
+     * <p>Scenario: A .env file configures a relative local root directory. Expected result: the returned config
+     * carries the local root resolved to an absolute normalized path relative to the .env file parent.
+     *
+     * @throws IOException if temp directory creation fails
+     */
+    @Test
+    void should_resolveRelativeLocalRoot_When_resolvingPromptResourceLocalRootDir() throws IOException {
+        Path tempDir = Files.createTempDirectory("a2at-resolve-relative");
+        Path envFile = tempDir.resolve("client.env");
+        Files.writeString(
+                envFile,
+                """
+                A2AT_PROMPT_SOURCE_TYPE=local_file
+                A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=prompt_resources
+                A2AT_LLM_PROVIDER=openai
+                """);
+
+        A2ATConfig resolved =
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
+
+        assertEquals(
+                tempDir.resolve("prompt_resources").toAbsolutePath().normalize().toString(),
+                resolved.prompt().localRootDir());
+    }
+
+    /**
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} normalizes
+     * an already-absolute local root directory without re-resolving it against the environment file parent.
+     *
+     * <p>Scenario: A .env file configures an absolute local root directory. Expected result: the returned config
+     * carries the normalized absolute path unchanged.
+     *
+     * @throws IOException if temp directory creation fails
+     */
+    @Test
+    void should_normalizeAbsoluteLocalRoot_When_resolvingPromptResourceLocalRootDir() throws IOException {
+        Path tempDir = Files.createTempDirectory("a2at-resolve-absolute");
+        Path absoluteRoot = tempDir.resolve(".").resolve("prompt_resources").toAbsolutePath();
+        Path envFile = tempDir.resolve("client.env");
+        Files.writeString(
+                envFile,
+                "A2AT_PROMPT_SOURCE_TYPE=local_file\n"
+                        + "A2AT_PROMPT_RESOURCE_LOCAL_ROOT_DIR=" + absoluteRoot + "\n"
+                        + "A2AT_LLM_PROVIDER=openai\n");
+
+        A2ATConfig resolved =
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
+
+        assertEquals(absoluteRoot.normalize().toString(), resolved.prompt().localRootDir());
+    }
+
+    /**
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} preserves
+     * an unset (null) local root directory instead of throwing.
+     *
+     * <p>Scenario: A .env file does not configure a local root directory (classpath source). Expected result: the
+     * returned config keeps the local root as null.
+     *
+     * @throws IOException if temp directory creation fails
+     */
+    @Test
+    void should_preserveNullLocalRoot_When_resolvingPromptResourceLocalRootDir() throws IOException {
+        Path tempDir = Files.createTempDirectory("a2at-resolve-null");
+        Path envFile = tempDir.resolve("client.env");
+        Files.writeString(
+                envFile,
+                """
+                A2AT_LLM_PROVIDER=openai
+                """);
+
+        A2ATConfig resolved =
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envFile), envFile);
+
+        assertNull(resolved.prompt().localRootDir());
+    }
+
+    /**
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} preserves
+     * a blank local root directory instead of resolving it to a legal absolute path.
+     *
+     * <p>Scenario: A config carries a blank local root directory. Expected result: the method returns the original
+     * config unchanged, treating a blank root like an unset root (matching the downstream
+     * {@code PromptResourceAccess} and {@code PromptTemplateCatalog} "blank == unset" convention).
+     *
+     * @throws IOException if temp directory creation fails
+     */
+    @Test
+    void should_preserveBlankLocalRoot_When_resolvingPromptResourceLocalRootDir() throws IOException {
+        Path tempDir = Files.createTempDirectory("a2at-resolve-blank");
+        Path envFile = tempDir.resolve("client.env");
+        Files.writeString(envFile, "A2AT_LLM_PROVIDER=openai\n");
+
+        A2ATConfig loaded = A2ATConfig.load(envFile);
+        A2ATConfig config = new A2ATConfig(
+                new PromptRuntimeConfig(loaded.prompt().language(), loaded.prompt().sourceType(), "   "),
+                loaded.llm(),
+                loaded.inputLimits(),
+                loaded.negotiation(),
+                loaded.promptCompliance());
+
+        A2ATConfig resolved = A2ATConfig.resolvePromptResourceLocalRootDir(config, envFile);
+
+        assertSame(config, resolved);
+        assertEquals("   ", resolved.prompt().localRootDir());
+    }
+
+    /**
+     * Verifies that {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)} does not throw when the
+     * {@code envPath} is a single-segment relative path with no parent, resolving the relative local root against the
+     * current working directory instead of a missing parent.
+     *
+     * <p>Scenario: A single-segment relative {@code envPath} (e.g. {@code Path.of(".env")}) has no parent. Expected
+     * result: the returned config carries the local root resolved against the current working directory.
+     *
+     * @throws IOException if temp directory creation fails
+     */
+    @Test
+    void should_resolveRelativeLocalRootAgainstCwd_When_envPathIsSingleSegment() throws IOException {
+        Path tempDir = Files.createTempDirectory("a2at-resolve-single-segment");
+        Path envFile = tempDir.resolve("client.env");
+        Files.writeString(envFile, "A2AT_LLM_PROVIDER=openai\n");
+
+        A2ATConfig loaded = A2ATConfig.load(envFile);
+        A2ATConfig config = new A2ATConfig(
+                new PromptRuntimeConfig(loaded.prompt().language(), "local_file", "prompt_resources"),
+                loaded.llm(),
+                loaded.inputLimits(),
+                loaded.negotiation(),
+                loaded.promptCompliance());
+
+        A2ATConfig resolved = A2ATConfig.resolvePromptResourceLocalRootDir(config, Path.of(".env"));
+
+        assertEquals(
+                Path.of("").toAbsolutePath().normalize().resolve("prompt_resources").normalize().toString(),
+                resolved.prompt().localRootDir());
     }
 
     /**

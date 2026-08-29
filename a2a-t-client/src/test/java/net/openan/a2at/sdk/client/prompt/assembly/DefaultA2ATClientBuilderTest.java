@@ -43,7 +43,7 @@ class DefaultA2ATClientBuilderTest {
         config = new A2ATConfig(
                 new net.openan.a2at.sdk.core.model.PromptRuntimeConfig(
                         config.prompt().language(), config.prompt().sourceType(), resolvedRoot),
-                config.llm(), config.negotiation(), config.promptCompliance());
+                config.llm(), config.inputLimits(), config.negotiation(), config.promptCompliance());
 
         DefaultA2ATClientBuilder builder =
                 DefaultA2ATClientBuilder.builder().config(config).envPath(envFile);
@@ -70,7 +70,7 @@ class DefaultA2ATClientBuilderTest {
         config = new A2ATConfig(
                 new net.openan.a2at.sdk.core.model.PromptRuntimeConfig(
                         config.prompt().language(), config.prompt().sourceType(), resolvedRoot),
-                config.llm(), config.negotiation(), config.promptCompliance());
+                config.llm(), config.inputLimits(), config.negotiation(), config.promptCompliance());
 
         DefaultA2ATClientBuilder builder =
                 DefaultA2ATClientBuilder.builder().config(config).envPath(envFile);
@@ -134,7 +134,7 @@ class DefaultA2ATClientBuilderTest {
                 {
                   "scenarios": [
                     {
-                      "scenario_code": "energy-saving",
+                      "scenario_code": "ran-energy-saving",
                       "scenario_name": "Energy Saving",
                       "description": "Energy analysis",
                       "example": "Analyze site power"

@@ -1,76 +1,77 @@
 package net.openan.a2at.sdk.prompt.resources.loader;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
+import java.util.List;
+import java.util.Map;
 import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
-import net.openan.a2at.sdk.core.exception.A2ATError;
+import net.openan.a2at.sdk.core.resources.PathSegments;
 
 /**
  * Loads shared prompt templates from one local prompt resource root.
+ *
+ * <p>Resources are resolved against an assembly-time snapshot of the local root: runtime reads never touch
+ * the filesystem, so changes to the local files only take effect after the SDK is restarted.
  *
  * @since 2026-06
  */
 public final class LocalFilePromptTemplateLoader implements PromptTemplateTextLoader {
 
+    private final Map<String, String> snapshot;
     private final Path promptRootDir;
+    private final List<String> templateTypes;
 
-    public LocalFilePromptTemplateLoader(Path promptRootDir) {
+    public LocalFilePromptTemplateLoader(Map<String, String> snapshot, Path promptRootDir) {
+        this.snapshot = snapshot;
         this.promptRootDir = promptRootDir;
+        this.templateTypes = LocalFileResourceSnapshot.typeDirectories(snapshot, "templates");
     }
 
     @Override
     public String loadTemplate(String scenarioCode, String language) {
-        Path templatesRoot = promptRootDir.resolve("templates");
-        if (!Files.exists(templatesRoot)) {
+        PathSegments.requireSimpleRelativePath(scenarioCode, "Prompt template scenario code");
+        PathSegments.requireSimpleSegment(language, "Prompt template language");
+        String pathKey;
+        if (scenarioCode.contains("/")) {
+            pathKey = "templates/" + scenarioCode + "/" + language + "/template.md";
+        } else {
+            pathKey = null;
+            for (String templateType : templateTypes) {
+                String candidate = resolveBareCode(templateType, scenarioCode, language);
+                if (snapshot.containsKey(candidate)) {
+                    pathKey = candidate;
+                    break;
+                }
+            }
+        }
+        if (pathKey == null || !snapshot.containsKey(pathKey)) {
             throw notFound(scenarioCode, language);
         }
-        Path templatePath;
-        if (scenarioCode.contains("/")) {
-            templatePath = templatesRoot.resolve(scenarioCode).resolve(language).resolve("template.md");
-            if (!Files.exists(templatePath)) {
-                throw notFound(scenarioCode, language);
-            }
-        } else {
-            try (var typePaths = Files.list(templatesRoot)) {
-                Optional<Path> match = typePaths
-                        .filter(Files::isDirectory)
-                        .map(typeDir -> resolveBareCode(typeDir, scenarioCode, language, "template.md"))
-                        .filter(Files::exists)
-                        .findFirst();
-                templatePath = match.orElse(null);
-            } catch (IOException exception) {
-                throw new A2ATError("Failed to scan prompt template resources: " + templatesRoot, exception);
-            }
-            if (templatePath == null) {
-                throw notFound(scenarioCode, language);
-            }
-        }
-        try {
-            return Files.readString(templatePath);
-        } catch (IOException exception) {
-            throw new A2ATError("Failed to read template resource: " + templatePath, exception);
-        }
+        return snapshot.get(pathKey);
     }
 
     /**
      * Resolves a bare scenario code under one template type directory, preferring the {@code network-layer} domain
      * layout over the plain layout.
      */
-    private static Path resolveBareCode(Path typeDir, String scenarioCode, String language, String fileName) {
-        Path networkLayer = typeDir.resolve("network-layer").resolve(scenarioCode).resolve("v1");
-        if (Files.exists(networkLayer.resolve(language).resolve(fileName))) {
-            return networkLayer.resolve(language).resolve(fileName);
+    private String resolveBareCode(String templateType, String scenarioCode, String language) {
+        String networkLayer =
+                "templates/" + templateType + "/network-layer/" + scenarioCode + "/v1/" + language + "/template.md";
+        if (snapshot.containsKey(networkLayer)) {
+            return networkLayer;
         }
-        return typeDir.resolve(scenarioCode).resolve("v1").resolve(language).resolve(fileName);
+        return "templates/" + templateType + "/" + scenarioCode + "/v1/" + language + "/template.md";
     }
 
     private ResourceNotFoundException notFound(String scenarioCode, String language) {
         String pathHint = scenarioCode.contains("/")
-                ? promptRootDir.resolve("templates").resolve(scenarioCode).resolve(language).resolve("template.md").toString()
-                : promptRootDir.resolve("templates").toString()
-                        + "/*/network-layer/" + scenarioCode + "/v1/" + language + "/template.md (or the layout without the network-layer segment)";
+                ? promptRootDir
+                        .resolve("templates")
+                        .resolve(scenarioCode)
+                        .resolve(language)
+                        .resolve("template.md")
+                        .toString()
+                : promptRootDir.resolve("templates") + "/*/network-layer/" + scenarioCode + "/v1/" + language
+                        + "/template.md (or the layout without the network-layer segment)";
         return new ResourceNotFoundException("Prompt resource file does not exist.", pathHint);
     }
 }

@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import net.openan.a2at.sdk.negotiation.resources.DefaultNegotiationTemplateLoader;
+import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -24,9 +25,11 @@ class NegotiationPromptRendererConcurrencyTest {
 
     @Test
     void promptRendererIsPureUnderConcurrentCalls() throws Exception {
-        String template = new DefaultNegotiationTemplateLoader("zh-CN", null)
-                .loadAll()
-                .get(0)
+        String template = new DefaultNegotiationTemplateLoader("zh-CN")
+                .load(new NegotiationReference(
+                        net.openan.a2at.sdk.negotiation.content.NegotiationType.INFORMATION,
+                        net.openan.a2at.sdk.core.model.NegotiationPerformative.PROPOSE,
+                        "zh-CN"))
                 .content();
         Map<String, String> slots =
                 Map.of("协商上下文", "- id: 3dbc13b5-bd57-4c2b-b503-24e381b6c8d3\n- round: 1\n- maxRounds: 5", "所需信息项", "1. 节能区域：松山湖");

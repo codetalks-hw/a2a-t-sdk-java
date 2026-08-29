@@ -18,6 +18,7 @@ import net.openan.a2at.sdk.negotiation.content.InformationProposeContent;
 import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.NegotiationContext;
 import net.openan.a2at.sdk.core.model.NegotiationPerformative;
+import net.openan.a2at.sdk.core.validation.ContentValidationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationGenerationException;
 import net.openan.a2at.sdk.negotiation.content.NegotiationItem;
 import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionException;
@@ -26,6 +27,7 @@ import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
 import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
 import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.negotiation.runtime.NegotiationHandler;
+import net.openan.a2at.sdk.prompt.resources.catalog.TemplateQueryService;
 import org.junit.jupiter.api.Test;
 
 class NegotiationGenerationOrchestratorTest {
@@ -130,22 +132,19 @@ class NegotiationGenerationOrchestratorTest {
 
     @Test
     void listsAllSevenTemplatesPerLanguage() {
-        assertEquals(7, zhOrchestrator().getNegotiationPrompts().size());
-        assertEquals(7, orchestrator("en-US").getNegotiationPrompts().size());
+        assertEquals(7, negotiationPrompts("zh-CN").size());
+        assertEquals(7, negotiationPrompts("en-US").size());
     }
 
     @Test
     void queriesSingleTemplateByUri() {
-        assertTrue(zhOrchestrator().getNegotiationPrompt(INFORMATION_PROPOSE).isPresent());
-        assertTrue(zhOrchestrator()
-                .getNegotiationPrompt(StandardTemplates.TARGET_NEGOTIATION_ACCEPT_REJECT)
+        assertTrue(queryService("zh-CN").getPrompt(INFORMATION_PROPOSE).isPresent());
+        assertTrue(queryService("zh-CN")
+                .getPrompt(StandardTemplates.TARGET_NEGOTIATION_ACCEPT_REJECT)
                 .isPresent());
-        assertFalse(
-                zhOrchestrator()
-                        .getNegotiationPrompt(
-                                TemplateUri.of("Negotiation-T", "unknown-negotiation", "propose"))
-                        .isPresent());
-        assertFalse(zhOrchestrator().getNegotiationPrompt(StandardTemplates.ENERGY_SAVING).isPresent());
+        assertFalse(queryService("zh-CN")
+                .getPrompt(TemplateUri.of("Negotiation-T", "unknown-negotiation", "propose"))
+                .isPresent());
     }
 
     @Test
@@ -233,8 +232,8 @@ class NegotiationGenerationOrchestratorTest {
 
         assertEquals(A2ATErrorCodes.TEMPLATE_NOT_FOUND, failure.getCode());
         assertTrue(
-                failure.getCause() instanceof NegotiationGenerationException,
-                "the template-load failure must preserve the wrapped generation failure as cause for debugging");
+                failure.getCause() instanceof ContentValidationException,
+                "the template-load failure must preserve the mapped pipeline failure as cause for debugging");
         assertTrue(
                 failure.getCause().getCause() instanceof ResourceNotFoundException,
                 "the original resource failure stays reachable through the cause chain");
@@ -298,16 +297,22 @@ class NegotiationGenerationOrchestratorTest {
                 .build();
     }
 
+    private static TemplateQueryService queryService(String language) {
+        return new TemplateQueryService(language, "classpath", null);
+    }
+
+    private static List<PromptTemplate> negotiationPrompts(String language) {
+        return queryService(language).getPrompts().stream()
+                .filter(template -> StandardTemplates.NEGOTIATION_EXTENSION_NAME.equals(
+                        template.templateUri().extensionName()))
+                .toList();
+    }
+
     private static NegotiationTemplateLoader missingTemplateLoader() {
         return new NegotiationTemplateLoader() {
             @Override
             public PromptTemplate load(NegotiationReference reference) {
                 throw new ResourceNotFoundException("Negotiation template does not exist.", reference.uri());
-            }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                return List.of();
             }
         };
     }

@@ -1,7 +1,9 @@
 package net.openan.a2at.sdk.negotiation.generation;
 
-import java.nio.file.Path;
+import net.openan.a2at.sdk.core.exception.ResourceNotFoundException;
+import net.openan.a2at.sdk.core.model.InputLimitConfig;
 import net.openan.a2at.sdk.core.model.LlmConfig;
+import net.openan.a2at.sdk.core.model.PromptTemplate;
 import net.openan.a2at.sdk.llm.LLMClient;
 import net.openan.a2at.sdk.negotiation.content.Vocabulary;
 import net.openan.a2at.sdk.negotiation.resources.DefaultNegotiationTemplateLoader;
@@ -20,8 +22,8 @@ import org.slf4j.Logger;
  * <p>The language is required. The LLM client is optional: without one, the from-data generation still works, while
  * the LLM steps of the from-text generation and the validation pipeline fail with the
  * {@code negotiation_llm_infrastructure_error} code. Every collaborator has a default implementation wired from the
- * language and the optional local resource root (templates and negotiation vocabulary), and each of them can be
- * overridden for testing or customization.
+ * language (classpath-fixed templates and negotiation vocabulary), and each of them can be overridden for testing or
+ * customization.
  *
  * @since 2026-08
  */
@@ -29,11 +31,11 @@ public final class NegotiationGenerationOrchestratorBuilder {
 
     private String language;
 
-    private String localRootDir;
-
     private LLMClient llmClient;
 
     private int maxAttempts = LlmConfig.DEFAULT_MAX_ATTEMPTS;
+
+    private int maxTextChars = InputLimitConfig.DEFAULT_MAX_TEXT_CHARS;
 
     private NegotiationTemplateLoader templateLoader;
 
@@ -68,18 +70,6 @@ public final class NegotiationGenerationOrchestratorBuilder {
     }
 
     /**
-     * Configures the optional local prompt resource root containing the {@code templates/} and
-     * {@code negotiation-vocabulary/} trees.
-     *
-     * @param localRootDir local prompt resource root; null or blank disables local template and vocabulary overrides
-     * @return current builder
-     */
-    public NegotiationGenerationOrchestratorBuilder localRootDir(String localRootDir) {
-        this.localRootDir = localRootDir;
-        return this;
-    }
-
-    /**
      * Configures the LLM client used by the LLM steps of the pipelines.
      *
      * @param llmClient LLM client; null keeps the LLM steps unavailable while the deterministic steps keep working
@@ -98,6 +88,18 @@ public final class NegotiationGenerationOrchestratorBuilder {
      */
     public NegotiationGenerationOrchestratorBuilder maxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
+        return this;
+    }
+
+    /**
+     * Configures the maximum length in characters accepted for free-text inputs before they reach an LLM step.
+     *
+     * @param maxTextChars maximum accepted length in characters, at least 1; oversized inputs fail fast with the code
+     *     {@code input_text_too_long} instead of overflowing the LLM context
+     * @return current builder
+     */
+    public NegotiationGenerationOrchestratorBuilder maxTextChars(int maxTextChars) {
+        this.maxTextChars = maxTextChars;
         return this;
     }
 
@@ -171,21 +173,37 @@ public final class NegotiationGenerationOrchestratorBuilder {
             throw new IllegalStateException(
                     "Negotiation LLM max attempts must be at least 1 but was " + maxAttempts + ".");
         }
-        Path localVocabularyRoot = localRootDir == null || localRootDir.isBlank() ? null : Path.of(localRootDir);
-        Vocabulary vocabulary = Vocabulary.forLanguage(language, localVocabularyRoot);
+        if (maxTextChars < 1) {
+            throw new IllegalStateException(
+                    "Negotiation max text chars must be at least 1 but was " + maxTextChars + ".");
+        }
+        Vocabulary vocabulary = Vocabulary.forLanguage(language);
         NegotiationTemplateLoader effectiveTemplateLoader =
-                templateLoader != null ? templateLoader : new DefaultNegotiationTemplateLoader(language, localRootDir);
+                templateLoader != null ? templateLoader : new DefaultNegotiationTemplateLoader(language);
         NegotiationContentExtractor effectiveContentExtractor =
                 contentExtractor != null ? contentExtractor : new DefaultNegotiationContentExtractor(llmClient);
         NegotiationComplianceChecker effectiveComplianceChecker =
                 complianceChecker != null ? complianceChecker : new DefaultNegotiationComplianceChecker();
         NegotiationSemanticValidator effectiveSemanticValidator =
                 semanticValidator != null ? semanticValidator : defaultSemanticValidator();
-        ParamExtractor paramExtractor =
-                new ParamExtractor(effectiveComplianceChecker, effectiveSemanticValidator, maxAttempts);
+        ParamExtractor paramExtractor = new ParamExtractor(
+                effectiveComplianceChecker,
+                effectiveSemanticValidator,
+                maxAttempts,
+                reference -> {
+                    PromptTemplate template = effectiveTemplateLoader.load(reference);
+                    String content = template.content();
+                    if (content == null) {
+                        throw new ResourceNotFoundException(
+                                "Negotiation template body is missing for " + template.templateUri().uri() + ".",
+                                template.templateUri().uri());
+                    }
+                    return content;
+                });
         return new NegotiationGenerationOrchestrator(
                 language,
                 maxAttempts,
+                maxTextChars,
                 effectiveTemplateLoader,
                 effectiveContentExtractor,
                 paramExtractor,

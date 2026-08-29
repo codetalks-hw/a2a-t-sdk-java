@@ -12,13 +12,14 @@ from pathlib import Path
 
 HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 SLOT = re.compile(r"{{\s*([^{}\s]+)\s*}}")
-TASK = {"Task Description", "Task Type", "Task Target", "Task Object", "Task Context", "Constraints", "Expected Output", "Operation Type"}
+TASK = {"Task Description", "Task Type", "Task Target", "Task Object", "Task Context", "Constraints", "Expected Output", "Operation Type", "Terminology Explanation"}
 NOTIFICATION = {"Subscription Description", "Notification Topic", "Subscribe Condition", "Notification Data Format", "Expected Output"}
 AUTHORIZATION = {"Authorization Policy Operation Type", "Authorization Policy Operation Description", "Network Operation Authorization Policy List", "Expected Output"}
 ALIASES = {
     "任务描述": "Task Description", "任务类型": "Task Type", "任务目标": "Task Target", "任务对象": "Task Object",
     "目标对象": "Task Object", "任务上下文": "Task Context", "约束条件": "Constraints", "预期输出": "Expected Output",
     "操作类型": "Operation Type",
+    "术语解释": "Terminology Explanation",
     "订阅描述": "Subscription Description", "通知主题": "Notification Topic", "订阅条件": "Subscribe Condition",
     "通知数据格式": "Notification Data Format", "上报通知数据格式": "Notification Data Format",
     "授权策略的操作类型": "Authorization Policy Operation Type",
@@ -33,9 +34,9 @@ NEGOTIATION_STATIC_SECTIONS = {"info_static"}
 NEGOTIATION_PROFILES = {
     ("information-negotiation", "propose"): ("info_static", "info_items"),
     ("information-negotiation", "accept-reject"): ("info_conclusion", "info_result_content"),
-    ("target-negotiation", "propose"): ("target", "target_intent", "target_alignment", "target_clarification"),
+    ("target-negotiation", "propose"): ("target", "target_intent", "target_alignment", "target_clarification", "target_confirm_request"),
     ("target-negotiation", "accept-reject"): ("target_conclusion", "target_result_content"),
-    ("feasibility-negotiation", "propose"): ("feasibility", "feasibility_evaluate", "feasibility_infeasible"),
+    ("feasibility-negotiation", "propose"): ("feasibility", "feasibility_evaluate", "feasibility_infeasible", "feasibility_confirm_request"),
     ("feasibility-negotiation", "accept-reject"): ("feasibility_conclusion", "feasibility_confirm"),
 }
 NEGOTIATION_MARKER = re.compile(

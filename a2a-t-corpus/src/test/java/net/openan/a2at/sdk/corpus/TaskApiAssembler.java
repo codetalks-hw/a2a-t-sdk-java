@@ -15,7 +15,6 @@ import net.openan.a2at.sdk.core.model.MetadataContent;
 import net.openan.a2at.sdk.core.model.TemplateUri;
 import net.openan.a2at.sdk.core.validation.ContentValidator;
 import net.openan.a2at.sdk.llm.LLMClient;
-import net.openan.a2at.sdk.negotiation.generation.NegotiationContentService;
 import net.openan.a2at.sdk.server.assembly.DefaultA2ATServerBuilder;
 
 /**
@@ -34,7 +33,7 @@ import net.openan.a2at.sdk.server.assembly.DefaultA2ATServerBuilder;
  *
  * <p>Both builders are driven exactly like the facades drive them: a minimal classpath-source {@code .env} (written once
  * per language and retry limit into a temporary directory, following the facade test precedent) is loaded through
- * {@link A2ATConfig#load(Path)} plus {@link NegotiationContentService#resolvePromptResourceLocalRootDir(A2ATConfig, Path)},
+ * {@link A2ATConfig#load(Path)} plus {@link A2ATConfig#resolvePromptResourceLocalRootDir(A2ATConfig, Path)},
  * and the {@link ScriptedNegotiationLlmClient} is injected through the builders' {@code llmClient(...)} seam — the same
  * instance feeds the client-side and the server-side components, so the {@code llmCalls} expectation counts the whole
  * closed loop. The facade constructors are locked to the {@code Path}-only signature by the API-surface guard tests, so
@@ -71,7 +70,7 @@ final class TaskApiAssembler {
      */
     TaskApiAssembler(Path envPath, LLMClient llmClient) {
         A2ATConfig config =
-                NegotiationContentService.resolvePromptResourceLocalRootDir(A2ATConfig.load(envPath), envPath);
+                A2ATConfig.resolvePromptResourceLocalRootDir(A2ATConfig.load(envPath), envPath);
         this.promptGeneration = DefaultA2ATClientBuilder.builder()
                 .config(config)
                 .envPath(envPath)

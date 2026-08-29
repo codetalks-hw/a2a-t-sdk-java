@@ -30,9 +30,6 @@ import net.openan.a2at.sdk.negotiation.content.NegotiationParamExtractionExcepti
 import net.openan.a2at.sdk.negotiation.content.NegotiationProposeData;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestrator;
 import net.openan.a2at.sdk.negotiation.generation.NegotiationGenerationOrchestratorBuilder;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationReference;
-import net.openan.a2at.sdk.negotiation.resources.NegotiationTemplateLoader;
-import net.openan.a2at.sdk.core.model.PromptTemplate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * Locks the log instrumentation contract of the negotiation content layer.
  *
  * <p>Every pipeline path is driven through the real default collaborators with a scripted LLM client and the emitted
- * events are captured with a logback {@link ListAppender}. The test asserts that exactly the twelve contract event
+ * events are captured with a logback {@link ListAppender}. The test asserts that exactly the eleven contract event
  * names appear, each at its configured level, that every message is an English snake_case event followed by
  * {@code key=value} fields, that internal step diagnostics live in the logs only, and that neither the message text,
  * the free-text input nor the raw LLM response ever leaks into an INFO-or-higher event.
@@ -63,7 +60,6 @@ class NegotiationLogEventContractTest {
             Map.entry("negotiation_llm_retry_exhausted", Set.of(Level.WARN)),
             Map.entry("negotiation_generation_failed", Set.of(Level.WARN)),
             Map.entry("negotiation_param_extraction_failed", Set.of(Level.WARN)),
-            Map.entry("negotiation_template_not_found", Set.of(Level.WARN)),
             Map.entry("negotiation_rule_checks_completed", Set.of(Level.DEBUG, Level.WARN)));
 
     private Logger rootLogger;
@@ -85,7 +81,7 @@ class NegotiationLogEventContractTest {
     }
 
     @Test
-    void allTwelveEventNamesFireAtTheirConfiguredLevelsAcrossThePipelines() {
+    void allNegotiationEventNamesFireAtTheirConfiguredLevelsAcrossThePipelines() {
         driveSuccessfulGenerationFromData();
         driveSuccessfulGenerationFromText();
         driveRetryThenSuccessOnContentExtraction();
@@ -93,7 +89,6 @@ class NegotiationLogEventContractTest {
         driveSuccessfulParamExtraction();
         driveSemanticRejection();
         driveRuleViolation();
-        driveQueryBoundaries();
 
         Map<String, Set<Level>> observedLevels = negotiationEventLevels();
         assertEquals(EXPECTED_EVENT_LEVELS.keySet(), observedLevels.keySet());
@@ -106,7 +101,6 @@ class NegotiationLogEventContractTest {
         driveSuccessfulGenerationFromData();
         driveSuccessfulGenerationFromText();
         driveSuccessfulParamExtraction();
-        driveQueryBoundaries();
 
         List<ILoggingEvent> events = negotiationEvents();
         assertFalse(events.isEmpty());
@@ -198,35 +192,6 @@ class NegotiationLogEventContractTest {
             assertFalse(
                     message.contains("prompt_text=") || message.contains("text=") || message.contains("response="),
                     "raw content field must not be logged at " + event.getLevel() + ": " + message);
-        }
-    }
-
-    @Test
-    void queryBoundariesEmitTemplateNotFoundWarningsWithActionableHints() {
-        NegotiationGenerationOrchestrator defaultLoaderOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .templateLoader(missingTemplateLoader())
-                .build();
-
-        defaultLoaderOrchestrator.getNegotiationPrompts();
-        defaultLoaderOrchestrator.getNegotiationPrompt(INFORMATION_PROPOSE_URI);
-
-        NegotiationGenerationOrchestrator builtinOrchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .build();
-        builtinOrchestrator.getNegotiationPrompt(StandardTemplates.ENERGY_SAVING);
-
-        List<String> warnings = messagesOf("negotiation_template_not_found");
-        assertEquals(3, warnings.size());
-        assertTrue(warnings.get(0).contains("uri=all"));
-        assertTrue(warnings.get(0).contains("language=zh-CN"));
-        assertTrue(warnings.get(1).contains("uri=" + INFORMATION_PROPOSE_URI.uri()));
-        assertTrue(warnings.get(1).contains("language=zh-CN"));
-        assertTrue(warnings.get(2).contains("reason=invalid_template_uri"));
-        for (String warning : warnings) {
-            assertTrue(warning.contains("hint="), "boundary warning must carry a hint: " + warning);
-            assertTrue(
-                    warning.contains("A2AT_LANGUAGE"), "boundary warning hint must mention A2AT_LANGUAGE: " + warning);
         }
     }
 
@@ -353,16 +318,6 @@ class NegotiationLogEventContractTest {
         }
     }
 
-    private void driveQueryBoundaries() {
-        NegotiationGenerationOrchestrator orchestrator = NegotiationGenerationOrchestratorBuilder.builder()
-                .language("zh-CN")
-                .templateLoader(missingTemplateLoader())
-                .build();
-        orchestrator.getNegotiationPrompts();
-        orchestrator.getNegotiationPrompt(INFORMATION_PROPOSE_URI);
-        assertTrue(orchestrator.getNegotiationPrompt(StandardTemplates.ENERGY_SAVING).isEmpty());
-    }
-
     private static String validExtractionPayload() {
         return "{\"items\":[{\"name\":\"节能区域\",\"value\":\"松山湖\"}],\"relationship\":null}";
     }
@@ -370,22 +325,6 @@ class NegotiationLogEventContractTest {
     private static String validSemanticPayload() {
         return "{\"semantic_verdict\":true,\"negotiation_type\":\"information\",\"errors\":[],"
                 + "\"params\":{\"region\":\"松山湖\"}}";
-    }
-
-    private static NegotiationTemplateLoader missingTemplateLoader() {
-        return new NegotiationTemplateLoader() {
-            @Override
-            public PromptTemplate load(NegotiationReference reference) {
-                throw new net.openan.a2at.sdk.core.exception.ResourceNotFoundException(
-                        "Negotiation template does not exist.", reference.uri());
-            }
-
-            @Override
-            public List<PromptTemplate> loadAll() {
-                throw new net.openan.a2at.sdk.core.exception.ResourceNotFoundException(
-                        "No negotiation template exists for the configured language.", "templates/Negotiation-T");
-            }
-        };
     }
 
     private Map<String, Set<Level>> negotiationEventLevels() {
