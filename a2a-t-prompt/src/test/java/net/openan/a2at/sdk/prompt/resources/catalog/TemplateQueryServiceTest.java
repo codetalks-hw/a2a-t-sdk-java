@@ -152,13 +152,15 @@ class TemplateQueryServiceTest {
     }
 
     @Test
-    void negotiationTemplateOutsideClosedSetLogsWarning() {
+    void closedSetMissLogsSinglePromptTemplateNotFoundWarning() {
         new TemplateQueryService(LANGUAGE, "classpath", null)
                 .getPrompt(TemplateUri.of("Negotiation-T", "feasibility-negotiation", "revise"));
 
+        List<String> warnings = warningEvents();
+        assertEquals(1, warnings.size(), "expected exactly one WARN for querying a closed-set-outside negotiation URI");
         assertTrue(
-                warningEvents().stream().anyMatch(message -> message.startsWith("negotiation_template_outside_closed_set")),
-                "expected a WARN for filtering a negotiation template outside the closed set");
+                warnings.get(0).startsWith("prompt_template_not_found"),
+                "expected a prompt_template_not_found WARN, not a negotiation_template_outside_closed_set WARN");
     }
 
     @Test

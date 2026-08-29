@@ -3,7 +3,6 @@ package net.openan.a2at.sdk.server;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import net.openan.a2at.sdk.core.model.A2ATConfig;
 import net.openan.a2at.sdk.core.model.FilledParamData;
@@ -135,7 +134,6 @@ public final class A2ATServer {
      */
     public MetadataContent generateNegotiationProposePromptFromData(
             @NonNull NegotiationProposeData data, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateProposeFromData(data, templateUri);
     }
 
@@ -158,7 +156,6 @@ public final class A2ATServer {
      */
     public MetadataContent generateNegotiationAcceptPromptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateAcceptFromData(data, templateUri);
     }
 
@@ -181,7 +178,6 @@ public final class A2ATServer {
      */
     public MetadataContent generateNegotiationRejectPromptFromData(
             @NonNull NegotiationEndingData data, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateRejectFromData(data, templateUri);
     }
 
@@ -203,7 +199,6 @@ public final class A2ATServer {
      */
     public MetadataContent generateNegotiationAbortPromptFromData(
             @NonNull NegotiationAbortData data, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateAbortFromData(data, templateUri);
     }
 
@@ -234,7 +229,6 @@ public final class A2ATServer {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateProposeFromText(text, context, templateUri);
     }
 
@@ -264,7 +258,6 @@ public final class A2ATServer {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateAcceptFromText(text, context, templateUri);
     }
 
@@ -294,7 +287,6 @@ public final class A2ATServer {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateRejectFromText(text, context, templateUri);
     }
 
@@ -322,7 +314,6 @@ public final class A2ATServer {
             @NonNull String text,
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.generateAbortFromText(text, context, templateUri);
     }
 
@@ -351,7 +342,6 @@ public final class A2ATServer {
      * @return the addressed template, or an empty result when the template does not exist for the configured language
      */
     public Optional<PromptTemplate> getPrompt(@NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return templateQueryService.getPrompt(templateUri);
     }
 
@@ -385,7 +375,6 @@ public final class A2ATServer {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.validateProposePromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -419,7 +408,6 @@ public final class A2ATServer {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.validateAcceptPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -453,7 +441,6 @@ public final class A2ATServer {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.validateRejectPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -486,7 +473,6 @@ public final class A2ATServer {
             net.openan.a2at.sdk.core.model.NegotiationContext context,
             @NonNull Map<String, Object> schema,
             @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return negotiationContentService.validateAbortPromptAndDataFilling(prompt, context, schema, templateUri);
     }
 
@@ -500,9 +486,10 @@ public final class A2ATServer {
      * @param templateUri template URI declaring the expected task template; its prefix segment must be
      *     {@code Task-T}
      * @return filled parameter data carrying the merged parameters
-     * @throws NullPointerException if the prompt, schema or template URI is null
+     * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
+     *     {@code validation_invalid_input} when the template URI is null,
      *     {@code validation_semantic_rejected} when the semantic validation rejects the content,
      *     {@code validation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
      *     {@code validation_prompt_resource_not_found} when the validation prompt resources are missing, or
@@ -511,7 +498,6 @@ public final class A2ATServer {
      */
     public FilledParamData validateTaskPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return taskContentValidator.validate(prompt, schema, templateUri);
     }
 
@@ -525,9 +511,10 @@ public final class A2ATServer {
      * @param templateUri template URI declaring the expected notification template; its prefix segment must be
      *     {@code Notification-T}
      * @return filled parameter data carrying the merged parameters
-     * @throws NullPointerException if the prompt, schema or template URI is null
+     * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
+     *     {@code validation_invalid_input} when the template URI is null,
      *     {@code validation_semantic_rejected} when the semantic validation rejects the content,
      *     {@code validation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
      *     {@code validation_prompt_resource_not_found} when the validation prompt resources are missing, or
@@ -536,7 +523,6 @@ public final class A2ATServer {
      */
     public FilledParamData validateNotificationPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return notificationContentValidator.validate(prompt, schema, templateUri);
     }
 
@@ -550,9 +536,10 @@ public final class A2ATServer {
      * @param templateUri template URI declaring the expected authorization template; its prefix segment must be
      *     {@code Authorization-T}
      * @return filled parameter data carrying the merged parameters
-     * @throws NullPointerException if the prompt, schema or template URI is null
+     * @throws NullPointerException if the prompt or schema is null
      * @throws IllegalArgumentException if the prompt is blank
      * @throws net.openan.a2at.sdk.core.validation.ContentValidationException with the code
+     *     {@code validation_invalid_input} when the template URI is null,
      *     {@code validation_semantic_rejected} when the semantic validation rejects the content,
      *     {@code validation_llm_infrastructure_error} when the semantic step fails after exhausting its retries, or
      *     {@code validation_prompt_resource_not_found} when the validation prompt resources are missing, or
@@ -561,11 +548,6 @@ public final class A2ATServer {
      */
     public FilledParamData validateAuthPromptAndDataFilling(
             @NonNull String prompt, @NonNull Map<String, Object> schema, @NonNull TemplateUri templateUri) {
-        requireTemplateUri(templateUri);
         return authContentValidator.validate(prompt, schema, templateUri);
-    }
-
-    private static void requireTemplateUri(TemplateUri templateUri) {
-        Objects.requireNonNull(templateUri, "Template URI must not be null.");
     }
 }

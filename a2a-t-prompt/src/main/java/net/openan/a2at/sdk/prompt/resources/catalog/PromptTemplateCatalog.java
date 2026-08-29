@@ -194,7 +194,6 @@ final class PromptTemplateCatalog {
         String uri = templateUri.uri();
         boolean negotiation = NEGOTIATION_EXTENSION.equals(templateUri.extensionName());
         if (negotiation && !isClosedSetNegotiationUri(uri)) {
-            LOGGER.atWarn().log("negotiation_template_outside_closed_set uri={}", uri);
             return Optional.empty();
         }
         String classpathPath = CLASSPATH_ROOT + String.join("/", TEMPLATE_DIRECTORY, uri, language, TEMPLATE_FILE_NAME);
